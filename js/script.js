@@ -77,6 +77,36 @@ const quartIcon = `
     <line x1="14" y1="106" x2="186" y2="106" stroke="#ffffff" stroke-width="3"/>
   </svg>`;
 
+// ネオン風の「9本の旗」アイコン（ゴースト・ライン用）
+//   シアン＝自分がとった旗、ピンク＝相手の旗、グレー＝まだ誰もとっていない旗
+//   下の黄緑の線は「となり合った3本」
+const lineIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke-width="3">
+      <line x1="18" y1="36" x2="18" y2="92" stroke="#5a5480"/>
+      <line x1="38" y1="36" x2="38" y2="92" stroke="#ff2fd6"/>
+      <line x1="58" y1="36" x2="58" y2="92" stroke="#22f3ff"/>
+      <line x1="78" y1="36" x2="78" y2="92" stroke="#22f3ff"/>
+      <line x1="98" y1="36" x2="98" y2="92" stroke="#22f3ff"/>
+      <line x1="118" y1="36" x2="118" y2="92" stroke="#5a5480"/>
+      <line x1="138" y1="36" x2="138" y2="92" stroke="#ff2fd6"/>
+      <line x1="158" y1="36" x2="158" y2="92" stroke="#5a5480"/>
+      <line x1="178" y1="36" x2="178" y2="92" stroke="#5a5480"/>
+    </g>
+    <g stroke-width="2.5">
+      <path d="M18 36 L31 43 L18 50 z" stroke="#5a5480"/>
+      <path d="M38 36 L51 43 L38 50 z" stroke="#ff2fd6" fill="#ff2fd6"/>
+      <path d="M58 36 L71 43 L58 50 z" stroke="#22f3ff" fill="#22f3ff"/>
+      <path d="M78 36 L91 43 L78 50 z" stroke="#22f3ff" fill="#22f3ff"/>
+      <path d="M98 36 L111 43 L98 50 z" stroke="#22f3ff" fill="#22f3ff"/>
+      <path d="M118 36 L131 43 L118 50 z" stroke="#5a5480"/>
+      <path d="M138 36 L151 43 L138 50 z" stroke="#ff2fd6" fill="#ff2fd6"/>
+      <path d="M158 36 L171 43 L158 50 z" stroke="#5a5480"/>
+      <path d="M178 36 L191 43 L178 50 z" stroke="#5a5480"/>
+    </g>
+    <path d="M52 100 V106 H104 V100" stroke="#b6ff3b" stroke-width="3"/>
+  </svg>`;
+
 // ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
 //   image に "images/xxx.png" を指定するとアイコンの代わりに画像が表示されます
 const games = [
@@ -108,6 +138,13 @@ const games = [
     url: "https://unityroom.com/games/ghost_quart",
     image: "",
     icon: quartIcon
+  },
+  {
+    title: "ゴースト・ライン",
+    description: "並んだ9本の旗をめぐって戦う陣取りゲーム。どこでもいいから5本とるか、となり合った3本をまとめてとれば勝ち。",
+    url: "https://unityroom.com/games/ghost_line",
+    image: "",
+    icon: lineIcon
   }
 ];
 
