@@ -18,3 +18,6 @@ infra/config.local.json
 
 # Unity WebGL builds: uploaded to S3 by cdk deploy, not stored in git
 web/play/
+
+# CDK lookup cache (contains the AWS account ID and hosted zone ID; regenerated on synth)
+infra/cdk.context.json
