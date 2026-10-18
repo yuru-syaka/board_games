@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>{{{ GAME_TITLE }}}｜プレイ - BOARD GAMES</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="../../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../../images/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="TemplateData/play.css" />
+#if SHOW_DIAGNOSTICS
+  <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>" />
+  <script src="<<<TemplateData/diagnostics.js>>>"></script>
+#endif
+</head>
+<body>
+  <nav class="play-bar">
+    <a class="brand" href="../../">BOARD GAMES</a>
+    <span class="game-title">{{{ GAME_TITLE }}}</span>
+    <span class="actions">
+      <a class="btn" href="../../games/{{{ GAME_PAGE }}}">遊び方</a>
+      <button class="btn" id="fullscreen-button" type="button" disabled>全画面</button>
+    </span>
+  </nav>
+
+  <main id="stage">
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <div id="loading">
+      <p class="loading-title">LOADING</p>
+      <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
+      <p class="loading-note" id="progress-text">0%</p>
+    </div>
+    <div id="error" hidden>
+      <p class="error-title">ゲームを読み込めませんでした</p>
+      <p class="error-message" id="error-message"></p>
+      <button class="btn" type="button" onclick="location.reload()">もう一度読み込む</button>
+    </div>
+    <div id="banner"></div>
+  </main>
+
+  <script>
+    var canvas = document.getElementById("unity-canvas");
+    var stage = document.getElementById("stage");
+    var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+    // PC は縦長（1080x1920 基準）の画面を中央に、スマホは表示領域いっぱいに広げる
+    var ASPECT = 9 / 16;
+    function fitCanvas() {
+      var w = stage.clientWidth, h = stage.clientHeight;
+      if (isMobile) {
+        canvas.style.width = w + "px";
+        canvas.style.height = h + "px";
+        return;
+      }
+      var cw = Math.min(w, h * ASPECT);
+      canvas.style.width = Math.floor(cw) + "px";
+      canvas.style.height = Math.floor(cw / ASPECT) + "px";
+    }
+    window.addEventListener("resize", fitCanvas);
+    fitCanvas();
+
+    function showBanner(msg, type) {
+      if (type === "error") { showError(msg); return; }
+      var banner = document.getElementById("banner");
+      var div = document.createElement("div");
+      div.className = "banner-item" + (type === "warning" ? " warning" : "");
+      div.textContent = msg;
+      banner.appendChild(div);
+      setTimeout(function () { banner.removeChild(div); }, 5000);
+    }
+
+    function showError(msg) {
+      document.getElementById("loading").hidden = true;
+      document.getElementById("error-message").textContent = msg;
+      document.getElementById("error").hidden = false;
+    }
+
+    var buildUrl = "Build";
+    var config = {
+      arguments: [],
+      dataUrl: buildUrl + "/{{{ DATA_FILENAME }}}",
+      frameworkUrl: buildUrl + "/{{{ FRAMEWORK_FILENAME }}}",
+#if USE_WASM
+      codeUrl: buildUrl + "/{{{ CODE_FILENAME }}}",
+#endif
+#if SYMBOLS_FILENAME
+      symbolsUrl: buildUrl + "/{{{ SYMBOLS_FILENAME }}}",
+#endif
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}},
+      showBanner: showBanner,
+    };
+
+    var script = document.createElement("script");
+    script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
+    script.onload = function () {
+      createUnityInstance(canvas, config, function (progress) {
+        var pct = Math.round(progress * 100);
+        document.getElementById("progress-fill").style.width = pct + "%";
+        document.getElementById("progress-text").textContent = pct + "%";
+      }).then(function (unityInstance) {
+        document.getElementById("loading").hidden = true;
+        var fs = document.getElementById("fullscreen-button");
+        fs.disabled = false;
+        fs.onclick = function () { unityInstance.SetFullscreen(1); };
+#if SHOW_DIAGNOSTICS
+        unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
+#endif
+      }).catch(function (message) {
+        showError(String(message));
+      });
+    };
+    script.onerror = function () { showError("ゲームのファイルを取得できませんでした。通信状況を確認してください。"); };
+    document.body.appendChild(script);
+  </script>
+</body>
+</html>

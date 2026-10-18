@@ -56,8 +56,9 @@ function handler(event) {
     });
 
     new s3deploy.BucketDeployment(this, 'DeploySite', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '..', '..', 'web'))],
+      sources: [s3deploy.Source.asset(path.join(__dirname, '..', '..', 'web'), { exclude: ['**/unity-build.provenance.json'] })],
       destinationBucket: bucket,
+      memoryLimit: 512, // Unity の WebGL ビルド（数十 MB）を扱うため既定の 128MB から増やす
       distribution,
       distributionPaths: ['/*'],
     });

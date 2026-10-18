@@ -3,11 +3,12 @@ node_modules/
 cdk.out/
 *.tsbuildinfo
 
-# Unity builds (deployed separately)
-web/play/**/Build/
 
 # OS / editor
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+# Unity CLI build records (contain local paths)
+unity-build.provenance.json

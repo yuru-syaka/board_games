@@ -1,0 +1,152 @@
+/* プレイ画面。色とフォントは web/css/style.css と合わせる */
+:root {
+  --bg: #07060f;
+  --text: #e9e6ff;
+  --sub: #9a94c4;
+  --pink: #ff2fd6;
+  --cyan: #22f3ff;
+  --purple: #9b5cff;
+  --bar-h: 52px;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  font-family: "M PLUS Rounded 1c", "Hiragino Sans", "Yu Gothic", sans-serif;
+  color: var(--text);
+  background:
+    radial-gradient(circle at 15% 10%, rgba(255, 47, 214, 0.18), transparent 40%),
+    radial-gradient(circle at 85% 30%, rgba(34, 243, 255, 0.15), transparent 40%),
+    var(--bg);
+}
+
+/* ===== 上のバー ===== */
+.play-bar {
+  flex: 0 0 var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  padding-top: env(safe-area-inset-top);
+  border-bottom: 1px solid rgba(155, 92, 255, 0.35);
+  background: rgba(7, 6, 15, 0.85);
+}
+.brand {
+  font-family: "Orbitron", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #fff;
+  text-decoration: none;
+  text-shadow: 0 0 6px var(--pink), 0 0 14px var(--pink);
+  white-space: nowrap;
+}
+.game-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--cyan);
+  font-weight: 700;
+}
+.actions { display: flex; gap: 8px; }
+.btn {
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  padding: 4px 14px;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: rgba(34, 243, 255, 0.15); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ===== ゲーム領域 ===== */
+#stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#unity-canvas {
+  display: block;
+  background: #000;
+  outline: none;
+  box-shadow: 0 0 24px rgba(155, 92, 255, 0.35);
+}
+
+#loading, #error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px;
+  text-align: center;
+  background: var(--bg);
+}
+#loading[hidden], #error[hidden] { display: none; }
+.loading-title {
+  margin: 0;
+  font-family: "Orbitron", sans-serif;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+  color: #fff;
+  text-shadow: 0 0 8px var(--cyan), 0 0 20px var(--cyan);
+}
+.progress {
+  width: min(320px, 80%);
+  height: 10px;
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  width: 0;
+  height: 100%;
+  background: linear-gradient(90deg, var(--purple), var(--cyan));
+  box-shadow: 0 0 10px var(--cyan);
+  transition: width 0.2s;
+}
+.loading-note { margin: 0; color: var(--sub); font-size: 0.85rem; }
+.error-title { margin: 0; font-weight: 700; color: var(--pink); }
+.error-message { margin: 0; max-width: 520px; color: var(--sub); font-size: 0.85rem; word-break: break-all; }
+
+#banner {
+  position: absolute;
+  left: 50%;
+  top: 12px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(480px, 90%);
+}
+.banner-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  background: rgba(34, 243, 255, 0.15);
+  border: 1px solid var(--cyan);
+}
+.banner-item.warning { background: rgba(255, 47, 214, 0.15); border-color: var(--pink); }
+
+@media (max-width: 480px) {
+  .play-bar { gap: 8px; padding: 0 10px; }
+  .brand { font-size: 0.8rem; }
+  .game-title { font-size: 0.85rem; }
+  .btn { padding: 4px 10px; font-size: 0.8rem; }
+}

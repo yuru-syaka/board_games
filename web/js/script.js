@@ -113,7 +113,7 @@ const games = [
   {
     title: "ゴースト・マルバツゲーム",
     description: "自分の置いた駒が消えていくマルバツゲーム。",
-    url: "https://unityroom.com/games/ghost_tic_tac_toe",
+    url: "play/ghost-tic-tac-toe/", // サイト内で遊ぶ（未移行のゲームは unityroom の URL）
     detail: "games/ghost-tic-tac-toe.html", // 詳細ページ（なければ "" ）
     image: "",
     icon: ghostIcon
@@ -164,12 +164,14 @@ for (const g of games) {
   } else {
     card.className = "card";
     const thumb = g.image ? `<img src="${g.image}" alt="${g.title}" />` : (g.icon || "");
+    // 外部サイト（unityroom）は別タブ、サイト内のプレイページは同じタブで開く
+    const external = /^https?:/.test(g.url) ? ` target="_blank" rel="noopener"` : "";
     card.innerHTML = `
       <div class="thumb">${thumb}</div>
       <div class="card-body">
         <h2>${g.title}</h2>
         <p>${g.description}</p>
-        <a class="play" href="${g.url}" target="_blank" rel="noopener">▶ PLAY</a>
+        <a class="play" href="${g.url}"${external}>▶ PLAY</a>
       </div>`;
   }
   container.appendChild(card);
