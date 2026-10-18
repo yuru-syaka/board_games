@@ -1,10 +1,34 @@
 #!/usr/bin/env node
+import * as fs from 'fs';
+import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import { WebStack } from '../lib/web-stack';
+import { SecurityStack } from '../lib/security-stack';
+import { MonitoringStack } from '../lib/monitoring-stack';
 
 const app = new cdk.App();
 
-// Account comes from the CLI profile (--profile board-game-pia-admin); region is fixed to Tokyo.
-const env = { account: process.env.CDK_DEFAULT_ACCOUNT, region: 'ap-northeast-1' };
+// Account comes from the CLI profile (--profile board-game-pia-admin).
+const account = process.env.CDK_DEFAULT_ACCOUNT;
+const tokyo = { account, region: 'ap-northeast-1' };
+const usEast1 = { account, region: 'us-east-1' }; // CloudFront のメトリクスと証明書は us-east-1
 
-new WebStack(app, 'WebStack', { env });
+// 通知先メールアドレスは公開リポジトリに書かない。infra/config.local.json（git 管理外）か環境変数 ALERT_EMAIL で渡す
+function alertEmail(): string {
+  if (process.env.ALERT_EMAIL) return process.env.ALERT_EMAIL;
+  const file = path.join(__dirname, '..', 'config.local.json');
+  if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')).alertEmail;
+  throw new Error('通知先が未設定です。infra/config.local.json に {"alertEmail": "..."} を書くか、ALERT_EMAIL を設定してください。');
+}
+const email = alertEmail();
+
+const web = new WebStack(app, 'WebStack', { env: tokyo, crossRegionReferences: true });
+
+new SecurityStack(app, 'SecurityStack', { env: tokyo, alertEmail: email });
+
+new MonitoringStack(app, 'MonitoringStack', {
+  env: usEast1,
+  crossRegionReferences: true,
+  alertEmail: email,
+  distributionId: web.distribution.distributionId,
+});

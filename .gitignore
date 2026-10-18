@@ -12,3 +12,6 @@ Thumbs.db
 
 # Unity CLI build records (contain local paths)
 unity-build.provenance.json
+
+# Local-only CDK settings (alert email etc.)
+infra/config.local.json

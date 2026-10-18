@@ -12,6 +12,8 @@ import { Construct } from 'constructs';
  * 独自ドメインは未設定なので、URL は *.cloudfront.net。
  */
 export class WebStack extends cdk.Stack {
+  readonly distribution: cloudfront.Distribution;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -40,6 +42,40 @@ function handler(event) {
 }`),
     });
 
+    // ブラウザ側の防御機能を有効にするレスポンスヘッダー
+    const csp = [
+      "default-src 'self'",
+      // Unity WebGL の起動に wasm の実行とインラインの起動スクリプトが必要
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com",
+      "img-src 'self' data: blob:",
+      "media-src 'self' blob:",
+      // PUN2（Photon Cloud）への WebSocket。AWS 版のゲームサーバーに移ったら外す
+      "connect-src 'self' blob: data: https://*.exitgames.com wss://*.exitgames.com https://*.photonengine.io wss://*.photonengine.io",
+      "worker-src 'self' blob:",
+      "frame-ancestors 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; ');
+
+    const securityHeaders = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeaders', {
+      comment: 'board games security headers',
+      securityHeadersBehavior: {
+        strictTransportSecurity: { accessControlMaxAge: cdk.Duration.days(365), includeSubdomains: false, override: true },
+        contentTypeOptions: { override: true },
+        frameOptions: { frameOption: cloudfront.HeadersFrameOption.SAMEORIGIN, override: true },
+        referrerPolicy: { referrerPolicy: cloudfront.HeadersReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN, override: true },
+      },
+      customHeadersBehavior: {
+        customHeaders: [
+          // まずは「報告のみ」。ブラウザのコンソールに違反が出ないことを確かめてから強制に切り替える
+          { header: 'Content-Security-Policy-Report-Only', value: csp, override: true },
+          { header: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()', override: true },
+        ],
+      },
+    });
+
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       comment: 'board games site',
       defaultRootObject: 'index.html',
@@ -48,6 +84,7 @@ function handler(event) {
         origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        responseHeadersPolicy: securityHeaders,
         compress: true,
         functionAssociations: [
           { function: indexRewrite, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST },
@@ -63,6 +100,7 @@ function handler(event) {
       distributionPaths: ['/*'],
     });
 
+    this.distribution = distribution;
     new cdk.CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}/` });
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
   }
