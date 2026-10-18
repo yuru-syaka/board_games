@@ -15,3 +15,6 @@ unity-build.provenance.json
 
 # Local-only CDK settings (alert email etc.)
 infra/config.local.json
+
+# Unity WebGL builds: uploaded to S3 by cdk deploy, not stored in git
+web/play/

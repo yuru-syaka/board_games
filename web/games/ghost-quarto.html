@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ゴースト・クアルト｜遊び方とルール - BOARD GAMES</title>
+  <meta name="description" content="相手が選んだおばけを置き、相手に置かせるおばけを渡す読み合いのボードゲーム「ゴースト・クアルト」の遊び方・ルール・勝つためのコツを紹介します。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD GAMES" />
+  <meta property="og:title" content="ゴースト・クアルト｜遊び方とルール" />
+  <meta property="og:description" content="そろえて勝て。渡す駒で読み合え。4×4の盤で戦う読み合いのボードゲーム。遊び方・ルール・勝つためのコツを紹介します。" />
+  <meta property="og:url" content="https://boardgamepia.com/games/ghost-quarto.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD GAMES</a>
+    <ul>
+      <li><a href="../" aria-current="page">ゲーム</a></li>
+      <li><a href="../blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ ゴースト・クアルト</p>
+
+    <h1 class="page-title">ゴースト・クアルト</h1>
+    <p class="lead">そろえて勝て。渡す駒で読み合え。<br />置くおばけを相手が選ぶ、ふしぎな四目並べ。</p>
+
+    <div class="hero-visual">
+      <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="特徴の違う4体のおばけが並ぶアイコン">
+        <path d="M18 92 V50 a14 14 0 0 1 28 0 V92 l-4.7 -4 -4.6 4 -4.7 -4 -4.7 4 -4.6 -4 z" stroke="#22f3ff" stroke-width="3.5" />
+        <circle cx="27" cy="52" r="2.6" fill="#ffffff" /><circle cx="37" cy="52" r="2.6" fill="#ffffff" />
+        <path d="M62 92 V68 a14 14 0 0 1 28 0 V92 l-4.7 -4 -4.6 4 -4.7 -4 -4.7 4 -4.6 -4 z" stroke="#ff2fd6" stroke-width="3.5" fill="rgba(255, 47, 214, 0.35)" />
+        <circle cx="71" cy="70" r="2.6" fill="#ffffff" /><circle cx="81" cy="70" r="2.6" fill="#ffffff" />
+        <path d="M110 92 V50 a14 14 0 0 1 28 0 V92 l-4.7 -4 -4.6 4 -4.7 -4 -4.7 4 -4.6 -4 z" stroke="#b6ff3b" stroke-width="3.5" fill="rgba(182, 255, 59, 0.3)" />
+        <circle cx="119" cy="52" r="2.6" fill="#ffffff" /><circle cx="129" cy="52" r="2.6" fill="#ffffff" />
+        <path d="M154 92 V68 a14 14 0 0 1 28 0 V92 l-4.7 -4 -4.6 4 -4.7 -4 -4.7 4 -4.6 -4 z" stroke="#9b5cff" stroke-width="3.5" />
+        <circle cx="163" cy="70" r="2.6" fill="#ffffff" /><circle cx="173" cy="70" r="2.6" fill="#ffffff" />
+        <line x1="14" y1="106" x2="186" y2="106" stroke="#ffffff" stroke-width="3" />
+      </svg>
+    </div>
+
+    <a class="play-big" href="../play/ghost-quarto/">▶ PLAY</a>
+
+    <section class="panel">
+      <dl class="spec">
+        <dt>ジャンル</dt><dd>ボードゲーム／四目並べ・読み合い</dd>
+        <dt>プレイ人数</dt><dd>1〜2人（CPU対戦／オンライン対戦）</dd>
+        <dt>プレイ時間</dt><dd>1ゲーム 約5〜10分</dd>
+        <dt>盤とコマ</dt><dd>4×4マス／おばけ16体（どちらの物でもない共通のコマ）</dd>
+        <dt>操作</dt><dd>マウスクリック／タップ</dd>
+        <dt>対応環境</dt><dd>PC・スマートフォンのブラウザ（このサイトでそのまま遊べます）</dd>
+      </dl>
+    </section>
+
+    <article class="prose">
+      <h2>どんなゲーム？</h2>
+      <p>
+        16体のおばけを4×4の盤に並べていくゲームです。おばけは<strong>どちらのプレイヤーの物でもありません</strong>。
+        自分が置くおばけは相手が選び、相手が置くおばけは自分が選んで渡します。
+        「そろいそうなおばけを渡さない」読み合いが勝負の分かれ目です。
+      </p>
+
+      <h2>おばけの4つの特徴</h2>
+      <p>16体のおばけは、次の4つの特徴の組み合わせがすべて違います。</p>
+      <ul>
+        <li><strong>色</strong>：青／ピンク</li>
+        <li><strong>大きさ</strong>：大きい／小さい</li>
+        <li><strong>頭</strong>：まる／しかく</li>
+        <li><strong>中身</strong>：ぬりつぶし／すけすけ</li>
+      </ul>
+
+      <h2>ルール</h2>
+      <ol>
+        <li>先手は最初に、相手が置くおばけを選んで渡します。</li>
+        <li>自分の番には、相手から渡されたおばけを、盤の空いているマスに置きます。</li>
+        <li>続けて、次に相手が置くおばけを、残りのおばけから選んで渡します。</li>
+        <li>縦・横・斜めのどれかに4体が並び、その4体に<strong>共通の特徴が1つでもあれば</strong>、最後に置いた人の勝ちです。</li>
+        <li>16体すべてを置いても、どのラインもそろわなければ引き分けです。</li>
+      </ol>
+
+      <div class="note">
+        自分の色や自分のコマはありません。相手が置いたおばけでそろった場合も、そろえるおばけを置いた人の勝ちです。
+      </div>
+
+      <h2>遊び方</h2>
+      <h3>1. 対戦方法を選ぶ</h3>
+      <p>タイトル画面で「CPUと対戦」か「オンライン対戦」を選びます。先手はコイントスで決まります。</p>
+
+      <h3>2. 置く</h3>
+      <p>渡されたおばけを置くマスをクリック（スマホはタップ）します。もう一度クリックするか「決定」で置きます。</p>
+
+      <h3>3. 渡す</h3>
+      <p>残りの駒から、相手に渡すおばけをクリックします。もう一度クリックすると決定です。</p>
+
+      <h2>勝つためのコツ</h2>
+      <ul>
+        <li><strong>危ない特徴を数える</strong>：3体並んだラインがあれば、その3体に共通する特徴を持つおばけは渡してはいけません。</li>
+        <li><strong>安全なおばけを残しておく</strong>：終盤は渡せる安全なおばけが少なくなります。「渡せるおばけがない」状況に追い込まれないよう、先を読んで置きましょう。</li>
+        <li><strong>相手を追い込む</strong>：危ないラインを増やしていくと、相手は安全なおばけを渡せなくなります。</li>
+      </ul>
+
+      <h2>よくある質問</h2>
+      <h3>スマートフォンでも遊べますか？</h3>
+      <p>はい。スマートフォンのブラウザでこのページの「PLAY」を押せば、そのまま遊べます。</p>
+      <h3>オンライン対戦はどうやって始めますか？</h3>
+      <p>「オンライン対戦」から「ランダムマッチ」を選ぶと、対戦相手を自動で探します。友だちと遊ぶときは、片方が「ルームを作る」で表示された4桁のコードを伝え、もう片方が「ルームに入る」で入力します。</p>
+    </article>
+
+    <a class="play-big" href="../play/ghost-quarto/">▶ PLAY</a>
+
+    <div class="pager">
+      <a href="../">← ゲーム一覧に戻る</a>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 ゆるめの社会人</footer>
+</body>
+</html>

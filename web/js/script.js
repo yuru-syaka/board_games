@@ -113,7 +113,7 @@ const games = [
   {
     title: "ゴースト・マルバツゲーム",
     description: "自分の置いた駒が消えていくマルバツゲーム。",
-    url: "play/ghost-tic-tac-toe/", // サイト内で遊ぶ（未移行のゲームは unityroom の URL）
+    url: "play/ghost-tic-tac-toe/", // サイト内のプレイページ（外部サイトなら https:// から書く）
     detail: "games/ghost-tic-tac-toe.html", // 詳細ページ（なければ "" ）
     image: "",
     icon: ghostIcon
@@ -121,28 +121,32 @@ const games = [
   {
     title: "ゴースト・ゴブル",
     description: "大・中・小のコマを置いたり動かしたりして、小さいコマにかぶせて戦う三目並べ。動かしたコマの下から相手のコマが現れることも。",
-    url: "https://unityroom.com/games/ghost_gobul",
+    url: "play/ghost-gobble/",
+    detail: "games/ghost-gobble.html",
     image: "",
     icon: gobulIcon
   },
   {
     title: "ゴースト・ブラフ",
     description: "6×6の盤で、良いゴーストと悪いゴーストを動かして戦う心理戦。相手のゴーストの正体は、取るまでわからない。",
-    url: "https://unityroom.com/games/ghost_bluff",
+    url: "play/ghost-bluff/",
+    detail: "games/ghost-bluff.html",
     image: "",
     icon: bluffIcon
   },
   {
     title: "ゴースト・クアルト",
     description: "相手が選んだゴーストを置き、自分も相手に置かせるゴーストを選んで渡す。4体そろえたら勝ち。相手を「渡せるゴーストがない」状況に追い込め。",
-    url: "https://unityroom.com/games/ghost_quart",
+    url: "play/ghost-quarto/",
+    detail: "games/ghost-quarto.html",
     image: "",
     icon: quartIcon
   },
   {
     title: "ゴースト・ライン",
     description: "並んだ9本の旗をめぐって戦う陣取りゲーム。どこでもいいから5本とるか、となり合った3本をまとめてとれば勝ち。",
-    url: "https://unityroom.com/games/ghost_line",
+    url: "play/ghost-line/",
+    detail: "games/ghost-line.html",
     image: "",
     icon: lineIcon
   }
@@ -172,6 +176,7 @@ for (const g of games) {
         <h2>${g.title}</h2>
         <p>${g.description}</p>
         <a class="play" href="${g.url}"${external}>▶ PLAY</a>
+        ${g.detail ? `<a class="detail" href="${g.detail}">遊び方・ルールを見る</a>` : ""}
       </div>`;
   }
   container.appendChild(card);

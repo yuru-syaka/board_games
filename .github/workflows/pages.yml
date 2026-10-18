@@ -1,9 +1,9 @@
-name: Deploy web/ to GitHub Pages
+name: Deploy moved-notice to GitHub Pages
 
 on:
   push:
     branches: [main]
-    paths: ["web/**", ".github/workflows/pages.yml"]
+    paths: ["redirect/**", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -26,6 +26,6 @@ jobs:
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web
+          path: redirect
       - id: deployment
         uses: actions/deploy-pages@v4

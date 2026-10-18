@@ -260,6 +260,44 @@ AWS 上の「ボードゲームアリーナ（BGA）のようなサイト」に�
 
 
 ================================================================================
+ 9-2. 残り 4 本のゲームもサイト内で遊べるようにした
+================================================================================
+
+  対象と URL
+  Unity プロジェクト   ゲーム                 プレイページ                 紹介ページ
+  -------------------  ---------------------  ---------------------------  ---------------------------
+  ghost_tic_tac_toe    ゴースト・マルバツ     /play/ghost-tic-tac-toe/     /games/ghost-tic-tac-toe.html
+  Gobblet_Gobblers     ゴースト・ゴブル       /play/ghost-gobble/          /games/ghost-gobble.html（新規）
+  Geister              ゴースト・ブラフ       /play/ghost-bluff/           /games/ghost-bluff.html（新規）
+  Quarto               ゴースト・クアルト     /play/ghost-quarto/          /games/ghost-quarto.html（新規）
+  ButtleLine           ゴースト・ライン       /play/ghost-line/            /games/ghost-line.html（新規）
+
+  実施内容
+  - 4 本の Unity プロジェクトに、WebGL テンプレート・WebBuild.cs・WebBuildSettings.json を追加して
+    WebGL ビルド（各 約 21MB）。ProjectSettings は事前にバックアップ
+  - 紹介ページ 4 本を作成（ルールは各ゲームの「あそびかた」の内容をもとに作成）
+  - トップページ: 5 本すべての PLAY をサイト内のプレイページに変更し、
+    「遊び方・ルールを見る」リンクを追加。説明文から unityroom の記述をなくした
+
+  ビルドを git に入れず S3 にだけ置く形に変更
+  - web/play/ を git の管理対象外にした（5 本で 100MB を超えるため）
+  - WebStack のアップロードを 2 段に分けた
+      サイト本体: web/ から play/ を除いてアップロード（S3 の play/ は消さない）
+      ゲーム    : 手元の web/play/<slug>/ があるゲームだけ、play/<slug>/ にアップロード
+                  （古いビルドのファイルはそのフォルダの中だけ削除される）
+    → ビルドがない PC からデプロイしても、S3 のゲームは消えない
+  - GitHub Pages は「boardgamepia.com に移転しました」のページに切り替える
+    （redirect/ フォルダ。旧 URL にアクセスすると、同じページの新しい URL へ自動で移動）
+    ※ push したときに反映される
+
+  確認結果（2026-10-18）
+  - S3 の play/ に 5 本とも 6 ファイルずつあることを確認
+  - 5 本すべて、ブラウザでタイトル画面まで表示され、エラーがないことを確認
+    （クアルトは CPU 対戦を開始できることも確認）
+  - 紹介ページ 4 本がすべて表示されること、トップページのリンクが正しいことを確認
+
+
+================================================================================
  10. 現在の構成（一覧）
 ================================================================================
 
@@ -285,7 +323,7 @@ AWS 上の「ボードゲームアリーナ（BGA）のようなサイト」に�
   - https://boardgamepia.com/                 独自ドメイン（今回から）
   - https://www.boardgamepia.com/             → boardgamepia.com へ転送
   - https://d34dqgd2cr1eha.cloudfront.net/    CloudFront の URL（引き続き使える）
-  - https://yuru-syaka.github.io/board_games/ GitHub Pages（push するまで旧版のまま）
+  - https://yuru-syaka.github.io/board_games/ GitHub Pages（push すると移転の案内ページになる）
 
 
 ================================================================================
@@ -324,7 +362,7 @@ AWS 上の「ボードゲームアリーナ（BGA）のようなサイト」に�
     cdk deploy --all --profile board-game-pia-admin      ← 反映
     cdk deploy WebStack --profile board-game-pia-admin   ← サイトだけ反映
 
-  Unity の WebGL ビルド（Unity Editor でそのプロジェクトを開いていない状態で）
+  Unity の WebGL ビルド（Unity Editor でそのプロジェクトを開いていない状態で。詳細は unity/README.md）
     unity build C:\Users\nullg\createGame\boardGames\ghost_tic_tac_toe --target WebGL
       --execute-method WebBuild.Build
       --output-path C:\Users\nullg\Desktop\board_games\web\play\ghost-tic-tac-toe
@@ -364,7 +402,7 @@ AWS 上の「ボードゲームアリーナ（BGA）のようなサイト」に�
 ================================================================================
 
   1. GitHub Actions からの自動デプロイ（OIDC で接続。アクセスキーを保存しない）
-  2. 残り 4 本のゲームのプレイページ（同じテンプレートとビルド用スクリプトを使う）
+  2. （完了）残り 4 本のゲームのプレイページと紹介ページ
   3. Docker Desktop の導入 → C# のゲームサーバーの試作（server/）
   4. ECS Fargate + ALB（CloudFront 経由の WebSocket、/game）
   5. Cognito でログイン、ロビーページ

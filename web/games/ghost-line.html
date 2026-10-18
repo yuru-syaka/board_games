@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ゴースト・ライン｜遊び方とルール - BOARD GAMES</title>
+  <meta name="description" content="9本の旗をカードの隊列で奪い合うカードゲーム「ゴースト・ライン」の遊び方・ルール・隊列の役・戦術カードを紹介します。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD GAMES" />
+  <meta property="og:title" content="ゴースト・ライン｜遊び方とルール" />
+  <meta property="og:description" content="9本の旗を、隊列で奪い合え。2人で遊ぶ陣取りカードゲーム。遊び方・ルール・隊列の役を紹介します。" />
+  <meta property="og:url" content="https://boardgamepia.com/games/ghost-line.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD GAMES</a>
+    <ul>
+      <li><a href="../" aria-current="page">ゲーム</a></li>
+      <li><a href="../blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ ゴースト・ライン</p>
+
+    <h1 class="page-title">ゴースト・ライン</h1>
+    <p class="lead">9本の旗を、隊列で奪い合え。<br />カードで3枚の隊列を組む、陣取りカードゲーム。</p>
+
+    <div class="hero-visual">
+      <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="9本の旗のアイコン">
+        <g stroke-width="3">
+          <line x1="18" y1="36" x2="18" y2="92" stroke="#5a5480" /><line x1="38" y1="36" x2="38" y2="92" stroke="#ff2fd6" />
+          <line x1="58" y1="36" x2="58" y2="92" stroke="#22f3ff" /><line x1="78" y1="36" x2="78" y2="92" stroke="#22f3ff" />
+          <line x1="98" y1="36" x2="98" y2="92" stroke="#22f3ff" /><line x1="118" y1="36" x2="118" y2="92" stroke="#5a5480" />
+          <line x1="138" y1="36" x2="138" y2="92" stroke="#ff2fd6" /><line x1="158" y1="36" x2="158" y2="92" stroke="#5a5480" />
+          <line x1="178" y1="36" x2="178" y2="92" stroke="#5a5480" />
+        </g>
+        <g stroke-width="2.5">
+          <path d="M18 36 L31 43 L18 50 z" stroke="#5a5480" /><path d="M38 36 L51 43 L38 50 z" stroke="#ff2fd6" fill="#ff2fd6" />
+          <path d="M58 36 L71 43 L58 50 z" stroke="#22f3ff" fill="#22f3ff" /><path d="M78 36 L91 43 L78 50 z" stroke="#22f3ff" fill="#22f3ff" />
+          <path d="M98 36 L111 43 L98 50 z" stroke="#22f3ff" fill="#22f3ff" /><path d="M118 36 L131 43 L118 50 z" stroke="#5a5480" />
+          <path d="M138 36 L151 43 L138 50 z" stroke="#ff2fd6" fill="#ff2fd6" /><path d="M158 36 L171 43 L158 50 z" stroke="#5a5480" />
+          <path d="M178 36 L191 43 L178 50 z" stroke="#5a5480" />
+        </g>
+        <path d="M52 100 V106 H104 V100" stroke="#b6ff3b" stroke-width="3" />
+      </svg>
+    </div>
+
+    <a class="play-big" href="../play/ghost-line/">▶ PLAY</a>
+
+    <section class="panel">
+      <dl class="spec">
+        <dt>ジャンル</dt><dd>カードゲーム／陣取り</dd>
+        <dt>プレイ人数</dt><dd>1〜2人（CPU対戦／オンライン対戦）</dd>
+        <dt>プレイ時間</dt><dd>1ゲーム 約10〜20分</dd>
+        <dt>カード</dt><dd>部隊カード60枚（6色×1〜10）＋戦術カード10枚／手札7枚</dd>
+        <dt>操作</dt><dd>マウスクリック／タップ</dd>
+        <dt>対応環境</dt><dd>PC・スマートフォンのブラウザ（このサイトでそのまま遊べます）</dd>
+      </dl>
+    </section>
+
+    <article class="prose">
+      <h2>どんなゲーム？</h2>
+      <p>
+        横に並んだ<strong>9本のフラッグ（旗）</strong>をめぐって戦うカードゲームです。
+        各フラッグの自分側にカードを3枚並べて「隊列」を作り、相手の隊列より強ければそのフラッグを確保できます。
+        どこでもいいから5本とるか、となり合った3本をまとめてとれば勝ちです。
+      </p>
+
+      <h2>ルール</h2>
+      <h3>自分の番にすること</h3>
+      <ol>
+        <li>手札からカードを1枚、どれかのフラッグの自分側に出します（各フラッグの自分側に3枚まで）。</li>
+        <li>確保できるフラッグは、自動で確保されます。</li>
+        <li>部隊カードか戦術カードの山札から、1枚引きます。</li>
+      </ol>
+
+      <h3>勝利条件</h3>
+      <ul>
+        <li>フラッグを<strong>5本</strong>確保する</li>
+        <li><strong>となり合う3本</strong>のフラッグを確保する</li>
+      </ul>
+
+      <h3>隊列の役（強い順）</h3>
+      <p>1つのフラッグに3枚そろうと、隊列の完成です。</p>
+      <ol>
+        <li><strong>同色連番</strong>：例　赤7・赤8・赤9</li>
+        <li><strong>同数字</strong>：例　6・6・6</li>
+        <li><strong>同色</strong>：例　青2・青5・青9</li>
+        <li><strong>連番</strong>：例　3・4・5（色は自由）</li>
+        <li><strong>バラ</strong>：それ以外</li>
+      </ol>
+      <p>役が同じなら数字の合計が大きい方、合計も同じなら先に完成した方の勝ちです（9・10・1は連番になりません）。</p>
+
+      <h3>フラッグの確保</h3>
+      <ul>
+        <li>両方の隊列がそろい、自分の方が強ければ確保できます。</li>
+        <li>相手の隊列がそろっていなくても、場に見えているカードから「相手はもう勝てない」と分かれば、その時点で確保できます（確保はすべて自動です）。</li>
+        <li>出せる部隊カードがないときはパスします。両者が続けてパスしたら、確保した数が多い方の勝ちです。</li>
+      </ul>
+
+      <h3>戦術カード</h3>
+      <ul>
+        <li><strong>リーダー</strong>：色も数字も自由（1人1枚まで）</li>
+        <li><strong>騎兵</strong>：色が自由な「8」</li>
+        <li><strong>盾兵</strong>：色が自由な「1〜3」</li>
+        <li><strong>霧</strong>：そのフラッグは役に関係なく、合計だけで勝負</li>
+        <li><strong>泥沼</strong>：そのフラッグは4枚で隊列を作る</li>
+        <li><strong>偵察</strong>：山札から3枚引き、手札から2枚を山札の上に戻す</li>
+        <li><strong>再配置</strong>：自分のカードを別のフラッグへ動かすか、捨てる</li>
+        <li><strong>脱走</strong>：相手のカードを1枚捨てさせる</li>
+        <li><strong>裏切り</strong>：相手の部隊カードを1枚奪う</li>
+      </ul>
+
+      <div class="note">
+        戦術カードは、相手より多くは使えません（相手と同じ枚数まではOK）。
+      </div>
+
+      <h2>遊び方</h2>
+      <h3>1. 対戦方法を選ぶ</h3>
+      <p>タイトル画面で「CPUと対戦」か「オンライン対戦」を選びます。先手はコイントスで決まります。</p>
+
+      <h3>2. カードを出す</h3>
+      <p>手札のカードをクリック（スマホはタップ）し、光っているフラッグを選んで置きます。</p>
+
+      <h3>3. 山札から引く</h3>
+      <p>光っている山札（部隊／戦術）をクリックして、1枚引きます。</p>
+
+      <h2>勝つためのコツ</h2>
+      <ul>
+        <li><strong>強い役を狙うフラッグを決める</strong>：同色連番は最強ですが、そろわないこともあります。狙う役はフラッグごとに決めておきましょう。</li>
+        <li><strong>場のカードから読む</strong>：相手が必要なカードがすでに場に出ていれば、その隊列は完成しません。確保の判断にも使えます。</li>
+        <li><strong>となり合う3本も意識する</strong>：5本を目指すだけでなく、となり合う3本の突破にも注意しましょう。</li>
+      </ul>
+
+      <h2>よくある質問</h2>
+      <h3>スマートフォンでも遊べますか？</h3>
+      <p>はい。スマートフォンのブラウザでこのページの「PLAY」を押せば、そのまま遊べます。</p>
+      <h3>オンライン対戦はどうやって始めますか？</h3>
+      <p>「オンライン対戦」から「ランダムマッチ」を選ぶと、対戦相手を自動で探します。友だちと遊ぶときは、片方が「ルームを作る」で表示された4桁のコードを伝え、もう片方が「ルームに入る」で入力します。</p>
+    </article>
+
+    <a class="play-big" href="../play/ghost-line/">▶ PLAY</a>
+
+    <div class="pager">
+      <a href="../">← ゲーム一覧に戻る</a>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 ゆるめの社会人</footer>
+</body>
+</html>

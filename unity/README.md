@@ -10,16 +10,32 @@
 
 ゲームごとの値は、各プロジェクトの `Assets/Editor/WebBuildSettings.json` に書きます。
 
+| Unity プロジェクト | ゲーム名（title） | slug（URL と出力先） | 紹介ページ（page） |
+|---|---|---|---|
+| `ghost_tic_tac_toe` | ゴースト・マルバツゲーム | `ghost-tic-tac-toe` | `ghost-tic-tac-toe.html` |
+| `Gobblet_Gobblers` | ゴースト・ゴブル | `ghost-gobble` | `ghost-gobble.html` |
+| `Geister` | ゴースト・ブラフ | `ghost-bluff` | `ghost-bluff.html` |
+| `Quarto` | ゴースト・クアルト | `ghost-quarto` | `ghost-quarto.html` |
+| `ButtleLine` | ゴースト・ライン | `ghost-line` | `ghost-line.html` |
+
 ```json
 { "title": "ゴースト・マルバツゲーム", "page": "ghost-tic-tac-toe.html" }
 ```
 
-## ビルド
+## ビルドと公開
 
-Unity Editor でそのプロジェクトを開いていない状態で実行します。出力先は `web/play/<slug>/` です。
+1. Unity Editor でそのプロジェクトを開いていない状態で、WebGL ビルドを `web/play/<slug>/` に出力します。
 
 ```bash
 unity build C:\Users\nullg\createGame\boardGames\ghost_tic_tac_toe --target WebGL --execute-method WebBuild.Build --output-path C:\Users\nullg\Desktop\board_games\web\play\ghost-tic-tac-toe
 ```
 
-ビルド後に `web/` を push すると GitHub Pages に、`infra/` で `cdk deploy WebStack` すると CloudFront に反映されます。
+2. `infra/` で WebStack をデプロイすると、`web/play/` にあるゲームが S3 にアップロードされます。
+
+```bash
+cdk deploy WebStack --profile board-game-pia-admin
+```
+
+- `web/play/` は git の管理対象外です（1 本約 20MB のため）。ビルドは S3 にだけ置きます。
+- 手元に `web/play/<slug>/` がないゲームは、デプロイしても S3 から消えません（そのゲームはアップロードされないだけ）。
+- 同じゲームを再ビルドしてデプロイすると、S3 の `play/<slug>/` の中身は新しいビルドに置き換わります（古いファイルは削除）。

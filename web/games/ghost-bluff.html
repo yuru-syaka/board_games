@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ゴースト・ブラフ｜遊び方とルール - BOARD GAMES</title>
+  <meta name="description" content="良いおばけと悪いおばけで戦う心理戦ボードゲーム「ゴースト・ブラフ」の遊び方・ルール・勝つためのコツを紹介します。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD GAMES" />
+  <meta property="og:title" content="ゴースト・ブラフ｜遊び方とルール" />
+  <meta property="og:description" content="正体を隠せ。正体を見破れ。6×6の盤で戦う心理戦。遊び方・ルール・勝つためのコツを紹介します。" />
+  <meta property="og:url" content="https://boardgamepia.com/games/ghost-bluff.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD GAMES</a>
+    <ul>
+      <li><a href="../" aria-current="page">ゲーム</a></li>
+      <li><a href="../blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ ゴースト・ブラフ</p>
+
+    <h1 class="page-title">ゴースト・ブラフ</h1>
+    <p class="lead">正体を隠せ。正体を見破れ。<br />良いおばけと悪いおばけで戦う、だまし合いのボードゲーム。</p>
+
+    <div class="hero-visual">
+      <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="良いおばけ・正体不明のおばけ・悪いおばけのアイコン">
+        <path d="M14 100 V58 a22 22 0 0 1 44 0 V100 l-7.3 -6 -7.4 6 -7.3 -6 -7.3 6 -7.4 -6 z" stroke="#22f3ff" stroke-width="3.5" />
+        <circle cx="28" cy="60" r="3.4" fill="#ffffff" /><circle cx="44" cy="60" r="3.4" fill="#ffffff" />
+        <path d="M28 72 q8 6 16 0" stroke="#ffffff" stroke-width="2.5" />
+        <path d="M78 104 V48 a22 22 0 0 1 44 0 V104 l-7.3 -6 -7.4 6 -7.3 -6 -7.3 6 -7.4 -6 z" stroke="#9b5cff" stroke-width="3.5" />
+        <path d="M91 44 a9 9 0 1 1 13 8 c-3 2 -4 4 -4 8" stroke="#ffffff" stroke-width="3.5" />
+        <circle cx="100" cy="70" r="2.6" fill="#ffffff" />
+        <path d="M142 100 V58 a22 22 0 0 1 44 0 V100 l-7.3 -6 -7.4 6 -7.3 -6 -7.3 6 -7.4 -6 z" stroke="#ff2fd6" stroke-width="3.5" />
+        <path d="M152 54 l10 5 M176 54 l-10 5" stroke="#ffffff" stroke-width="3" />
+        <circle cx="157" cy="63" r="3" fill="#ffffff" /><circle cx="171" cy="63" r="3" fill="#ffffff" />
+        <path d="M156 76 q8 -6 16 0" stroke="#ffffff" stroke-width="2.5" />
+      </svg>
+    </div>
+
+    <a class="play-big" href="../play/ghost-bluff/">▶ PLAY</a>
+
+    <section class="panel">
+      <dl class="spec">
+        <dt>ジャンル</dt><dd>ボードゲーム／心理戦</dd>
+        <dt>プレイ人数</dt><dd>1〜2人（CPU対戦／オンライン対戦）</dd>
+        <dt>プレイ時間</dt><dd>1ゲーム 約5〜10分</dd>
+        <dt>盤とコマ</dt><dd>6×6マス／善玉4体＋悪玉4体（1人8体）</dd>
+        <dt>操作</dt><dd>マウスクリック／タップ</dd>
+        <dt>対応環境</dt><dd>PC・スマートフォンのブラウザ（このサイトでそのまま遊べます）</dd>
+      </dl>
+    </section>
+
+    <article class="prose">
+      <h2>どんなゲーム？</h2>
+      <p>
+        おたがいに「善玉」と「悪玉」のおばけを持って戦うボードゲームです。
+        自分のおばけの正体は見えますが、<strong>相手のおばけの正体は「？」で隠れています</strong>。
+        相手の動きから正体を読み、自分の正体はブラフでごまかしながら勝利を目指します。
+      </p>
+
+      <h2>ルール</h2>
+      <ol>
+        <li>おたがいに、おばけを<strong>8体ずつ</strong>持っています。善玉（青・○）が4体、悪玉（赤・×）が4体です。おばけはランダムに配置されます。</li>
+        <li>自分の番には、自分のおばけを1体、<strong>上下左右に1マス</strong>動かします。</li>
+        <li>相手のおばけがいるマスに入ると、そのおばけを取れます。取ったおばけの正体は明かされます。</li>
+        <li>次のどれかを満たしたら、あなたの勝ちです。
+          <ul>
+            <li>相手の<strong>善玉を4体すべて取る</strong></li>
+            <li>あなたの<strong>悪玉を4体すべて相手に取らせる</strong></li>
+            <li>あなたの善玉が、盤の<strong>上の角（光るマス）から脱出する</strong></li>
+          </ul>
+        </li>
+      </ol>
+
+      <div class="note">
+        逆に、自分の善玉を4体すべて取られたり、相手の悪玉を4体すべて取ってしまったりすると負けです。相手のおばけを取るときは、悪玉をつかまされないように注意しましょう。
+      </div>
+
+      <h2>遊び方</h2>
+      <h3>1. 対戦方法を選ぶ</h3>
+      <p>タイトル画面で「CPUと対戦」か「オンライン対戦」を選びます。先手はコイントスで決まります。</p>
+
+      <h3>2. おばけを選んで、光るマスへ</h3>
+      <p>自分のおばけをクリック（スマホはタップ）すると、動かせるマスが光ります。ピンクの照準が出ているマスは、相手のおばけを取るマスです。</p>
+
+      <h3>3. 脱出</h3>
+      <p>善玉が上の角に着いたら「脱出」を押すと、その場で勝ちになります。</p>
+
+      <h2>勝つためのコツ</h2>
+      <ul>
+        <li><strong>悪玉をおとりにする</strong>：悪玉を善玉のように堂々と前に出すと、相手は取りたくなります。取らせれば取らせるほど勝利に近づきます。</li>
+        <li><strong>相手の動きから正体を推理する</strong>：角に向かって急ぐおばけは善玉かもしれません。逃げ回るおばけ、前に出てくるおばけの動きに注目しましょう。</li>
+        <li><strong>脱出の道をふさぐ</strong>：相手のおばけが自分側の角に近づいたら、取るか、行く手をふさいで脱出を防ぎましょう。</li>
+      </ul>
+
+      <h2>よくある質問</h2>
+      <h3>スマートフォンでも遊べますか？</h3>
+      <p>はい。スマートフォンのブラウザでこのページの「PLAY」を押せば、そのまま遊べます。</p>
+      <h3>オンライン対戦はどうやって始めますか？</h3>
+      <p>「オンライン対戦」から「ランダムマッチ」を選ぶと、対戦相手を自動で探します。友だちと遊ぶときは、片方が「ルームを作る」で表示された4桁のコードを伝え、もう片方が「ルームに入る」で入力します。</p>
+    </article>
+
+    <a class="play-big" href="../play/ghost-bluff/">▶ PLAY</a>
+
+    <div class="pager">
+      <a href="../">← ゲーム一覧に戻る</a>
+    </div>
+  </main>
+
+  <footer>&copy; 2026 ゆるめの社会人</footer>
+</body>
+</html>

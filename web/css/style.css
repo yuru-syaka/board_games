@@ -152,6 +152,16 @@ main {
   color: #0d0a1f;
   text-shadow: none;
 }
+/* 遊び方・ルール（紹介ページ）へのリンク */
+.detail {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--sub);
+  text-decoration: none;
+}
+.detail:hover { color: var(--neon); text-decoration: underline; }
 
 /* Coming soon */
 .card.soon { --neon: #5a5480; box-shadow: 0 0 6px rgba(90, 84, 128, 0.6); }

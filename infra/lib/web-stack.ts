@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -120,13 +121,34 @@ function handler(event) {
       },
     });
 
+    // サイト（HTML・CSS・画像など）。play/ は下のゲームごとのデプロイに任せる。
+    // exclude したファイルは prune（S3 側の不要ファイル削除）の対象にもならないので、ゲームのビルドは消えない。
+    const webDir = path.join(__dirname, '..', '..', 'web');
     new s3deploy.BucketDeployment(this, 'DeploySite', {
-      sources: [s3deploy.Source.asset(path.join(__dirname, '..', '..', 'web'), { exclude: ['**/unity-build.provenance.json'] })],
+      sources: [s3deploy.Source.asset(webDir, { exclude: ['play/**'] })],
       destinationBucket: bucket,
-      memoryLimit: 512, // Unity の WebGL ビルド（数十 MB）を扱うため既定の 128MB から増やす
+      exclude: ['play/*'],
       distribution,
       distributionPaths: ['/*'],
     });
+
+    // Unity の WebGL ビルド（git 管理外）。手元の web/play/<slug>/ にあるゲームだけをアップロードする。
+    // ビルドがない PC からデプロイしても、S3 にあるゲームは消えない（そのゲームのデプロイ自体を作らないため。
+    // BucketDeployment は削除時にファイルを残す）。prune はゲームのフォルダの中だけに効くので、古いビルドは消える。
+    const playDir = path.join(webDir, 'play');
+    const games = fs.existsSync(playDir)
+      ? fs.readdirSync(playDir).filter((slug) => fs.existsSync(path.join(playDir, slug, 'index.html')))
+      : [];
+    for (const slug of games) {
+      new s3deploy.BucketDeployment(this, `DeployPlay-${slug}`, {
+        sources: [s3deploy.Source.asset(path.join(playDir, slug), { exclude: ['unity-build.provenance.json'] })],
+        destinationBucket: bucket,
+        destinationKeyPrefix: `play/${slug}/`,
+        memoryLimit: 1024, // Unity の WebGL ビルド（数十 MB）を展開するため
+        distribution,
+        distributionPaths: [`/play/${slug}/*`],
+      });
+    }
 
     // Route 53: apex と www を CloudFront に向ける（IPv4 = A、IPv6 = AAAA）。CloudFront 向けのエイリアスは問い合わせ無料
     const zone = route53.HostedZone.fromLookup(this, 'Zone', { domainName: domain });
