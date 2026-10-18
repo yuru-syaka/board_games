@@ -194,3 +194,13 @@ footer {
   font-size: 0.85rem;
   letter-spacing: 0.1em;
 }
+/* フッターのリンク（プライバシーポリシー・お問い合わせ） */
+.footer-links {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-bottom: 12px;
+}
+.footer-links a { color: var(--sub); text-decoration: none; }
+.footer-links a:hover { color: var(--cyan); text-decoration: underline; }

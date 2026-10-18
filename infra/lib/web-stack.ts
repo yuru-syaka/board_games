@@ -86,7 +86,7 @@ function handler(event) {
     ].join('; ');
 
     const securityHeaders = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeaders', {
-      comment: 'board games security headers',
+      comment: 'board pia security headers',
       securityHeadersBehavior: {
         strictTransportSecurity: { accessControlMaxAge: cdk.Duration.days(365), includeSubdomains: false, override: true },
         contentTypeOptions: { override: true },
@@ -103,7 +103,7 @@ function handler(event) {
     });
 
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
-      comment: 'board games site',
+      comment: 'board pia site',
       defaultRootObject: 'index.html',
       priceClass: cloudfront.PriceClass.PRICE_CLASS_200, // 日本を含み、高い地域を除く
       domainNames: [domain, `www.${domain}`],

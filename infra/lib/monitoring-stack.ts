@@ -20,7 +20,7 @@ export class MonitoringStack extends cdk.Stack {
     super(scope, id, props);
 
     const alerts = new sns.Topic(this, 'MonitoringAlerts', {
-      displayName: 'BOARD GAMES monitoring alerts',
+      displayName: 'BOARD PIA monitoring alerts',
       enforceSSL: true,
     });
     alerts.addSubscription(new subs.EmailSubscription(props.alertEmail));

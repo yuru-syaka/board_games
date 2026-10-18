@@ -25,7 +25,7 @@ export class SecurityStack extends cdk.Stack {
     super(scope, id, props);
 
     const alerts = new sns.Topic(this, 'SecurityAlerts', {
-      displayName: 'BOARD GAMES security alerts',
+      displayName: 'BOARD PIA security alerts',
       enforceSSL: true,
     });
     alerts.addSubscription(new subs.EmailSubscription(props.alertEmail));
