@@ -2,6 +2,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
+import { CertStack } from '../lib/cert-stack';
 import { WebStack } from '../lib/web-stack';
 import { SecurityStack } from '../lib/security-stack';
 import { MonitoringStack } from '../lib/monitoring-stack';
@@ -13,6 +14,9 @@ const account = process.env.CDK_DEFAULT_ACCOUNT;
 const tokyo = { account, region: 'ap-northeast-1' };
 const usEast1 = { account, region: 'us-east-1' }; // CloudFront のメトリクスと証明書は us-east-1
 
+// Route 53 で購入したドメイン
+const domainName = 'boardgamepia.com';
+
 // 通知先メールアドレスは公開リポジトリに書かない。infra/config.local.json（git 管理外）か環境変数 ALERT_EMAIL で渡す
 function alertEmail(): string {
   if (process.env.ALERT_EMAIL) return process.env.ALERT_EMAIL;
@@ -22,7 +26,14 @@ function alertEmail(): string {
 }
 const email = alertEmail();
 
-const web = new WebStack(app, 'WebStack', { env: tokyo, crossRegionReferences: true });
+const cert = new CertStack(app, 'CertStack', { env: usEast1, crossRegionReferences: true, domainName });
+
+const web = new WebStack(app, 'WebStack', {
+  env: tokyo,
+  crossRegionReferences: true,
+  domainName,
+  certificate: cert.certificate,
+});
 
 new SecurityStack(app, 'SecurityStack', { env: tokyo, alertEmail: email });
 

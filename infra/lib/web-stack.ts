@@ -4,18 +4,30 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
 import { Construct } from 'constructs';
+
+export interface WebStackProps extends cdk.StackProps {
+  /** 独自ドメイン（例: boardgamepia.com）。www 付きはこのドメインへ転送する */
+  domainName: string;
+  /** CertStack（us-east-1）で発行した証明書 */
+  certificate: acm.ICertificate;
+}
 
 /**
  * サイト配信: 非公開の S3 バケット + CloudFront（OAC で CloudFront からだけ読める）。
  * web/ の中身をデプロイ時にアップロードし、CloudFront のキャッシュも消す。
- * 独自ドメインは未設定なので、URL は *.cloudfront.net。
+ * 独自ドメイン（apex と www）を CloudFront に向け、www は apex へ 301 転送する。
+ * *.cloudfront.net の URL も引き続き使える。
  */
 export class WebStack extends cdk.Stack {
   readonly distribution: cloudfront.Distribution;
 
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: WebStackProps) {
     super(scope, id, props);
+    const domain = props.domainName;
 
     const bucket = new s3.Bucket(this, 'SiteBucket', {
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -26,6 +38,7 @@ export class WebStack extends cdk.Stack {
       autoDeleteObjects: true,
     });
 
+    // www 付きのアクセスは apex へ転送し、
     // "/blog/" や "/blog" を "/blog/index.html" に読み替える（S3 は自動でディレクトリの index を返さないため）
     const indexRewrite = new cloudfront.Function(this, 'IndexRewrite', {
       runtime: cloudfront.FunctionRuntime.JS_2_0,
@@ -33,6 +46,18 @@ export class WebStack extends cdk.Stack {
 function handler(event) {
   var request = event.request;
   var uri = request.uri;
+  var host = request.headers.host ? request.headers.host.value : '';
+  if (host === 'www.${domain}') {
+    var qs = Object.keys(request.querystring).map(function (k) {
+      var v = request.querystring[k].value;
+      return v ? k + '=' + v : k;
+    }).join('&');
+    return {
+      statusCode: 301,
+      statusDescription: 'Moved Permanently',
+      headers: { location: { value: 'https://${domain}' + uri + (qs ? '?' + qs : '') } },
+    };
+  }
   if (uri.endsWith('/')) {
     request.uri = uri + 'index.html';
   } else if (!uri.split('/').pop().includes('.')) {
@@ -80,6 +105,9 @@ function handler(event) {
       comment: 'board games site',
       defaultRootObject: 'index.html',
       priceClass: cloudfront.PriceClass.PRICE_CLASS_200, // 日本を含み、高い地域を除く
+      domainNames: [domain, `www.${domain}`],
+      certificate: props.certificate,
+      minimumProtocolVersion: cloudfront.SecurityPolicyProtocol.TLS_V1_2_2021, // 古い TLS 1.0 / 1.1 を使わせない
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -100,8 +128,17 @@ function handler(event) {
       distributionPaths: ['/*'],
     });
 
+    // Route 53: apex と www を CloudFront に向ける（IPv4 = A、IPv6 = AAAA）。CloudFront 向けのエイリアスは問い合わせ無料
+    const zone = route53.HostedZone.fromLookup(this, 'Zone', { domainName: domain });
+    const target = route53.RecordTarget.fromAlias(new route53targets.CloudFrontTarget(distribution));
+    for (const [id, recordName] of [['Apex', domain], ['Www', `www.${domain}`]]) {
+      new route53.ARecord(this, `${id}A`, { zone, recordName, target });
+      new route53.AaaaRecord(this, `${id}Aaaa`, { zone, recordName, target });
+    }
+
     this.distribution = distribution;
-    new cdk.CfnOutput(this, 'SiteUrl', { value: `https://${distribution.distributionDomainName}/` });
+    new cdk.CfnOutput(this, 'SiteUrl', { value: `https://${domain}/` });
+    new cdk.CfnOutput(this, 'CloudFrontUrl', { value: `https://${distribution.distributionDomainName}/` });
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });
   }
 }

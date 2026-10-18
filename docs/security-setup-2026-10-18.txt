@@ -306,7 +306,7 @@ MonitoringStack だけ us-east-1 にある理由:
   GitHub の Secret scanning /            GitHub 側の設定のため CDK の対象外
   ブランチ保護                           （画面で設定するか、gh コマンドで設定）
   コスト異常検出 / 無料枠アラート        請求画面での設定（まだなら設定する）
-  独自ドメイン + TLS 1.2 以上            ドメイン取得時（公開直前）
+  独自ドメイン + TLS 1.2 以上            → 実施済み（boardgamepia.com。docs/aws-setup-all-2026-10-18.txt の 9 章）
   AWS WAF                                月 8〜10 ドルかかるため、公開直前か攻撃の兆候が出てから
   GitHub Actions の OIDC ロール          自動デプロイを作るとき
   ゲームサーバー・ログイン・DB の対策    それぞれの機能を作るとき

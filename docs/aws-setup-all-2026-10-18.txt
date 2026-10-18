@@ -1,0 +1,374 @@
+================================================================================
+ BOARD GAMES  AWS 移行 作業記録（最初から現在まで）
+ 作成日: 2026-10-18
+ リポジトリ: yuru-syaka/board_games（ローカル: C:\Users\nullg\Desktop\board_games）
+================================================================================
+
+この文書は、GitHub Pages + unityroom + PUN2 で公開していたボードゲームサイトを、
+AWS 上の「ボードゲームアリーナ（BGA）のようなサイト」に移していくために、
+これまでに行ったことをすべて、順番にまとめたものです。
+
+※ 公開リポジトリに置くため、次の情報は載せていません。
+   - AWS アカウント ID、通知先・登録者のメールアドレス、パスワード、MFA の情報
+   通知先は infra/config.local.json（git の管理対象外）に保存しています。
+
+目次
+  1. 目標と全体方針
+  2. AWS アカウントの準備（コンソールでの作業）
+  3. 手元の PC の準備（CLI・CDK）
+  4. リポジトリの整理と GitHub Pages
+  5. PUN2 の棚卸しとゲームサーバーの方針決定
+  6. サイト配信：S3 + CloudFront（WebStack）
+  7. サイト内でゲームを遊べるようにする（Unity WebGL）
+  8. セキュリティと監視（SecurityStack / MonitoringStack / ヘッダー）
+  9. 独自ドメイン boardgamepia.com（Route 53 / CertStack）
+ 10. 現在の構成（一覧）
+ 11. 料金の目安
+ 12. よく使うコマンド
+ 13. 未完了の作業・注意点
+ 14. 今後の予定
+
+
+================================================================================
+ 1. 目標と全体方針
+================================================================================
+
+【目標】
+  - unityroom ではなく、自分のサイトの中でゲームを遊べるようにする
+    （ゲーム一覧 → 紹介ページ → プレイページ、という BGA のような流れ）
+  - オンライン対戦を PUN2（Photon Cloud）から AWS 上の自前サーバーに移す
+  - 同時接続 100〜500 人を想定
+
+【決めたこと】
+  項目                 決定内容                                       理由
+  -------------------  ---------------------------------------------  -----------------------------
+  リージョン           東京（ap-northeast-1）を基本にする             利用者が日本にいるため
+  インフラの管理       AWS CDK（TypeScript）でコード化               再現でき、変更履歴が残る
+  ゲームサーバー       C#（ASP.NET Core）を ECS Fargate で動かす     ゲームのルールが Unity に依存しない
+                       （当初の案の Colyseus / TypeScript は不採用）  C# で書かれており、そのまま使い回せる
+  独自ドメイン         当初は後回し → 今回 boardgamepia.com を取得
+  移行の進め方         段階的に（サイト配信 → サイト内プレイ →
+                       サーバー → ログイン → 戦績）
+
+【フェーズ（予定）】
+  フェーズ 0  準備（アカウント、CLI、CDK、リポジトリ）           … 完了
+  フェーズ 1  サイト内で遊べるようにする（S3 + CloudFront）       … ほぼ完了（自動デプロイは未）
+  フェーズ 2  ゲームサーバーの試作（C# + ECS Fargate）            … 未着手
+  フェーズ 3  ログインとロビー（Cognito）                         … 未着手
+  フェーズ 4  戦績とレーティング（DynamoDB + API）                … 未着手
+  フェーズ 5  他のゲームの移行                                    … 未着手
+  フェーズ 6  負荷試験と公開前の準備                              … 一部（セキュリティ・監視）完了
+
+
+================================================================================
+ 2. AWS アカウントの準備（コンソールでの作業。あなたが実施）
+================================================================================
+
+2-1. ルートユーザーを守る
+  - ルートユーザー（アカウント作成時のメールアドレスでのログイン）に MFA を設定
+  - ルートユーザーのアクセスキーがないことを確認（確認結果: MFA 有効、アクセスキー 0 個）
+  - 以後、ルートユーザーは請求関係などの特別な操作以外では使わない
+
+2-2. AWS Budgets（月額アラート）
+  - 予算名: monthly-total、月額 10 USD、毎月自動でリセット
+  - 通知: 実績 50% / 実績 80% / 予測 100% の 3 段階でメール
+  - 確認結果: 3 つの通知が設定済み
+  - 補足: ドメインを購入した月は、ドメイン代の一括請求でアラートが届くことがある
+
+2-3. IAM Identity Center（普段の作業用ログイン）
+  - 東京リージョンで有効化
+  - インスタンスの種類: 単一リージョンインスタンス
+    （ゲームの利用者のログインは将来 Cognito で行うため、開発者用のログインに
+      複数リージョンの冗長化は不要と判断）
+  - AWS Organizations で有効化（組織インスタンス）
+    → 組織が自動で作られ、このアカウントが「管理アカウント」になった
+    → アカウントへのログイン権限（許可セット）を割り当てるために必要
+  - グループ: Admins
+  - ユーザー: toshiyuki（Admins に所属。招待メールからパスワードと MFA を設定）
+  - 許可セット: AdministratorAccess（セッション 8 時間）
+  - 割り当て: このアカウントに「Admins × AdministratorAccess」
+  - 以後のコンソール作業は、AWS アクセスポータル（https://d-xxxxxxxxxx.awsapps.com/start）
+    からログインして行う
+
+2-4. Route 53 でドメインを購入（9 章）
+  - boardgamepia.com を購入（自動更新オン、プライバシー保護オン）
+
+
+================================================================================
+ 3. 手元の PC の準備（CLI・CDK）
+================================================================================
+
+3-1. AWS CLI v2
+  - インストール済み（aws-cli/2.38）
+  - aws configure sso で SSO の設定を行った
+      SSO session name : board-game-pia
+      SSO region       : ap-northeast-1
+      プロファイル名    : board-game-pia-admin（作成後に名前を変更）
+  - 設定ファイル: C:\Users\nullg\.aws\config（秘密のキーは保存されない）
+  - 毎日の使い方: aws sso login --profile board-game-pia-admin
+  - 初回に出た「AWS skills / MCP server を設定するか」の質問には設定しないと回答
+
+3-2. AWS CDK
+  - npm install -g aws-cdk（v2.1145.0）
+  - cdk bootstrap を 2 つのリージョンで実施
+      東京 ap-northeast-1 : すべての本体用
+      us-east-1           : CloudFront 用の証明書と監視用（CloudFront の決まり）
+    → それぞれ CDKToolkit スタック（CDK がデプロイに使う S3・ECR・IAM ロール）ができた
+
+3-3. その他
+  - Node.js v24、Git、GitHub CLI、.NET SDK 10、Unity 6000.5.8f1（Web モジュール入り）は導入済み
+  - Docker Desktop は未導入（フェーズ 2 の前に導入）
+
+
+================================================================================
+ 4. リポジトリの整理と GitHub Pages
+================================================================================
+
+4-1. git 管理にして GitHub とつないだ
+  - GitHub の yuru-syaka/board_games とローカルのフォルダの中身が同じことを確認し、
+    ローカルを git 管理にしてリポジトリの履歴につないだ
+
+4-2. モノレポ（1 つのリポジトリに複数の部品をまとめる）構成にした
+    board_games/
+    ├ web/       サイト（index.html、css、js、images、games、blog、play）
+    ├ infra/     CDK（AWS の構成）
+    ├ unity/     Unity の各ゲームで共通に使うファイル（WebGL テンプレート、ビルド用スクリプト）
+    ├ docs/      資料（この文書、PUN2 の棚卸し、セキュリティ設定の記録）
+    └ .github/workflows/pages.yml   web/ を GitHub Pages に公開する
+
+4-3. GitHub Pages の公開元を変更
+  - 「main ブランチの /」から「GitHub Actions」に変更し、web/ を公開するワークフローを追加
+  - URL は従来どおり https://yuru-syaka.github.io/board_games/
+  - 確認結果: トップ・紹介ページ・ブログ・CSS がすべて表示されることを確認
+
+
+================================================================================
+ 5. PUN2 の棚卸しとゲームサーバーの方針決定
+================================================================================
+
+  対象: C:\Users\nullg\createGame\boardGames の 5 本
+        ghost_tic_tac_toe / Gobblet_Gobblers / Quarto / Geister / ButtleLine
+
+  結果（詳細は docs/pun2-inventory.md）:
+  - PUN2 を直接使っているのは、各ゲームの PhotonOnlineService.cs の 1 ファイルだけ
+  - 通信は RaiseEvent で文字列を送るだけ（RPC、PhotonView などは未使用）
+  - ルール（Logic/）は Unity に依存しない純粋な C#
+  - 課題: ホスト（部屋を作った側）が正式な盤面を持つため、Geister / BattleLine では
+    ホスト側で相手の隠し情報が見えてしまう余地がある。切断するとすぐ対戦終了になる
+
+  決定:
+  - ゲームサーバーは C#（ASP.NET Core）で作り、ルールのコードを共有する
+  - 段階的に移行: A) 中継だけ → B) サーバーがルールを判定 → C) 再接続・戦績・レーティング
+
+
+================================================================================
+ 6. サイト配信：S3 + CloudFront（WebStack）
+================================================================================
+
+  ファイル: infra/lib/web-stack.ts
+  - S3 バケット（サイト用）
+      公開アクセスはすべてブロック、暗号化、HTTPS 以外の通信を拒否
+      デプロイ時に web/ の中身をアップロード（BucketDeployment。Lambda が自動で作られる）
+  - CloudFront
+      OAC（Origin Access Control）で、S3 は CloudFront からだけ読める
+      HTTP → HTTPS へ転送、圧縮、キャッシュ（CachingOptimized）
+      配信地域: PriceClass 200（日本を含む）
+      CloudFront Function: "/blog/" を "/blog/index.html" に読み替える
+  - 確認結果: 全ページが表示されること、S3 へ直接アクセスすると 403 で拒否されることを確認
+  - 最初に作った空のスタック（BoardGamesStack）は不要になったので削除
+
+
+================================================================================
+ 7. サイト内でゲームを遊べるようにする（Unity WebGL）
+================================================================================
+
+  - WebGL テンプレート「BoardGames」を作成（unity/WebGLTemplates/BoardGames/）
+      サイトと同じデザインの上部バー（BOARD GAMES / ゲーム名 / 遊び方 / 全画面）
+      PC は縦長（9:16）の画面を中央に、スマホは画面いっぱいに表示
+      読み込み中の進捗表示、エラー表示
+  - ビルド用スクリプト WebBuild.cs（unity/Editor/）
+      テンプレートの指定、gzip 圧縮 + Decompression Fallback（サーバー側の設定なしで動く）、
+      ファイル名にハッシュを付けてキャッシュの問題を防ぐ
+  - ゴースト・マルバツをビルド（約 21MB）→ web/play/ghost-tic-tac-toe/
+  - トップページと紹介ページの PLAY ボタンを、サイト内のプレイページに変更
+  - 確認結果: PC とスマホの画面サイズで表示を確認。CPU 対戦で実際に駒を置けること、
+    「オンライン対戦」で Photon のロビーにつながることを確認
+  - Unity プロジェクト側の変更（ghost_tic_tac_toe）:
+      Assets/WebGLTemplates/BoardGames/、Assets/Editor/WebBuild.cs、
+      Assets/Editor/WebBuildSettings.json を追加。WebGL の設定（圧縮など）も変更
+      変更前の ProjectSettings はスクラッチ領域にバックアップ済み
+
+
+================================================================================
+ 8. セキュリティと監視
+================================================================================
+
+  詳細は docs/security-setup-2026-10-18.txt。概要:
+
+  スタック          リージョン   内容
+  ----------------  -----------  ----------------------------------------------------
+  WebStack          東京         セキュリティ用レスポンスヘッダー
+                                 （HSTS、nosniff、SAMEORIGIN、Referrer-Policy、
+                                   Permissions-Policy、CSP は「報告のみ」）
+  SecurityStack     東京         CloudTrail（全リージョンの操作記録、改ざん検出、365 日保存）
+                                 GuardDuty（不審な動きの検知。重要度「中」以上をメール通知）
+                                 IAM Access Analyzer（外部公開の検出）
+                                 SNS（セキュリティ通知）
+  MonitoringStack   us-east-1    CloudFront のアラーム 3 つ（5xx エラー率、1 日の配信量、
+                                 5 分間のリクエスト数）と SNS（監視の通知）
+
+  通知メールの承認状況: 東京 = 承認済み、us-east-1 = 承認待ち（13 章）
+
+
+================================================================================
+ 9. 独自ドメイン boardgamepia.com（Route 53 / CertStack）
+================================================================================
+
+  あなたが実施:
+  - Route 53 で boardgamepia.com を購入（1 年、自動更新オン、プライバシー保護オン）
+  - 購入と同時にホストゾーン boardgamepia.com が自動で作られた
+
+  CDK で実施:
+  - CertStack（us-east-1、infra/lib/cert-stack.ts）
+      ACM の SSL 証明書: boardgamepia.com と www.boardgamepia.com
+      検証用の DNS レコードを Route 53 に自動で追加（DNS 検証）。証明書は無料・自動更新
+      us-east-1 にある理由: CloudFront は us-east-1 の証明書しか使えないため
+  - WebStack の変更
+      CloudFront に独自ドメイン（apex と www）と証明書を設定
+      TLS 1.2 以上に制限（TLSv1.2_2021）。cloudfront.net の URL ではできなかった設定
+      Route 53 に A / AAAA レコード（IPv4 / IPv6）を追加し、apex と www を CloudFront に向けた
+      www.boardgamepia.com へのアクセスは https://boardgamepia.com/ へ 301 転送
+        （CloudFront Function。パスとクエリは引き継ぐ）
+      ホストゾーンは購入時のものを読み込んで使う（二重に作ると DNS が壊れるため）
+  - web/ の OGP（SNS でシェアしたときのカード）の URL を https://boardgamepia.com/ に変更
+
+  確認結果（2026-10-18）:
+  - ドメインの登録: 完了（有効期限 2027-10-18、自動更新オン、プライバシー保護オン）
+  - ネームサーバー: 外部の DNS（8.8.8.8）から Route 53 の 4 つが見えることを確認
+  - DNS: boardgamepia.com の A（IPv4）、www.boardgamepia.com の AAAA（IPv6）が
+    CloudFront のアドレスを返すことを確認
+  - 証明書: 発行者 Amazon、対象 boardgamepia.com / www.boardgamepia.com、
+    有効期限 2027-05（ACM が自動で更新）
+  - https://boardgamepia.com/ のトップ・紹介ページ・ブログ・プレイページ・画像がすべて 200
+  - http://boardgamepia.com/ → https://boardgamepia.com/ に 301 転送
+  - https://www.boardgamepia.com/blog/?a=1 → https://boardgamepia.com/blog/?a=1 に 301 転送
+    （パスとクエリが引き継がれる）
+  - TLS 1.1 での接続は拒否され、TLS 1.2 では接続できることを確認
+  - セキュリティヘッダー（HSTS など）が新しいドメインでも付いていることを確認
+  - ブラウザで https://boardgamepia.com/ → PLAY → ゲームのタイトル画面まで表示され、
+    コンソールにエラーがないことを確認
+
+
+================================================================================
+ 10. 現在の構成（一覧）
+================================================================================
+
+  CloudFormation スタック
+  リージョン   スタック          主な中身
+  -----------  ----------------  ------------------------------------------------------
+  東京         CDKToolkit        CDK のデプロイ用（S3、ECR、IAM ロール）
+  東京         WebStack          サイト用 S3、CloudFront、CloudFront Function、
+                                 レスポンスヘッダー、アップロード用 Lambda、Route 53 レコード
+  東京         SecurityStack     CloudTrail と保存用 S3、GuardDuty、EventBridge ルール、
+                                 Access Analyzer、SNS
+  us-east-1    CDKToolkit        CDK のデプロイ用
+  us-east-1    CertStack         ACM 証明書（boardgamepia.com / www）
+  us-east-1    MonitoringStack   CloudWatch アラーム 3 つ、SNS
+
+  CDK 以外（コンソールで設定）
+  - IAM Identity Center（ユーザー、グループ、許可セット）
+  - AWS Organizations（組織）
+  - Budgets（monthly-total）
+  - Route 53 のドメイン登録とホストゾーン
+
+  URL
+  - https://boardgamepia.com/                 独自ドメイン（今回から）
+  - https://www.boardgamepia.com/             → boardgamepia.com へ転送
+  - https://d34dqgd2cr1eha.cloudfront.net/    CloudFront の URL（引き続き使える）
+  - https://yuru-syaka.github.io/board_games/ GitHub Pages（push するまで旧版のまま）
+
+
+================================================================================
+ 11. 料金の目安（月額）
+================================================================================
+
+  項目                                    目安
+  --------------------------------------  ---------------------------------------
+  S3（サイト・ログ・CDK 用）              数円
+  CloudFront                              0 円（毎月 1TB・1,000 万リクエストまで無料）
+  Lambda（アップロード用）                0 円（無料枠内）
+  CloudTrail                              ほぼ 0 円
+  GuardDuty                               30 日無料 → 数十円〜数百円
+  IAM Access Analyzer（外部アクセス）     0 円
+  CloudWatch アラーム 3 個                 0 円（10 個まで無料）
+  SNS                                     0 円
+  ACM 証明書                              0 円
+  Route 53 ホストゾーン                   0.50 USD
+  Route 53 ドメイン（.com）               年 15 USD 前後（購入時に一括）
+  ---------------------------------------------------------------------------
+  合計                                    月 1 USD 前後 + ドメイン代（年 1 回）
+
+  フェーズ 2 以降（ゲームサーバー）を作ると、ALB と Fargate で月 40〜50 USD 程度増える見込み。
+
+
+================================================================================
+ 12. よく使うコマンド
+================================================================================
+
+  ログイン（毎日、または期限切れのとき）
+    aws sso login --profile board-game-pia-admin
+
+  AWS への反映（infra フォルダで）
+    cd C:\Users\nullg\Desktop\board_games\infra
+    cdk diff --all --profile board-game-pia-admin        ← 変更内容の確認（必ず先に）
+    cdk deploy --all --profile board-game-pia-admin      ← 反映
+    cdk deploy WebStack --profile board-game-pia-admin   ← サイトだけ反映
+
+  Unity の WebGL ビルド（Unity Editor でそのプロジェクトを開いていない状態で）
+    unity build C:\Users\nullg\createGame\boardGames\ghost_tic_tac_toe --target WebGL
+      --execute-method WebBuild.Build
+      --output-path C:\Users\nullg\Desktop\board_games\web\play\ghost-tic-tac-toe
+
+  S3 の中身の確認
+    aws s3 ls s3://<サイト用バケット名> --recursive --human-readable --summarize
+      --profile board-game-pia-admin
+
+  GitHub への反映（GitHub Pages も更新される）
+    git -C C:\Users\nullg\Desktop\board_games push origin main
+
+
+================================================================================
+ 13. 未完了の作業・注意点
+================================================================================
+
+  ★ あなたの対応が必要なもの
+  - us-east-1 の通知メールの承認
+      SNS（リージョン: 米国東部）→ サブスクリプション → 承認待ちのものを選んで
+      「確認をリクエスト」→ 届いたメールの「Confirm subscription」を開く
+  - Route 53 の登録者メールアドレスの確認（Verify your email address）
+      15 日以内に確認しないとドメインが停止される。
+      届かない場合は Route 53 → 登録済みドメイン → boardgamepia.com から再送
+
+  注意点
+  - ローカルのコミットを GitHub に push していない（プレイページ、セキュリティ、
+    ドメイン対応など）。push すると GitHub Pages 版も新しい内容に変わる
+  - infra/config.local.json（通知先）は git 管理外。別の PC でデプロイするときは同じファイルが必要
+  - サイト用 S3 の中身はデプロイのたびに web/ と同じ内容に上書きされる。手で編集しない
+  - CloudTrail の保存用 S3 バケットは、スタックを消しても残る設定（記録を守るため）
+  - Photon の AppId は WebGL のビルドに含まれ、隠せない。AWS 版サーバーへの移行が根本対策
+  - CSP は「報告のみ」。違反が出ないことを確かめてから強制に切り替える
+
+
+================================================================================
+ 14. 今後の予定
+================================================================================
+
+  1. GitHub Actions からの自動デプロイ（OIDC で接続。アクセスキーを保存しない）
+  2. 残り 4 本のゲームのプレイページ（同じテンプレートとビルド用スクリプトを使う）
+  3. Docker Desktop の導入 → C# のゲームサーバーの試作（server/）
+  4. ECS Fargate + ALB（CloudFront 経由の WebSocket、/game）
+  5. Cognito でログイン、ロビーページ
+  6. DynamoDB と API で戦績・レーティング
+  7. 公開前: CSP の強制、必要なら WAF、負荷試験
+
+================================================================================
