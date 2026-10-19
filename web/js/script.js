@@ -1,4 +1,23 @@
-// ネオン風のおばけ＋三目並べアイコン（画像ファイル不要）
+/* =========================================================================
+   トップページ（index.html）のゲーム一覧を作るスクリプト
+   -------------------------------------------------------------------------
+   - index.html の <main id="games"> の中に、ゲームごとの「カード」を並べる。
+   - カードの中身は、下の games 配列から作る（HTML を直接書き換える必要はない）。
+   - 読み込みは index.html の <script ... defer>。defer なので、HTML を
+     読み終わってから実行され、document.getElementById("games") が必ず見つかる。
+   - アイコンは SVG を文字列で持っているので、画像ファイルを用意しなくてよい。
+     色はネオンの 4 色（シアン #22f3ff / ピンク #ff2fd6 / 紫 #9b5cff / 黄緑 #b6ff3b）。
+   ========================================================================= */
+
+// ---------------------------------------------------------------------------
+// ゲームのアイコン（SVG）
+//   viewBox="0 0 200 120" の中に描いている。表示する大きさは CSS（style.css の
+//   .thumb svg）で決めるので、ここでは形と色だけを書く。
+//   光って見える効果（drop-shadow）も CSS 側で付けている。
+// ---------------------------------------------------------------------------
+
+// ネオン風のおばけ＋三目並べアイコン（ゴースト・マルバツゲーム用）
+//   左：おばけ（白）、右：3×3 の盤（シアン）、×（ピンク）、○（黄緑）
 const ghostIcon = `
   <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
     <g stroke="#22f3ff" stroke-width="3">
@@ -107,8 +126,23 @@ const lineIcon = `
     <path d="M52 100 V106 H104 V100" stroke="#b6ff3b" stroke-width="3"/>
   </svg>`;
 
-// ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
-//   image に "images/xxx.png" を指定するとアイコンの代わりに画像が表示されます
+// ---------------------------------------------------------------------------
+// ゲームの一覧（この順番でトップページに並ぶ）
+//   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
+//
+//   title       … カードの見出し（ゲーム名）
+//   description … カードの説明文
+//   url         … 「▶ PLAY」の移動先
+//                   サイト内のプレイページなら "play/<slug>/"（同じタブで開く）
+//                   外部サイトなら "https://..."（別タブで開く）
+//   detail      … 「遊び方・ルールを見る」の移動先（紹介ページ）。"" ならリンクを出さない
+//   image       … "images/xxx.png" を指定すると、アイコンの代わりに画像を表示する
+//   icon        … 上で定義した SVG アイコン（image が空のときに使う）
+//   comingSoon  … true にすると「Coming soon」のカードになる（url などは不要）
+//
+//   ※ <slug> はプレイページのフォルダ名（web/play/<slug>/）。Unity でビルドするときの
+//     出力先と同じ名前にする（unity/README.md を参照）。
+// ---------------------------------------------------------------------------
 const games = [
   {
     title: "ゴースト・マルバツゲーム",
@@ -152,11 +186,18 @@ const games = [
   }
 ];
 
+// ---------------------------------------------------------------------------
+// カードを作って <main id="games"> に追加する
+//   1 件ごとに <article class="card"> を作り、innerHTML で中身を入れる。
+//   カードの枠の色（シアン → ピンク → 紫 の繰り返し）は CSS の
+//   .card:nth-child(...) で決まるので、ここでは指定しない。
+// ---------------------------------------------------------------------------
 const container = document.getElementById("games");
 for (const g of games) {
   const card = document.createElement("article");
 
   if (g.comingSoon) {
+    // 開発中のゲーム：「?」のサムネイルと、押せない「COMING SOON」ボタン
     card.className = "card soon";
     card.innerHTML = `
       <div class="thumb"><span>?</span></div>
@@ -166,7 +207,9 @@ for (const g of games) {
         <span class="play">COMING SOON</span>
       </div>`;
   } else {
+    // 公開中のゲーム：サムネイル、名前、説明、PLAY ボタン、遊び方へのリンク
     card.className = "card";
+    // 画像があれば画像、なければ SVG アイコンをサムネイルにする
     const thumb = g.image ? `<img src="${g.image}" alt="${g.title}" />` : (g.icon || "");
     // 外部サイト（unityroom）は別タブ、サイト内のプレイページは同じタブで開く
     const external = /^https?:/.test(g.url) ? ` target="_blank" rel="noopener"` : "";
@@ -179,5 +222,6 @@ for (const g of games) {
         ${g.detail ? `<a class="detail" href="${g.detail}">遊び方・ルールを見る</a>` : ""}
       </div>`;
   }
+  // 作ったカードをページに追加する（games 配列の順番で並ぶ）
   container.appendChild(card);
 }

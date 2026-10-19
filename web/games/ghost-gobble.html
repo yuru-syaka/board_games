@@ -1,14 +1,35 @@
 <!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  ゲーム「ゴースト・ゴブル」の紹介ページ（https://boardgamepia.com/games/ghost-gobble.html）
+  - メインビジュアル、遊ぶボタン、基本情報、ルール、遊び方、コツ、よくある質問を載せる。
+  - 「▶ PLAY」は サイト内のプレイページ ../play/ghost-gobble/（Unity WebGL）へ移動する。
+    プレイページは Unity のビルドで作られる（unity/README.md を参照）。
+  - ルールは、ゲーム内の「あそびかた」と同じ内容にそろえる。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: infra フォルダで cdk deploy WebStack を実行すると S3 にアップロードされ、
+    CloudFront のキャッシュも消えて boardgamepia.com に反映される。
+  =======================================================================
+-->
 <html lang="ja">
 <head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
   <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
   <title>ゴースト・ゴブル｜遊び方とルール - BOARD PIA</title>
   <meta name="description" content="大・中・小のおばけをかぶせて戦う三目並べ「ゴースト・ゴブル」の遊び方・ルール・勝つためのコツを紹介します。" />
 
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
   <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
 
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
   <meta property="og:type" content="article" />
   <meta property="og:site_name" content="BOARD PIA" />
   <meta property="og:title" content="ゴースト・ゴブル｜遊び方とルール" />
@@ -18,16 +39,20 @@
   <meta property="og:locale" content="ja_JP" />
   <meta name="twitter:card" content="summary_large_image" />
 
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
   <link href="../css/style.css" rel="stylesheet" />
   <link href="../css/page.css" rel="stylesheet" />
-  <!-- Google AdSense -->
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
        crossorigin="anonymous"></script>
 </head>
 <body>
+  <!-- 上部のナビゲーション（左：トップへ戻るロゴ、右：メニュー。aria-current="page" が今いる場所） -->
   <nav class="site-nav">
     <a class="brand" href="../">BOARD PIA</a>
     <ul>
@@ -36,12 +61,16 @@
     </ul>
   </nav>
 
+  <!-- ページ本体 -->
   <main class="page">
+    <!-- パンくずリスト（今いる場所） -->
     <p class="breadcrumb"><a href="../">ホーム</a> ＞ ゴースト・ゴブル</p>
 
+    <!-- ページの大見出し（ゲーム名）とキャッチコピー -->
     <h1 class="page-title">ゴースト・ゴブル</h1>
     <p class="lead">大きなおばけで、のみこめ。<br />かぶせて、動かして、3つ並べる三目並べ。</p>
 
+    <!-- メインビジュアル（トップページのカードと同じ SVG アイコン） -->
     <div class="hero-visual">
       <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="大・中・小のおばけのアイコン">
         <path d="M18 104 V74 a14 14 0 0 1 28 0 V104 l-4.7 -4 -4.6 4 -4.7 -4 -4.7 4 -4.6 -4 z" stroke="#b6ff3b" stroke-width="3.5" />
@@ -53,8 +82,10 @@
       </svg>
     </div>
 
+    <!-- 遊ぶボタン：サイト内のプレイページ（../play/ghost-gobble/、Unity WebGL）へ移動する。ページの最後にも同じボタンがある -->
     <a class="play-big" href="../play/ghost-gobble/">▶ PLAY</a>
 
+    <!-- 基本情報（ジャンル・人数・時間など）。dl / dt / dd の表 -->
     <section class="panel">
       <dl class="spec">
         <dt>ジャンル</dt><dd>ボードゲーム／三目並べ</dd>
@@ -66,6 +97,7 @@
       </dl>
     </section>
 
+    <!-- 本文：どんなゲーム？ ／ ルール ／ 遊び方 ／ 勝つためのコツ ／ よくある質問 ／ 開発日記へのリンク -->
     <article class="prose">
       <h2>どんなゲーム？</h2>
       <p>
@@ -120,13 +152,16 @@
       <p>このゲームの仕組みや工夫したところは、<a href="../blog/2026-10-19-ghost-gobble.html">開発日記</a>に書いています。</p>
     </article>
 
+    <!-- ページの最後の遊ぶボタン（ルールを読み終えた人向け） -->
     <a class="play-big" href="../play/ghost-gobble/">▶ PLAY</a>
 
+    <!-- ページ下部の戻るリンク -->
     <div class="pager">
       <a href="../">← ゲーム一覧に戻る</a>
     </div>
   </main>
 
+  <!-- フッター：プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
   <footer>
     <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
     &copy; 2026 ゆるめの社会人

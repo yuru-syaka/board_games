@@ -1,4 +1,12 @@
-/* プレイ画面。色とフォントは web/css/style.css と合わせる */
+/* =========================================================================
+   play.css … プレイページ（play/<slug>/）専用のスタイル
+   -------------------------------------------------------------------------
+   - Unity WebGL テンプレート「BoardGames」の一部。ビルドすると
+     web/play/<slug>/TemplateData/play.css にコピーされる。
+   - 色とフォントは web/css/style.css と合わせている（サイトと同じネオンの見た目）。
+   - 画面の構成: 上部のバー（.play-bar、高さ --bar-h）＋ 残りすべてがゲームの領域（#stage）。
+     ページ全体はスクロールさせない（ゲームの操作中に画面が動かないように）。
+   ========================================================================= */
 :root {
   --bg: #07060f;
   --text: #e9e6ff;
@@ -6,16 +14,17 @@
   --pink: #ff2fd6;
   --cyan: #22f3ff;
   --purple: #9b5cff;
-  --bar-h: 52px;
+  --bar-h: 52px;   /* 上部のバーの高さ */
 }
 * { box-sizing: border-box; }
+/* ページ全体を画面の高さぴったりにし、縦に「バー → ゲーム領域」と並べる */
 html, body { height: 100%; }
 body {
   margin: 0;
   display: flex;
   flex-direction: column;
   height: 100vh;
-  height: 100dvh;
+  height: 100dvh;  /* スマホのアドレスバーの出入りに合わせた高さ（対応ブラウザのみ。非対応なら上の 100vh） */
   overflow: hidden;
   font-family: "M PLUS Rounded 1c", "Hiragino Sans", "Yu Gothic", sans-serif;
   color: var(--text);
@@ -25,7 +34,8 @@ body {
     var(--bg);
 }
 
-/* ===== 上のバー ===== */
+/* ===== 上のバー（ロゴ・ゲーム名・遊び方・全画面） ===== */
+/* padding-top の env(safe-area-inset-top) は、iPhone のノッチに重ならないための余白 */
 .play-bar {
   flex: 0 0 var(--bar-h);
   display: flex;
@@ -70,7 +80,7 @@ body {
 .btn:hover:not(:disabled) { background: rgba(34, 243, 255, 0.15); }
 .btn:disabled { opacity: 0.4; cursor: default; }
 
-/* ===== ゲーム領域 ===== */
+/* ===== ゲーム領域（#stage）。バーの下の残りすべて。キャンバスを中央に置く ===== */
 #stage {
   position: relative;
   flex: 1;
@@ -86,6 +96,7 @@ body {
   box-shadow: 0 0 24px rgba(155, 92, 255, 0.35);
 }
 
+/* 読み込み中・エラーの表示は、ゲーム領域の上にかぶせて表示する */
 #loading, #error {
   position: absolute;
   inset: 0;
@@ -125,6 +136,7 @@ body {
 .error-title { margin: 0; font-weight: 700; color: var(--pink); }
 .error-message { margin: 0; max-width: 520px; color: var(--sub); font-size: 0.85rem; word-break: break-all; }
 
+/* Unity からのお知らせ（警告など）。ゲーム領域の上部中央に重ねて出す */
 #banner {
   position: absolute;
   left: 50%;
@@ -144,6 +156,7 @@ body {
 }
 .banner-item.warning { background: rgba(255, 47, 214, 0.15); border-color: var(--pink); }
 
+/* スマホ（幅 480px 以下）: バーの文字とボタンを小さくして 1 行に収める */
 @media (max-width: 480px) {
   .play-bar { gap: 8px; padding: 0 10px; }
   .brand { font-size: 0.8rem; }

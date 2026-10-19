@@ -1,27 +1,44 @@
+/* =========================================================================
+   style.css … サイト全体の共通スタイル（すべてのページで読み込む）
+   -------------------------------------------------------------------------
+   - 色・フォント・背景など、サイト全体の見た目の土台を決める。
+   - トップページ（index.html）のヘッダーとゲームカードもここで定義する。
+   - 紹介ページ・開発日記などのサブページ用の見た目は page.css にある
+     （page.css は style.css の後に読み込み、ここで決めた色の変数を使う）。
+   - 見た目のテーマは「ネオン」。text-shadow / box-shadow を重ねて光らせている。
+   ========================================================================= */
+
+/* ===== 色の変数（ここを変えるとサイト全体の色が変わる） ===== */
 :root {
-  --bg: #07060f;
-  --card: rgba(18, 14, 38, 0.75);
-  --text: #e9e6ff;
-  --sub: #9a94c4;
-  --pink: #ff2fd6;
-  --cyan: #22f3ff;
-  --purple: #9b5cff;
-  --lime: #b6ff3b;
+  --bg: #07060f;                  /* 背景の黒 */
+  --card: rgba(18, 14, 38, 0.75); /* カード・パネルの半透明の背景 */
+  --text: #e9e6ff;                /* 本文の文字色 */
+  --sub: #9a94c4;                 /* 補足・説明の文字色（少し暗め） */
+  --pink: #ff2fd6;                /* ネオンのピンク（ロゴ・見出し） */
+  --cyan: #22f3ff;                /* ネオンのシアン（リンク・枠） */
+  --purple: #9b5cff;              /* ネオンの紫（グリッド・タグ） */
+  --lime: #b6ff3b;                /* ネオンの黄緑（PLAY ボタン・POINT） */
 }
+
+/* 幅の計算に padding と border を含める（レイアウトを崩れにくくする定番の指定） */
 * { box-sizing: border-box; }
+
+/* ページ全体：フォント、文字色、ぼんやり光る背景 */
 body {
   margin: 0;
   min-height: 100vh;
+  /* 日本語は M PLUS Rounded 1c（Google Fonts）。読み込めないときは OS のフォント */
   font-family: "M PLUS Rounded 1c", "Hiragino Sans", "Yu Gothic", sans-serif;
   color: var(--text);
+  /* 左上にピンク、右にシアン、下に紫の光を、黒の背景に重ねる */
   background:
     radial-gradient(circle at 15% 10%, rgba(255, 47, 214, 0.18), transparent 40%),
     radial-gradient(circle at 85% 30%, rgba(34, 243, 255, 0.15), transparent 40%),
     radial-gradient(circle at 50% 100%, rgba(155, 92, 255, 0.2), transparent 50%),
     var(--bg);
-  overflow-x: hidden;
+  overflow-x: hidden; /* 光の効果で横スクロールが出ないようにする */
 }
-/* 背景のグリッド */
+/* 背景のグリッド（40px 間隔の紫の線）。画面に固定し、クリックの邪魔をしない */
 body::before {
   content: "";
   position: fixed;
@@ -34,15 +51,16 @@ body::before {
   z-index: -1;
 }
 
-/* ===== ヘッダー ===== */
+/* ===== ヘッダー（トップページのロゴとサブタイトル） ===== */
 header {
   text-align: center;
   padding: 72px 16px 40px;
 }
+/* ロゴ「BOARD PIA」：白い文字にピンクの光を何重にも重ね、ネオン管のように見せる */
 .logo {
   font-family: "Orbitron", sans-serif;
   font-weight: 800;
-  font-size: clamp(2rem, 7vw, 3.6rem);
+  font-size: clamp(2rem, 7vw, 3.6rem); /* 画面幅に合わせて 2rem〜3.6rem の間で変わる */
   letter-spacing: 0.08em;
   margin: 0;
   color: #fff;
@@ -51,20 +69,23 @@ header {
     0 0 14px var(--pink),
     0 0 28px var(--pink),
     0 0 56px var(--pink);
-  animation: flicker 4s infinite;
+  animation: flicker 4s infinite; /* ときどき一瞬暗くなる（ネオン管のちらつき） */
 }
+/* ロゴの下のサブタイトル */
 .subtitle {
   margin: 16px 0 0;
   color: var(--cyan);
   letter-spacing: 0.15em;
   text-shadow: 0 0 8px var(--cyan);
 }
+/* ネオン管のちらつき：4 秒の中で数回だけ、一瞬暗くする */
 @keyframes flicker {
   0%, 18%, 22%, 25%, 53%, 57%, 100% { opacity: 1; }
   20%, 24%, 55% { opacity: 0.4; }
 }
 
-/* ===== カード一覧 ===== */
+/* ===== カード一覧（トップページの <main id="games">） ===== */
+/* 1 枚 280px 以上で、画面幅に入るだけ横に並べる（スマホでは 1 列） */
 main {
   max-width: 1080px;
   margin: 0 auto;
@@ -73,6 +94,8 @@ main {
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 28px;
 }
+/* ゲームカード（js/script.js が作る <article class="card">）
+   --neon はそのカードのテーマ色。枠・影・ボタンの色に使う */
 .card {
   --neon: var(--cyan);
   position: relative;
@@ -82,14 +105,16 @@ main {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px); /* 後ろのグリッドを少しぼかす */
   box-shadow:
     0 0 10px var(--neon),
     inset 0 0 12px rgba(255, 255, 255, 0.05);
   transition: transform 0.25s, box-shadow 0.25s;
 }
+/* カードの色を シアン → ピンク → 紫 の順に繰り返す */
 .card:nth-child(3n+2) { --neon: var(--pink); }
 .card:nth-child(3n+3) { --neon: var(--purple); }
+/* マウスを乗せると少し浮き上がり、光が強くなる */
 .card:hover {
   transform: translateY(-6px);
   box-shadow:
@@ -97,6 +122,7 @@ main {
     0 0 42px var(--neon);
 }
 
+/* カード上部のサムネイル（16:9）。アイコンの SVG か画像を中央に置く */
 .thumb {
   aspect-ratio: 16 / 9;
   display: grid;
@@ -107,13 +133,15 @@ main {
   border-bottom: 2px solid var(--neon);
   overflow: hidden;
 }
-.thumb img { width: 100%; height: 100%; object-fit: cover; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; } /* 画像は枠いっぱいに切り抜く */
 .thumb svg {
   width: 60%;
   height: auto;
+  /* アイコンをカードの色で光らせる */
   filter: drop-shadow(0 0 6px var(--neon)) drop-shadow(0 0 14px var(--neon));
 }
 
+/* カードの本文（名前・説明・ボタン）。説明が短くてもボタンが下にそろうよう縦に伸ばす */
 .card-body {
   padding: 20px;
   display: flex;
@@ -130,8 +158,9 @@ main {
   margin: 0 0 20px;
   color: var(--sub);
   line-height: 1.7;
-  flex: 1;
+  flex: 1; /* 説明文が余白を埋め、ボタンをカードの下端に押し下げる */
 }
+/* 「▶ PLAY」ボタン：カードの色の光る枠。乗せると色で塗りつぶす */
 .play {
   display: block;
   text-align: center;
@@ -163,9 +192,11 @@ main {
 }
 .detail:hover { color: var(--neon); text-decoration: underline; }
 
-/* Coming soon */
+/* ===== Coming soon（開発中のゲームのカード） ===== */
+/* 色を落とした紫にし、浮き上がる動きも止める */
 .card.soon { --neon: #5a5480; box-shadow: 0 0 6px rgba(90, 84, 128, 0.6); }
 .card.soon:hover { transform: none; box-shadow: 0 0 10px rgba(90, 84, 128, 0.8); }
+/* サムネイルの「?」：ゆっくり点滅させる */
 .soon .thumb span {
   font-family: "Orbitron", sans-serif;
   font-size: 3.5rem;
@@ -174,6 +205,7 @@ main {
   text-shadow: 0 0 10px rgba(155, 92, 255, 0.5);
   animation: pulse 2.4s ease-in-out infinite;
 }
+/* 押せないボタン（点線の枠、光らせない） */
 .soon .play {
   cursor: default;
   color: #7d77a8;
@@ -182,11 +214,13 @@ main {
   border-style: dashed;
 }
 .soon .play:hover { background: transparent; color: #7d77a8; }
+/* ゆっくりした点滅（2.4 秒で暗い → 明るい → 暗い） */
 @keyframes pulse {
   0%, 100% { opacity: 0.4; }
   50% { opacity: 1; }
 }
 
+/* ===== フッター（全ページ共通。コピーライトとリンク） ===== */
 footer {
   text-align: center;
   color: var(--sub);
@@ -194,7 +228,7 @@ footer {
   font-size: 0.85rem;
   letter-spacing: 0.1em;
 }
-/* フッターのリンク（プライバシーポリシー・お問い合わせ） */
+/* フッターのリンク（プライバシーポリシー・お問い合わせ）。狭い画面では折り返す */
 .footer-links {
   display: flex;
   justify-content: center;

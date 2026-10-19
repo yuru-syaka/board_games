@@ -1,18 +1,36 @@
 <!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明（GitHub Pages 用の移転案内）
+  -----------------------------------------------------------------------
+  - 旧サイト https://yuru-syaka.github.io/board_games/ に置いているページ。
+    .github/workflows/pages.yml が redirect/ フォルダを GitHub Pages に公開する。
+  - 開くと、同じページの新しい URL（https://boardgamepia.com/...）へ自動で移動する。
+    例: /board_games/games/ghost-tic-tac-toe.html → https://boardgamepia.com/games/ghost-tic-tac-toe.html
+  - 404.html も同じ内容。旧サイトの存在しないページ（＝旧サイトのすべてのページ）を開いたときは
+    GitHub Pages が 404.html を表示するので、どのページからでも新しいサイトへ移動できる。
+  - JavaScript が動かない環境のために、移転先のリンクも本文に表示している。
+  =======================================================================
+-->
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>BOARD PIA は boardgamepia.com に移転しました</title>
+  <!-- このページは検索結果に出さず、正式な URL は新しいサイトだと検索エンジンに伝える -->
   <meta name="robots" content="noindex" />
   <link rel="canonical" href="https://boardgamepia.com/" />
   <script>
     // GitHub Pages（/board_games/...）から、同じページの新しい URL へ移動する
+    //   location.pathname から先頭の "/board_games" を取り除き、新しいドメインの後ろに付ける。
+    //   ?以降（search）と #以降（hash）もそのまま引き継ぐ。
+    //   replace() を使うので、ブラウザの「戻る」でこのページに戻ってこない。
     (function () {
       var path = location.pathname.replace(/^\/board_games/, "") || "/";
       location.replace("https://boardgamepia.com" + path + location.search + location.hash);
     })();
   </script>
+  <!-- 移動するまでの一瞬に見える画面（サイトと同じ暗い背景） -->
   <style>
     body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
            background: #07060f; color: #e9e6ff; font-family: "Hiragino Sans", "Yu Gothic", sans-serif; text-align: center; }

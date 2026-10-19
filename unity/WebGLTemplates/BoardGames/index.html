@@ -1,15 +1,36 @@
 <!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明（Unity WebGL テンプレート「BoardGames」）
+  -----------------------------------------------------------------------
+  - 各ゲームのプレイページ（https://boardgamepia.com/play/<slug>/）の元になる HTML。
+  - Unity で WebGL ビルドすると、このファイルを元に web/play/<slug>/index.html が作られる。
+    （ビルドは unity/Editor/WebBuild.cs。手順は unity/README.md）
+  - 三重の中かっこで囲んだ部分は、ビルド時に Unity が値に置き換える:
+      GAME_TITLE / GAME_PAGE … 各プロジェクトの Assets/Editor/WebBuildSettings.json の値
+      DATA_FILENAME など      … ビルドで作られたファイル名（ハッシュ付き）
+  - 行の先頭が「#if」「#endif」の行は、Unity のテンプレート用の条件分岐（ビルド時に消える）。
+  - 正本はこのリポジトリの unity/WebGLTemplates/BoardGames/。変更したら各 Unity プロジェクトの
+    Assets/WebGLTemplates/BoardGames/ にコピーし、ビルドし直すとプレイページに反映される。
+  - 広告（AdSense）は、ゲームの邪魔や誤クリックを防ぐため、このページには入れない。
+  =======================================================================
+-->
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
+  <!-- スマホでの拡大・縮小を止める（ゲームの操作中に画面が動かないように）。viewport-fit=cover はノッチのある端末向け -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>{{{ GAME_TITLE }}}｜プレイ - BOARD PIA</title>
+  <!-- プレイページは検索結果に出さない（紹介ページのほうを検索に出す） -->
   <meta name="robots" content="noindex" />
+  <!-- アイコンはサイト共通のもの（../../ はサイトの一番上の階層） -->
   <link rel="icon" href="../../images/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="../../images/apple-touch-icon.png" />
+  <!-- Google Fonts（上部のバーの文字用） -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- プレイページ専用のスタイル（上部のバー、ゲームの表示領域、読み込み中・エラーの表示） -->
   <link rel="stylesheet" href="TemplateData/play.css" />
 #if SHOW_DIAGNOSTICS
   <link rel="stylesheet" href="<<<TemplateData/diagnostics.css>>>" />
@@ -17,36 +38,52 @@
 #endif
 </head>
 <body>
+  <!-- 上部のバー：トップへ戻るロゴ、ゲーム名、紹介ページ（遊び方）へのリンク、全画面ボタン -->
   <nav class="play-bar">
     <a class="brand" href="../../">BOARD PIA</a>
     <span class="game-title">{{{ GAME_TITLE }}}</span>
     <span class="actions">
       <a class="btn" href="../../games/{{{ GAME_PAGE }}}">遊び方</a>
+      <!-- 全画面ボタンは、ゲームの読み込みが終わるまで押せない（disabled） -->
       <button class="btn" id="fullscreen-button" type="button" disabled>全画面</button>
     </span>
   </nav>
 
+  <!-- ゲームの表示領域 -->
   <main id="stage">
+    <!-- Unity が描画するキャンバス。大きさは下のスクリプト（fitCanvas）で決める -->
     <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <!-- 読み込み中の表示（進捗バーと %）。読み込みが終わったら隠す -->
     <div id="loading">
       <p class="loading-title">LOADING</p>
       <div class="progress"><div class="progress-fill" id="progress-fill"></div></div>
       <p class="loading-note" id="progress-text">0%</p>
     </div>
+    <!-- 読み込みに失敗したときの表示（最初は隠しておく） -->
     <div id="error" hidden>
       <p class="error-title">ゲームを読み込めませんでした</p>
       <p class="error-message" id="error-message"></p>
       <button class="btn" type="button" onclick="location.reload()">もう一度読み込む</button>
     </div>
+    <!-- Unity からの一時的なお知らせ（警告など）を上に表示する場所 -->
     <div id="banner"></div>
   </main>
 
   <script>
+    // ---------------------------------------------------------------------
+    // プレイページの起動処理
+    //   1. キャンバスの大きさを画面に合わせる
+    //   2. Unity のローダー（Build/*.loader.js）を読み込む
+    //   3. createUnityInstance() で Unity を起動する（進捗を表示し、終わったら全画面ボタンを有効化）
+    // ---------------------------------------------------------------------
     var canvas = document.getElementById("unity-canvas");
     var stage = document.getElementById("stage");
+    // スマホ・タブレットかどうか（表示の仕方を変えるため）
     var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-    // PC は縦長（1080x1920 基準）の画面を中央に、スマホは表示領域いっぱいに広げる
+    // キャンバスの大きさを決める
+    //   PC: ゲームは縦長（1080x1920 基準）なので、9:16 の画面を中央に置き、高さいっぱいまで大きくする
+    //   スマホ: 表示領域いっぱいに広げる（ゲーム側の UI が画面の比率に合わせて調整する）
     var ASPECT = 9 / 16;
     function fitCanvas() {
       var w = stage.clientWidth, h = stage.clientHeight;
@@ -59,9 +96,12 @@
       canvas.style.width = Math.floor(cw) + "px";
       canvas.style.height = Math.floor(cw / ASPECT) + "px";
     }
+    // ウィンドウの大きさが変わったら（スマホの向きの変更を含む）計算し直す
     window.addEventListener("resize", fitCanvas);
     fitCanvas();
 
+    // Unity からのお知らせを表示する（Unity が config.showBanner として呼ぶ）
+    //   type が "error" ならエラー画面に切り替え、それ以外は 5 秒だけ上に表示する
     function showBanner(msg, type) {
       if (type === "error") { showError(msg); return; }
       var banner = document.getElementById("banner");
@@ -72,12 +112,17 @@
       setTimeout(function () { banner.removeChild(div); }, 5000);
     }
 
+    // エラー画面を出す（読み込み中の表示は隠す）
     function showError(msg) {
       document.getElementById("loading").hidden = true;
       document.getElementById("error-message").textContent = msg;
       document.getElementById("error").hidden = false;
     }
 
+    // Unity に渡す設定。ファイル名はビルド時に Unity が埋め込む（Build フォルダの中のファイル）
+    //   dataUrl      … シーン・画像・音などのデータ
+    //   frameworkUrl … ブラウザと Unity をつなぐ JavaScript
+    //   codeUrl      … ゲームのプログラム本体（C# をコンパイルした WebAssembly）
     var buildUrl = "Build";
     var config = {
       arguments: [],
@@ -96,14 +141,17 @@
       showBanner: showBanner,
     };
 
+    // Unity のローダーを読み込み、読み込めたら Unity を起動する
     var script = document.createElement("script");
     script.src = buildUrl + "/{{{ LOADER_FILENAME }}}";
     script.onload = function () {
       createUnityInstance(canvas, config, function (progress) {
+        // 読み込みの進み具合（0〜1）を、進捗バーと % で表示する
         var pct = Math.round(progress * 100);
         document.getElementById("progress-fill").style.width = pct + "%";
         document.getElementById("progress-text").textContent = pct + "%";
       }).then(function (unityInstance) {
+        // 起動完了：読み込み中の表示を消し、全画面ボタンを使えるようにする
         document.getElementById("loading").hidden = true;
         var fs = document.getElementById("fullscreen-button");
         fs.disabled = false;
@@ -112,9 +160,11 @@
         unityDiagnostics.openDiagnosticsDiv(unityInstance.GetMetricsInfo);
 #endif
       }).catch(function (message) {
+        // 起動に失敗（メモリ不足、WebGL 非対応など）
         showError(String(message));
       });
     };
+    // ローダー自体を取得できなかった（通信エラー、ファイルがないなど）
     script.onerror = function () { showError("ゲームのファイルを取得できませんでした。通信状況を確認してください。"); };
     document.body.appendChild(script);
   </script>

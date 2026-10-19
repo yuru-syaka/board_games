@@ -1,22 +1,33 @@
-/* =========================================================
-   サブページ（ゲーム詳細・開発日記）用のスタイル
-   色やフォント、背景は style.css を引き継ぎます
-   ========================================================= */
+/* =========================================================================
+   page.css … サブページ用のスタイル
+   -------------------------------------------------------------------------
+   - 対象: ゲームの紹介ページ（games/*.html）、開発日記（blog/*.html）、
+           プライバシーポリシー（privacy.html）、お問い合わせ（contact.html）
+   - style.css の後に読み込む。色の変数（--cyan など）、フォント、背景は
+     style.css のものをそのまま使う。
+   - ページの骨組みは次のとおり（各 HTML で共通）:
+       <nav class="site-nav">   上部のナビゲーション
+       <main class="page">      本体（幅 820px まで）
+         .breadcrumb / .page-title / .lead / .panel / .prose / .pager
+       <footer>                 フッター（style.css で定義）
+   ========================================================================= */
 
-/* ===== 上部のナビゲーション（全ページ共通） ===== */
+/* ===== 上部のナビゲーション（サブページ共通） ===== */
+/* スクロールしても画面の上に残る（sticky）。後ろをぼかした半透明の帯 */
 .site-nav {
   position: sticky;
   top: 0;
   z-index: 10;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: space-between; /* 左にロゴ、右にメニュー */
   gap: 16px;
   padding: 14px 24px;
   background: rgba(7, 6, 15, 0.8);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid rgba(155, 92, 255, 0.35);
 }
+/* 左のロゴ「BOARD PIA」（トップページへのリンク） */
 .site-nav .brand {
   font-family: "Orbitron", sans-serif;
   font-weight: 800;
@@ -26,6 +37,7 @@
   text-shadow: 0 0 6px var(--pink), 0 0 14px var(--pink);
   white-space: nowrap;
 }
+/* 右のメニュー（ゲーム／開発日記） */
 .site-nav ul {
   display: flex;
   gap: 20px;
@@ -39,6 +51,7 @@
   font-weight: 700;
   transition: color 0.2s, text-shadow 0.2s;
 }
+/* マウスを乗せたときと、今いるページ（aria-current="page"）はシアンで光らせる */
 .site-nav ul a:hover,
 .site-nav ul a[aria-current="page"] {
   color: var(--cyan);
@@ -46,6 +59,7 @@
 }
 
 /* ===== ページ本体 ===== */
+/* style.css の main（グリッド）を打ち消し、読みやすい幅の 1 段組みにする */
 main.page {
   display: block;
   max-width: 820px;
@@ -53,6 +67,7 @@ main.page {
   padding: 32px 20px 0;
 }
 
+/* パンくずリスト（ホーム ＞ ○○） */
 .breadcrumb {
   font-size: 0.85rem;
   color: var(--sub);
@@ -61,6 +76,7 @@ main.page {
 .breadcrumb a { color: var(--sub); }
 .breadcrumb a:hover { color: var(--cyan); }
 
+/* ページの大見出し（h1）。画面幅に合わせて大きさが変わる */
 .page-title {
   margin: 0 0 12px;
   font-size: clamp(1.7rem, 5vw, 2.4rem);
@@ -68,6 +84,7 @@ main.page {
   color: #fff;
   text-shadow: 0 0 8px var(--pink), 0 0 22px var(--pink);
 }
+/* 見出しの下のリード文（キャッチコピー） */
 .lead {
   margin: 0 0 28px;
   font-size: 1.1rem;
@@ -76,7 +93,7 @@ main.page {
   line-height: 1.7;
 }
 
-/* 光る枠のパネル */
+/* 光る枠のパネル（紹介ページの基本情報など）。.pink / .purple で色を変えられる */
 .panel {
   --neon: var(--cyan);
   background: var(--card);
@@ -89,7 +106,7 @@ main.page {
 .panel.pink { --neon: var(--pink); }
 .panel.purple { --neon: var(--purple); }
 
-/* ゲーム詳細のメインビジュアル */
+/* ゲーム紹介ページのメインビジュアル（16:9 の枠に SVG アイコンか画像を置く） */
 .hero-visual {
   aspect-ratio: 16 / 9;
   display: grid;
@@ -107,12 +124,12 @@ main.page {
   filter: drop-shadow(0 0 8px var(--cyan)) drop-shadow(0 0 18px var(--pink));
 }
 
-/* 遊ぶボタン（大） */
+/* 遊ぶボタン（大）。紹介ページの「▶ PLAY」と、お問い合わせのフォームボタンで使う */
 .play-big {
   --neon: var(--lime);
   display: block;
   max-width: 360px;
-  margin: 0 auto 40px;
+  margin: 0 auto 40px; /* 中央寄せ */
   text-align: center;
   font-family: "Orbitron", sans-serif;
   font-weight: 800;
@@ -133,7 +150,7 @@ main.page {
   text-shadow: none;
 }
 
-/* 基本情報の表 */
+/* 基本情報の表（<dl class="spec">）。左に項目名（dt）、右に内容（dd）の 2 列 */
 .spec {
   display: grid;
   grid-template-columns: max-content 1fr;
@@ -143,8 +160,9 @@ main.page {
 .spec dt { color: var(--sub); font-weight: 700; }
 .spec dd { margin: 0; }
 
-/* ===== 本文（ゲーム詳細・記事共通） ===== */
+/* ===== 本文（<article class="prose">。紹介ページ・記事・ポリシー共通） ===== */
 .prose { line-height: 1.9; font-size: 1.02rem; }
+/* 中見出し：左にシアンの線 */
 .prose h2 {
   margin: 48px 0 16px;
   padding-left: 14px;
@@ -154,6 +172,7 @@ main.page {
   box-shadow: -6px 0 10px -6px var(--cyan);
   text-shadow: 0 0 8px rgba(34, 243, 255, 0.7);
 }
+/* 小見出し：ピンクの文字 */
 .prose h3 {
   margin: 32px 0 12px;
   font-size: 1.15rem;
@@ -164,8 +183,9 @@ main.page {
 .prose a { color: var(--cyan); }
 .prose ul, .prose ol { margin: 0 0 18px; padding-left: 1.4em; }
 .prose li { margin: 0 0 6px; }
-.prose li::marker { color: var(--pink); }
-.prose strong { color: #fff; text-shadow: 0 0 6px var(--purple); }
+.prose li::marker { color: var(--pink); } /* 箇条書きの点や番号をピンクに */
+.prose strong { color: #fff; text-shadow: 0 0 6px var(--purple); } /* 強調は白く光らせる */
+/* 画像と説明文（figure / figcaption） */
 .prose figure { margin: 0 0 24px; }
 .prose figure img {
   width: 100%;
@@ -174,7 +194,7 @@ main.page {
 }
 .prose figcaption { font-size: 0.85rem; color: var(--sub); text-align: center; margin-top: 6px; }
 
-/* 画像を差し込む前の仮枠 */
+/* 画像を差し込む前の仮枠（今はどのページでも使っていない） */
 .img-placeholder {
   aspect-ratio: 16 / 9;
   display: grid;
@@ -185,7 +205,7 @@ main.page {
   font-size: 0.9rem;
 }
 
-/* コード */
+/* コード（開発日記）：文中の <code> と、複数行の <pre><code> */
 .prose code {
   font-family: Consolas, "Courier New", monospace;
   font-size: 0.92em;
@@ -196,7 +216,7 @@ main.page {
 .prose pre {
   margin: 0 0 24px;
   padding: 18px;
-  overflow-x: auto;
+  overflow-x: auto; /* 長い行は横スクロールにする（ページ全体が横に広がらないように） */
   background: #0b0918;
   border: 1px solid rgba(34, 243, 255, 0.4);
   border-radius: 10px;
@@ -205,7 +225,7 @@ main.page {
 }
 .prose pre code { background: none; padding: 0; color: #d6f9ff; }
 
-/* ポイント・注意の囲み */
+/* ポイント・注意の囲み（<div class="note">）。上に「POINT」のラベルを自動で付ける */
 .note {
   margin: 0 0 24px;
   padding: 16px 20px;
@@ -225,7 +245,7 @@ main.page {
   text-shadow: 0 0 6px var(--lime);
 }
 
-/* ===== 開発日記：記事の情報 ===== */
+/* ===== 開発日記：記事の情報（日付とタグ） ===== */
 .post-meta {
   display: flex;
   flex-wrap: wrap;
@@ -235,6 +255,7 @@ main.page {
   color: var(--sub);
   font-size: 0.9rem;
 }
+/* タグ（Unity、ゲーム名など）：紫の丸い枠 */
 .tag {
   display: inline-block;
   padding: 2px 10px;
@@ -246,7 +267,7 @@ main.page {
   box-shadow: 0 0 6px rgba(155, 92, 255, 0.5);
 }
 
-/* 開発日記の一覧 */
+/* 開発日記の一覧（blog/index.html）。記事 1 件が 1 枚のカード */
 .post-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 20px; }
 .post-card {
   display: block;
@@ -267,7 +288,7 @@ main.page {
 .post-card h2 { margin: 6px 0 8px; font-size: 1.2rem; color: #fff; }
 .post-card p { margin: 0 0 12px; color: var(--sub); line-height: 1.7; }
 
-/* 前後の記事・戻るリンク */
+/* ページ下部の「← 一覧に戻る」「詳細を見る →」のリンク（左右に分けて置く） */
 .pager {
   display: flex;
   justify-content: space-between;
@@ -279,7 +300,7 @@ main.page {
 .pager a { color: var(--cyan); text-decoration: none; }
 .pager a:hover { text-shadow: 0 0 8px var(--cyan); }
 
-/* トップページのカードに付ける「詳しく見る」 */
+/* トップページのカードに付ける「詳しく見る」（今は .detail を使っているため未使用） */
 .more {
   display: block;
   margin-top: 10px;
@@ -290,10 +311,11 @@ main.page {
 }
 .more:hover { color: #fff; text-shadow: 0 0 6px var(--neon); }
 
+/* ===== スマートフォン（画面幅 520px 以下）向けの調整 ===== */
 @media (max-width: 520px) {
   .site-nav { padding: 12px 16px; }
   .site-nav ul { gap: 14px; font-size: 0.9rem; }
   .panel { padding: 18px; }
-  .spec { grid-template-columns: 1fr; gap: 2px; }
+  .spec { grid-template-columns: 1fr; gap: 2px; } /* 基本情報の表を 1 列にする */
   .spec dd { margin-bottom: 10px; }
 }

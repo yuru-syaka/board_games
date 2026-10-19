@@ -1,16 +1,34 @@
 <!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  トップページ（https://boardgamepia.com/）
+  - ロゴ、サブタイトル、ゲーム一覧のカードを表示する。
+  - ゲーム一覧の中身は js/script.js が games 配列から作る。
+    ゲームを追加・変更するときは、この HTML ではなく script.js を編集する。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: infra フォルダで cdk deploy WebStack を実行すると S3 にアップロードされ、
+    CloudFront のキャッシュも消えて boardgamepia.com に反映される。
+  =======================================================================
+-->
 <html lang="ja">
 <head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
   <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
   <title>ボードゲーム作品集</title>
   <meta name="description" content="おばけたちのボードゲーム作品集。インストール不要、ブラウザですぐに遊べます。CPU対戦・オンライン対戦に対応。" />
 
-  <!-- ファビコン（ブラウザのタブに出るアイコン） -->
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
 
-  <!-- OGP（URLを貼ったときに出るカード）※URLは公開先に合わせて書き換える -->
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="BOARD PIA" />
   <meta property="og:title" content="ボードゲーム作品集" />
@@ -21,25 +39,32 @@
   <meta property="og:image:height" content="630" />
   <meta property="og:locale" content="ja_JP" />
   <meta name="twitter:card" content="summary_large_image" />
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
   <link href="css/style.css" rel="stylesheet" />
   <link href="css/page.css" rel="stylesheet" />
+  <!-- ゲーム一覧のカードを作るスクリプト（defer：HTML を読み終わってから実行する） -->
   <script type="text/javascript" src="js/script.js" defer="defer"></script>
-  <!-- Google AdSense -->
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
   <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
        crossorigin="anonymous"></script>
 </head>
 <body>
 
+  <!-- ヘッダー：ロゴとサブタイトル -->
   <header>
     <h1 class="logo">BOARD PIA</h1>
     <p class="subtitle">ブラウザですぐ遊べる ボードゲーム作品集</p>
   </header>
 
+  <!-- ゲーム一覧。中身は js/script.js が games 配列から作るので、ここには何も書かない -->
   <main id="games"></main>
 
+  <!-- フッター：プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
   <footer>
     <nav class="footer-links"><a href="./privacy.html">プライバシーポリシー</a><a href="./contact.html">お問い合わせ</a></nav>
     &copy; 2026 ゆるめの社会人
