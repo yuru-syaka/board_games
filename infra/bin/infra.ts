@@ -21,9 +21,11 @@ const domainName = 'boardgamepia.com';
 
 // 通知先メールアドレスは公開リポジトリに書かない。infra/config.local.json（git 管理外）か環境変数 ALERT_EMAIL で渡す
 function alertEmail(): string {
-  if (process.env.ALERT_EMAIL) return process.env.ALERT_EMAIL;
+  // 前後の空白や BOM（見えない文字）を取り除く。混ざると別のアドレスとして購読されてしまう
+  const clean = (s: string) => s.replace(/^\uFEFF/, '').trim();
+  if (process.env.ALERT_EMAIL) return clean(process.env.ALERT_EMAIL);
   const file = path.join(__dirname, '..', 'config.local.json');
-  if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8')).alertEmail;
+  if (fs.existsSync(file)) return clean(JSON.parse(fs.readFileSync(file, 'utf8')).alertEmail);
   throw new Error('通知先が未設定です。infra/config.local.json に {"alertEmail": "..."} を書くか、ALERT_EMAIL を設定してください。');
 }
 const email = alertEmail();

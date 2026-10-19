@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as sns from 'aws-cdk-lib/aws-sns';
-import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
+// (メール購読は sns.Subscription で作る。下の説明を参照)
 import * as cloudtrail from 'aws-cdk-lib/aws-cloudtrail';
 import * as guardduty from 'aws-cdk-lib/aws-guardduty';
 import * as accessanalyzer from 'aws-cdk-lib/aws-accessanalyzer';
@@ -28,7 +28,9 @@ export class SecurityStack extends cdk.Stack {
       displayName: 'BOARD PIA security alerts',
       enforceSSL: true,
     });
-    alerts.addSubscription(new subs.EmailSubscription(props.alertEmail));
+    // メールの購読。リソース名（ID）にメールアドレスが入らないよう、固定の ID で作る
+    // （addSubscription(EmailSubscription) だとアドレスが ID になり、ログや CloudFormation に出てしまう）
+    new sns.Subscription(this, 'AlertEmail', { topic: alerts, protocol: sns.SubscriptionProtocol.EMAIL, endpoint: props.alertEmail });
 
     // ---------- CloudTrail ----------
     const trailBucket = new s3.Bucket(this, 'TrailBucket', {

@@ -1,6 +1,6 @@
 import * as cdk from 'aws-cdk-lib/core';
 import * as sns from 'aws-cdk-lib/aws-sns';
-import * as subs from 'aws-cdk-lib/aws-sns-subscriptions';
+// (メール購読は sns.Subscription で作る。下の説明を参照)
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import * as actions from 'aws-cdk-lib/aws-cloudwatch-actions';
 import { Construct } from 'constructs';
@@ -23,7 +23,9 @@ export class MonitoringStack extends cdk.Stack {
       displayName: 'BOARD PIA monitoring alerts',
       enforceSSL: true,
     });
-    alerts.addSubscription(new subs.EmailSubscription(props.alertEmail));
+    // メールの購読。リソース名（ID）にメールアドレスが入らないよう、固定の ID で作る
+    // （addSubscription(EmailSubscription) だとアドレスが ID になり、ログや CloudFormation に出てしまう）
+    new sns.Subscription(this, 'AlertEmail', { topic: alerts, protocol: sns.SubscriptionProtocol.EMAIL, endpoint: props.alertEmail });
     const notify = new actions.SnsAction(alerts);
 
     const dims = { DistributionId: props.distributionId, Region: 'Global' };
