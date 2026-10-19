@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>正体を隠すボードゲームと「推理する CPU」 - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="相手のおばけの正体が見えない心理戦「ゴースト・ブラフ」。見えない情報の扱い方と、相手の動きから正体を推理する CPU の作り方をまとめます。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="正体を隠すボードゲームと「推理する CPU」" />
+  <meta property="og:description" content="見えない情報の扱い方と、相手の動きから正体を推理する CPU の作り方をまとめます。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-10-19-ghost-bluff.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <h1 class="page-title">正体を隠すボードゲームと「推理する CPU」</h1>
+    <div class="post-meta">
+      <time datetime="2026-10-19">2026.10.19</time>
+      <span class="tag">Unity</span>
+      <span class="tag">ゴースト・ブラフ</span>
+    </div>
+
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。今回は
+        <a href="../games/ghost-bluff.html">ゴースト・ブラフ</a>の仕組みについて書きます。
+        自分のおばけの正体は見えるのに、相手のおばけの正体は「？」で隠れている、だまし合いのボードゲームです。
+      </p>
+
+      <h2>どんなゲームか</h2>
+      <p>
+        6×6 の盤で、1人が善玉4体・悪玉4体の合わせて8体を動かします。
+        相手の善玉を4体すべて取るか、自分の悪玉を4体すべて取らせるか、善玉を相手側の角から脱出させれば勝ちです。
+        「悪玉をわざと取らせる」という勝ち方があるので、取りにいくこと自体が危険になる。
+        ここが、このゲームのいちばん面白いところだと思っています。
+      </p>
+
+      <h2>見えない情報を「見えない形」で渡す</h2>
+      <p>
+        このゲームでは、プログラムの中でも「全部が見えている局面」と「あるプレイヤーから見た局面」を分けています。
+        プレイヤーから見た局面では、盤の上にいる相手のおばけの種類が <code>Unknown</code>（不明）に置き換えられます。
+        取ったおばけや脱出したおばけは公開情報なので、こちらは見えるようにしています。
+      </p>
+      <p>
+        画面も CPU も、この「プレイヤーから見た局面」しか受け取りません。
+        こうしておくと、うっかり画面や CPU に相手の正体を渡してしまう不具合が、仕組みの上で起きなくなります。
+      </p>
+
+      <div class="note">
+        オンライン対戦でも同じ考え方で、相手の画面に送る局面は、相手から見た形（こちらのおばけの正体を伏せたもの）にしてから送っています。
+      </div>
+
+      <h2>CPU は「推理」する</h2>
+      <p>
+        CPU にも相手の正体は見えません。そこで、相手のおばけ1体ずつについて「善玉らしさ」を見積もっています。
+        手がかりにしているのは次の2つです。
+      </p>
+      <ul>
+        <li>そのおばけが、こちらの陣地（脱出口）に向かって<strong>前進した回数</strong></li>
+        <li>いま<strong>脱出口のすぐ近く</strong>にいるかどうか</li>
+      </ul>
+      <p>
+        善玉は脱出を狙って前に出てくることが多い、という考え方です。
+        残っている善玉の数を、各おばけの「重み」で割り振って確率にしています。
+      </p>
+<pre><code>// 相手のおばけそれぞれが善玉である確率の見積もり
+foreach (var g in view.Ghosts)
+{
+    if (g.Owner != opponent || !g.IsOnBoard) continue;
+    _advanceCount.TryGetValue(g.Id, out int adv);
+    double w = 1.0 + 0.3 * Math.Min(adv, 5);       // 前進した回数が多いほど重く
+    if (GeisterBoard.DistanceToEscape(opponent, g.X, g.Y) &lt;= 1) w += 0.5;  // 脱出口の近く
+    weights[g.Id] = w;
+    total += w;
+}
+// 残っている善玉の数を重みで割り振る
+probs[id] = Math.Min(0.97, goodLeft * weights[id] / total);</code></pre>
+      <p>
+        CPU は合法手ごとに、この確率を使って「取ったら得か損か」「脱出されそうか」を点数にし、いちばん良い手を選びます。
+        点数には小さな乱数も足しているので、毎回まったく同じ動きにはなりません。
+      </p>
+
+      <h2>ブラフが効くようにする</h2>
+      <p>
+        この見積もりは「前に出てくるのは善玉」と考えるので、<strong>悪玉を堂々と前に出す</strong>と CPU はだまされやすくなります。
+        逆に、善玉を目立たないように動かすと、CPU はなかなか気づきません。
+        人間同士で遊ぶときの駆け引きを、CPU 相手でも少し味わえるようにしたかったのが、この作りにした理由です。
+      </p>
+
+      <h2>その他の決まりごと</h2>
+      <ul>
+        <li>おばけの配置は、両者ともランダムに決まります</li>
+        <li><strong>200 手</strong>で決着がつかなければ引き分けです</li>
+        <li>善玉が上の角に着いたら「脱出」を押すと、その場で勝ちになります</li>
+      </ul>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>隠れた情報があるゲームは、「誰に何を見せるか」を最初に決めておくと作りやすい</li>
+        <li>CPU は完璧に強いより、人間と同じように「動きから推理する」ほうが遊んでいて面白い</li>
+        <li>推理の手がかりが分かれば、プレイヤーはそれを逆手に取ったブラフを楽しめる</li>
+      </ul>
+
+      <p><a href="../play/ghost-bluff/">▶ ゴースト・ブラフを遊ぶ</a></p>
+    </article>
+
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../games/ghost-bluff.html">ゲームの詳細を見る →</a>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

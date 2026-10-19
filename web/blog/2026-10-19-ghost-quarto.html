@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>「渡す駒を選ぶ」四目並べと、ビットで数える特徴 - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="相手が置く駒を自分が選んで渡す「ゴースト・クアルト」。4つの特徴をビットで表す方法と、置く・渡すを読み合う CPU の作り方をまとめます。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="「渡す駒を選ぶ」四目並べと、ビットで数える特徴" />
+  <meta property="og:description" content="4つの特徴をビットで表す方法と、置く・渡すを読み合う CPU の作り方をまとめます。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-10-19-ghost-quarto.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <h1 class="page-title">「渡す駒を選ぶ」四目並べと、ビットで数える特徴</h1>
+    <div class="post-meta">
+      <time datetime="2026-10-19">2026.10.19</time>
+      <span class="tag">Unity</span>
+      <span class="tag">ゴースト・クアルト</span>
+    </div>
+
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。今回は
+        <a href="../games/ghost-quarto.html">ゴースト・クアルト</a>の仕組みについて書きます。
+        自分が置くおばけは相手が選び、相手が置くおばけは自分が選んで渡す、ちょっとふしぎな四目並べです。
+      </p>
+
+      <h2>どんなゲームか</h2>
+      <p>
+        4×4 の盤に、16体のおばけを置いていきます。おばけはどちらのプレイヤーの物でもありません。
+        縦・横・斜めのどれかに4体が並び、その4体に共通の特徴が1つでもあれば、最後に置いた人の勝ちです。
+        自分の番では「渡されたおばけを置く」と「次に相手が置くおばけを渡す」を続けて行います。
+      </p>
+
+      <h2>4つの特徴を 4 ビットで表す</h2>
+      <p>
+        おばけには「色（青／ピンク）」「大きさ」「頭の形（まる／しかく）」「中身（ぬりつぶし／すけすけ）」の4つの特徴があります。
+        それぞれ2択なので、<strong>1体のおばけを 0〜15 の数字（4 ビット）</strong>で表せます。
+        16体のおばけは、この 0〜15 がちょうど1つずつです。
+      </p>
+      <p>
+        こうしておくと、「4体に共通の特徴があるか」はビット演算だけで調べられます。
+        4体のビットを AND すれば「全員が持っている特徴」、OR してから反転すれば「全員が持っていない特徴」が分かります。
+        どちらかが 0 でなければ、そのラインはそろっています。
+      </p>
+<pre><code>// 4 体に共通する特徴を求める
+public static void SharedBits(int a, int b, int c, int d, out int ones, out int zeros)
+{
+    ones  = a &amp; b &amp; c &amp; d;                              // 全員が 1 の特徴
+    zeros = ~(a | b | c | d) &amp; QuartoPiece.AllBits;     // 全員が 0 の特徴
+}
+// ones か zeros が 0 でなければ「そろった」</code></pre>
+
+      <div class="note">
+        盤には全部で 10 本のライン（横 4・縦 4・斜め 2）があり、置くたびにこの判定を行っています。
+        通信で送る盤面も、16 マスに入っている駒の番号（空きは −1）を並べるだけで済みます。
+      </div>
+
+      <h2>CPU：「置く + 渡す」をまとめて読む</h2>
+      <p>
+        このゲームの難しいところは、良い場所に置くだけでなく、<strong>相手に何を渡すか</strong>で勝負が決まることです。
+        そこで CPU は、「置く」と「渡す」を1つの手番としてまとめ、αβ探索で先を読んでいます。
+      </p>
+      <ul>
+        <li>置いてそろうなら、必ずそこに置く</li>
+        <li>相手がすぐにそろえられてしまうおばけは、渡さない</li>
+        <li>深さ 1 から少しずつ深く読み、決められた量（ノード数の上限）まで読んだ中で、いちばん深い結果を使う</li>
+      </ul>
+      <p>
+        読む量を「時間」ではなく「調べた局面の数」で区切っているので、同じ局面なら同じ考え方になり、不具合の調査もしやすくなっています。
+        終盤は残りのおばけが少ないので、最後まで読み切れることもあります。
+      </p>
+
+      <h2>画面での工夫</h2>
+      <ul>
+        <li>置く前・渡す前に、もう一度クリック（または「決定」）で確定する2段階にして、押し間違いを防いでいます</li>
+        <li>そろいそうなラインが分かるよう、盤面の光り方で見せています</li>
+        <li>先手は最初に「相手が置くおばけを渡す」ところから始まるので、その案内を画面に出しています</li>
+      </ul>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>特徴が2択の組み合わせなら、ビットで表すと判定がとても短く書ける</li>
+        <li>「何を渡すか」まで含めて1手と考えると、CPU の考え方を素直に作れる</li>
+        <li>自分の駒がないゲームは、最初は分かりにくい。ルールの説明と画面の案内が特に大切</li>
+      </ul>
+
+      <p><a href="../play/ghost-quarto/">▶ ゴースト・クアルトを遊ぶ</a></p>
+    </article>
+
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../games/ghost-quarto.html">ゲームの詳細を見る →</a>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

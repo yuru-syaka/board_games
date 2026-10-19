@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>「かぶせて、のみこむ三目並べ」の仕組み - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="大・中・小のおばけをかぶせて戦う「ゴースト・ゴブル」。積み重なる駒の持ち方、動かしたときに下から列が現れるルールの判定、先読みする CPU の作り方をまとめます。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="「かぶせて、のみこむ三目並べ」の仕組み" />
+  <meta property="og:description" content="積み重なる駒の持ち方、下から列が現れるルールの判定、先読みする CPU の作り方をまとめます。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-10-19-ghost-gobble.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <h1 class="page-title">「かぶせて、のみこむ三目並べ」の仕組み</h1>
+    <div class="post-meta">
+      <time datetime="2026-10-19">2026.10.19</time>
+      <span class="tag">Unity</span>
+      <span class="tag">ゴースト・ゴブル</span>
+    </div>
+
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。今回は
+        <a href="../games/ghost-gobble.html">ゴースト・ゴブル</a>の仕組みについて書きます。
+        大・中・小のおばけを使い、大きいおばけで小さいおばけを「のみこめる」三目並べです。
+      </p>
+
+      <h2>どんなゲームか</h2>
+      <p>
+        3×3 の盤に、大・中・小のおばけを2体ずつ、1人6体持って戦います。
+        自分の番には「手持ちを置く」か「盤の上の自分のおばけを動かす」のどちらかをします。
+        大きいおばけは小さいおばけにかぶせられるので、すでに埋まったマスも奪い返せます。
+        普通の三目並べと違って盤面が固まらず、最後まで逆転があるのが特徴です。
+      </p>
+
+      <h2>駒の持ち方：マスごとの「積み重ね」</h2>
+      <p>
+        1つのマスには複数のおばけが重なるので、マスごとに「下から上へ並んだ駒の配列」として持っています。
+        見えるのは一番上の駒だけで、勝ち負けの判定も一番上の駒で行います。
+        手持ちの数は別に数えず、「大きさごとの持ち数 − 盤の上にある数」で計算しています。
+        持ち方を1か所にまとめておくと、数え間違いの不具合が起きにくくなります。
+      </p>
+<pre><code>// 1 手を適用する（動かす場合は、元のマスの一番上を取り除いてから行き先に積む）
+var stacks = state.CopyStacks();
+if (!move.IsFromHand)
+{
+    var from = stacks[move.From];
+    var lifted = new Piece[from.Length - 1];       // 一番上を取り除く
+    Array.Copy(from, lifted, lifted.Length);
+    stacks[move.From] = lifted;
+}
+var dest = stacks[move.To];
+var pushed = new Piece[dest.Length + 1];           // 行き先の一番上に積む
+Array.Copy(dest, pushed, dest.Length);
+pushed[dest.Length] = new Piece(mover, move.Size);
+stacks[move.To] = pushed;</code></pre>
+
+      <h2>いちばん大事なルール：下から列が現れる</h2>
+      <p>
+        おばけを動かすと、その下に隠れていた相手のおばけが顔を出すことがあります。
+        そのとき相手の列がそろってしまったら、<strong>動かした側の負け</strong>です。
+        さらに、動かした先で自分の列もそろった場合でも、<strong>相手の列を優先</strong>しています。
+        判定の順番を「まず相手の列 → 次に自分の列」にするだけで、このルールを表せます。
+      </p>
+<pre><code>// 持ち上げて現れた相手の列を、自分の列より優先する
+int[] line = GobbletState.FindLine(stacks, opponent);
+if (line != null)
+    result = GameResult.WinFor(opponent);          // 下から相手の列が現れた
+else if ((line = GobbletState.FindLine(stacks, mover)) != null)
+    result = GameResult.WinFor(mover);             // 自分の列がそろった</code></pre>
+
+      <div class="note">
+        画面では、下に隠れたおばけをマスの下の点で表示しています。
+        「動かすと何が出てくるか」が分かるようにしておかないと、理不尽な負けに感じてしまうためです。
+      </div>
+
+      <h2>終わらない対局への備え</h2>
+      <p>
+        駒を動かせるゲームなので、お互いが同じ動きを繰り返すと対局が終わらなくなります。
+        そこで、<strong>80 手</strong>で決着がつかなければ引き分けにしています。
+        また、手番の人が動かせるおばけを1体も持っていない場合は、その人の負けとしています。
+      </p>
+
+      <h2>CPU：αβ探索で 3 手先まで読む</h2>
+      <p>
+        CPU は、相手の応手も考えながら数手先まで読む「αβ探索（アルファベータ探索）」で手を選んでいます。
+        標準では 3 手先まで読みます。
+        読み切れない局面は、次のような「点数」で良し悪しを見積もります。
+      </p>
+      <ul>
+        <li>相手にふさがれていない列に、自分のおばけがいくつあるか（2つなら大きく加点）</li>
+        <li>大きいおばけを手持ちにどれだけ残しているか</li>
+        <li>手番の側は次に列を完成できるので、2つ並んだ列を少し高く評価する</li>
+      </ul>
+      <p>
+        同じ点数の手がいくつもあるときに毎回同じ手を選ばないよう、探索の前に手の順番をシャッフルしています。
+        これで、同じ局面でも CPU の打ち方に少しばらつきが出ます。
+      </p>
+
+      <h2>オンライン対戦</h2>
+      <p>
+        オンライン対戦では、部屋を作った側（ホスト）が正式な盤面を持ち、相手から届いた手が正しいかを確かめてから盤面を進めます。
+        通信で送るのは「どのマスの、どの大きさのおばけを、どこへ」という短い文字列だけです。
+      </p>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>三目並べでも「駒の大きさ」と「動かせる」を足すだけで、終盤まで読み合いが続くゲームになる</li>
+        <li>勝敗の判定は、どちらを先に調べるかという「順番」そのものがルールになることがある</li>
+        <li>隠れた情報（下にいる駒）は、画面でさりげなく見せるだけで遊びやすさが大きく変わる</li>
+      </ul>
+
+      <p><a href="../play/ghost-gobble/">▶ ゴースト・ゴブルを遊ぶ</a></p>
+    </article>
+
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../games/ghost-gobble.html">ゲームの詳細を見る →</a>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

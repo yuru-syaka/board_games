@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>9本の旗を奪い合うカードゲームと「勝ちの証明」 - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="カードで隊列を組んで旗を奪い合う「ゴースト・ライン」。隊列の役の判定、相手がもう勝てないことを確かめて旗を確保する仕組み、見えない手札を扱う CPU の作り方をまとめます。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="9本の旗を奪い合うカードゲームと「勝ちの証明」" />
+  <meta property="og:description" content="隊列の役の判定、相手がもう勝てないことを確かめて旗を確保する仕組み、見えない手札を扱う CPU の作り方をまとめます。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-10-19-ghost-line.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <h1 class="page-title">9本の旗を奪い合うカードゲームと「勝ちの証明」</h1>
+    <div class="post-meta">
+      <time datetime="2026-10-19">2026.10.19</time>
+      <span class="tag">Unity</span>
+      <span class="tag">ゴースト・ライン</span>
+    </div>
+
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。今回は
+        <a href="../games/ghost-line.html">ゴースト・ライン</a>の仕組みについて書きます。
+        5本のゲームの中で、いちばんルールが多く、コードもいちばん大きくなった作品です。
+      </p>
+
+      <h2>どんなゲームか</h2>
+      <p>
+        横に並んだ9本のフラッグ（旗）をめぐって戦うカードゲームです。
+        部隊カードは 6色 × 1〜10 の 60枚、ほかに特殊な効果を持つ戦術カードが 10枚あり、手札は 7枚です。
+        各フラッグの自分側にカードを3枚並べて「隊列」を作り、相手の隊列より強ければそのフラッグを確保できます。
+        5本とるか、となり合った3本をとれば勝ちです。
+      </p>
+
+      <h2>カードは「番号」で持つ</h2>
+      <p>
+        カードはすべて 0〜69 の番号で扱っています。部隊カードは「色 × 10 + 数字 − 1」で 0〜59、戦術カードは 60〜69 です。
+        色や数字が必要なときだけ、番号から計算して取り出します。
+        カードを番号のまま扱うと、盤面のコピーや通信がとても軽くなります。
+      </p>
+
+      <h2>隊列の役の判定</h2>
+      <p>3枚そろった隊列は、強い順に次の5つの役に分かれます。</p>
+      <ol>
+        <li>同色連番（例：赤7・赤8・赤9）</li>
+        <li>同数字（例：6・6・6）</li>
+        <li>同色（例：青2・青5・青9）</li>
+        <li>連番（例：3・4・5）</li>
+        <li>バラ（それ以外）</li>
+      </ol>
+      <p>
+        役が同じなら数字の合計、合計も同じなら先に完成させた方の勝ちです。
+        そのため、各フラッグには「どちらの隊列が先に完成したか」の順番も記録しています。
+        また、リーダー（色も数字も自由）・騎兵（色が自由な 8）・盾兵（色が自由な 1〜3）のような戦術カードは、
+        <strong>その隊列がいちばん強くなる色と数字</strong>を自動で選んで判定しています。
+      </p>
+
+      <h2>いちばん大変だったところ：「もう勝てない」の証明</h2>
+      <p>
+        このゲームでは、相手の隊列がまだそろっていなくても、
+        <strong>場に見えているカードから「相手はもうこの旗で勝てない」と分かれば、その時点でフラッグを確保できます。</strong>
+      </p>
+      <p>
+        これを判定するために、「まだ場に出ていないカード（相手の手札か山札にあるはずのカード）を使って、
+        足りない枚数を補ったときに作れる最強の役」を計算する仕組みを作りました。
+        相手がどんなにうまくカードを引いても、こちらの隊列に勝てないなら確保できる、という考え方です。
+      </p>
+
+      <div class="note">
+        ここは「相手が持っているかもしれないカード」を正しく数えないと、確保できないはずの旗を確保してしまう不具合につながります。
+        自分の手札・場・捨て札にないカードを「行方の分からないカード」として集め、その中だけで最強の役を探しています。
+      </div>
+
+      <h2>CPU：見えない手札をどう扱うか</h2>
+      <p>
+        CPU に見えるのは、自分の手札と場のカード、相手の手札の枚数だけです。
+        CPU は合法手ごとに「その手を打ったあとの局面」を1手だけシミュレートし、点数がいちばん高い手を選びます。
+      </p>
+      <p>
+        シミュレートするには相手の手札や山札の中身が必要ですが、本当の中身は見えません。
+        そこで、見えていないカードをランダムに割り振った「仮の局面」を作って計算しています。
+        カードを出す場面の評価には公開情報と自分の手札しか使わないので、この割り振りが結果を左右しないように作っています。
+      </p>
+
+      <h2>そのほかの決まりごと</h2>
+      <ul>
+        <li>戦術カードは、相手より多くは使えません（同じ枚数までは使えます）</li>
+        <li>霧のフラッグは役に関係なく合計だけで勝負、泥沼のフラッグは4枚で隊列を作ります</li>
+        <li>出せる部隊カードがないときはパスし、両者が続けてパスしたら、確保した数が多い方の勝ちです</li>
+      </ul>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>ルールが多いゲームほど、カードを番号で持つなど「データの形」を単純にしておくと助かる</li>
+        <li>「もう勝てない」の判定は、見えている情報と見えていない情報をきちんと分けることが大切</li>
+        <li>CPU に相手の手札をこっそり見せない作りにしておくと、人間と同じ条件で戦える</li>
+      </ul>
+
+      <p><a href="../play/ghost-line/">▶ ゴースト・ラインを遊ぶ</a></p>
+    </article>
+
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../games/ghost-line.html">ゲームの詳細を見る →</a>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>
