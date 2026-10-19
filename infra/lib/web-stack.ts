@@ -69,16 +69,29 @@ function handler(event) {
     });
 
     // ブラウザ側の防御機能を有効にするレスポンスヘッダー
+    // Google AdSense が使うドメイン（広告の読み込み・表示・計測・同意メッセージ）
+    const ads = [
+      'https://pagead2.googlesyndication.com',
+      'https://*.googlesyndication.com',
+      'https://*.doubleclick.net',
+      'https://*.googleadservices.com',
+      'https://adservice.google.com',
+      'https://*.google.com',
+      'https://*.gstatic.com',
+      'https://*.adtrafficquality.google',
+      'https://fundingchoicesmessages.google.com',
+    ].join(' ');
     const csp = [
       "default-src 'self'",
       // Unity WebGL の起動に wasm の実行とインラインの起動スクリプトが必要
-      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob:",
+      `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' blob: ${ads}`,
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com",
-      "img-src 'self' data: blob:",
+      "img-src 'self' data: blob: https:", // 広告の画像は配信元が多いため https を許可
       "media-src 'self' blob:",
       // PUN2（Photon Cloud）への WebSocket。AWS 版のゲームサーバーに移ったら外す
-      "connect-src 'self' blob: data: https://*.exitgames.com wss://*.exitgames.com https://*.photonengine.io wss://*.photonengine.io",
+      `connect-src 'self' blob: data: https://*.exitgames.com wss://*.exitgames.com https://*.photonengine.io wss://*.photonengine.io ${ads}`,
+      `frame-src ${ads}`,
       "worker-src 'self' blob:",
       "frame-ancestors 'self'",
       "object-src 'none'",
