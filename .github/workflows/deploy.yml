@@ -44,6 +44,7 @@ jobs:
       ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
     steps:
       - name: Mask the AWS account ID in logs
+        working-directory: . # まだ checkout 前で infra/ がないため
         run: echo "::add-mask::${{ secrets.AWS_ACCOUNT_ID }}"
 
       - uses: actions/checkout@v4
