@@ -5,6 +5,12 @@ import { Construct } from 'constructs';
 export interface GitHubDeployStackProps extends cdk.StackProps {
   /** デプロイを許可する GitHub リポジトリ（owner/name） */
   repository: string;
+  /**
+   * 同じリポジトリの、ID 付きの表記（owner@ownerId/name@repoId）。
+   * GitHub の「immutable subject」が有効なリポジトリでは、トークンの sub がこの形式になる。
+   * 確認方法: gh api repos/<owner>/<name>/actions/oidc/customization/sub の sub_claim_prefix
+   */
+  immutableRepository?: string;
   /** デプロイを許可するブランチ */
   branch: string;
 }
@@ -36,8 +42,11 @@ export class GitHubDeployStack extends cdk.Stack {
       assumedBy: new iam.WebIdentityPrincipal(provider.oidcProviderArn, {
         StringEquals: {
           'token.actions.githubusercontent.com:aud': 'sts.amazonaws.com',
-          // repo:<owner>/<name>:ref:refs/heads/<branch> に完全一致するトークンだけを受け付ける
-          'token.actions.githubusercontent.com:sub': `repo:${props.repository}:ref:refs/heads/${props.branch}`,
+          // repo:<リポジトリ>:ref:refs/heads/<ブランチ> に完全一致するトークンだけを受け付ける
+          //（従来の表記と、ID 付きの表記のどちらでもよい）
+          'token.actions.githubusercontent.com:sub': [props.repository, props.immutableRepository]
+            .filter((r): r is string => !!r)
+            .map((r) => `repo:${r}:ref:refs/heads/${props.branch}`),
         },
       }),
     });

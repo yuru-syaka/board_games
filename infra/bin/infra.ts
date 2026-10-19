@@ -47,6 +47,7 @@ new SecurityStack(app, 'SecurityStack', { env: tokyo, alertEmail: email });
 new GitHubDeployStack(app, 'GitHubDeployStack', {
   env: tokyo,
   repository: 'yuru-syaka/board_games',
+  immutableRepository: 'yuru-syaka@339159024/board_games@1415315348', // GitHub の immutable subject 形式
   branch: 'main',
 });
 
