@@ -1,4 +1,3 @@
-import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import * as s3 from 'aws-cdk-lib/aws-s3';
@@ -8,6 +7,7 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
 
 export interface WebStackProps extends cdk.StackProps {
@@ -24,7 +24,12 @@ export interface WebStackProps extends cdk.StackProps {
  * *.cloudfront.net の URL も引き続き使える。
  */
 export class WebStack extends cdk.Stack {
+  /** PlayStack に値を渡すための SSM パラメータ名 */
+  static readonly bucketNameParam = '/boardpia/web/site-bucket-name';
+  static readonly distributionIdParam = '/boardpia/web/distribution-id';
+
   readonly distribution: cloudfront.Distribution;
+  readonly bucket: s3.Bucket;
 
   constructor(scope: Construct, id: string, props: WebStackProps) {
     super(scope, id, props);
@@ -134,34 +139,18 @@ function handler(event) {
       },
     });
 
-    // サイト（HTML・CSS・画像など）。play/ は下のゲームごとのデプロイに任せる。
+    // サイト（HTML・CSS・画像など）。play/（ゲームのビルド）は PlayStack に任せる。
     // exclude したファイルは prune（S3 側の不要ファイル削除）の対象にもならないので、ゲームのビルドは消えない。
+    // GitHub Actions からデプロイしても（CI には play/ がない）、ここは同じ内容になる。
     const webDir = path.join(__dirname, '..', '..', 'web');
     new s3deploy.BucketDeployment(this, 'DeploySite', {
-      sources: [s3deploy.Source.asset(webDir, { exclude: ['play/**'] })],
+      // play フォルダ自体も除外する（あるかないかでアップロード内容のハッシュが変わらないように）
+      sources: [s3deploy.Source.asset(webDir, { exclude: ['play', 'play/**'] })],
       destinationBucket: bucket,
       exclude: ['play/*'],
       distribution,
       distributionPaths: ['/*'],
     });
-
-    // Unity の WebGL ビルド（git 管理外）。手元の web/play/<slug>/ にあるゲームだけをアップロードする。
-    // ビルドがない PC からデプロイしても、S3 にあるゲームは消えない（そのゲームのデプロイ自体を作らないため。
-    // BucketDeployment は削除時にファイルを残す）。prune はゲームのフォルダの中だけに効くので、古いビルドは消える。
-    const playDir = path.join(webDir, 'play');
-    const games = fs.existsSync(playDir)
-      ? fs.readdirSync(playDir).filter((slug) => fs.existsSync(path.join(playDir, slug, 'index.html')))
-      : [];
-    for (const slug of games) {
-      new s3deploy.BucketDeployment(this, `DeployPlay-${slug}`, {
-        sources: [s3deploy.Source.asset(path.join(playDir, slug), { exclude: ['unity-build.provenance.json'] })],
-        destinationBucket: bucket,
-        destinationKeyPrefix: `play/${slug}/`,
-        memoryLimit: 1024, // Unity の WebGL ビルド（数十 MB）を展開するため
-        distribution,
-        distributionPaths: [`/play/${slug}/*`],
-      });
-    }
 
     // Route 53: apex と www を CloudFront に向ける（IPv4 = A、IPv6 = AAAA）。CloudFront 向けのエイリアスは問い合わせ無料
     const zone = route53.HostedZone.fromLookup(this, 'Zone', { domainName: domain });
@@ -172,6 +161,18 @@ function handler(event) {
     }
 
     this.distribution = distribution;
+    this.bucket = bucket;
+
+    // PlayStack（ゲームのビルド）に渡す値。スタックの出力ではなく SSM パラメータで渡すことで、
+    // ゲームのビルドがない環境（GitHub Actions）から WebStack をデプロイしても、受け渡しが消えないようにする。
+    new ssm.StringParameter(this, 'SiteBucketNameParam', {
+      parameterName: WebStack.bucketNameParam,
+      stringValue: bucket.bucketName,
+    });
+    new ssm.StringParameter(this, 'DistributionIdParam', {
+      parameterName: WebStack.distributionIdParam,
+      stringValue: distribution.distributionId,
+    });
     new cdk.CfnOutput(this, 'SiteUrl', { value: `https://${domain}/` });
     new cdk.CfnOutput(this, 'CloudFrontUrl', { value: `https://${distribution.distributionDomainName}/` });
     new cdk.CfnOutput(this, 'BucketName', { value: bucket.bucketName });

@@ -1,0 +1,72 @@
+# main ブランチに push したら、サイト（web/）と AWS の構成（infra/）を boardgamepia.com に反映する。
+#
+# - AWS への接続は OIDC（アクセスキーは使わない）。GitHub が発行したトークンを AWS が確認し、
+#   1 時間ほどで失効する一時的な鍵で cdk deploy する。使えるのは yuru-syaka/board_games の main だけ。
+#   ロールは infra/lib/github-deploy-stack.ts（GitHubActionsDeployRole）。
+# - デプロイするスタック: CertStack / WebStack / SecurityStack / MonitoringStack
+#   次の 2 つは手元の PC から更新する（ここでは更新しない）:
+#     PlayStack         … ゲームの WebGL ビルド（git に入っていないため）
+#     GitHubDeployStack … このワークフロー自身の権限
+# - リポジトリは公開なので、ログに AWS アカウント ID などが出ないようにマスクしている。
+#
+# 使うシークレット（Settings → Secrets and variables → Actions）:
+#   AWS_DEPLOY_ROLE_ARN … GitHubActionsDeployRole の ARN
+#   AWS_ACCOUNT_ID      … ログでのマスク用
+#   ALERT_EMAIL         … 通知先（SecurityStack / MonitoringStack の設定に必要）
+
+name: Deploy to AWS
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", "infra/**", ".github/workflows/deploy.yml"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write # OIDC のトークンを発行するために必要
+  contents: read
+
+concurrency:
+  group: deploy-aws
+  cancel-in-progress: false # デプロイの途中で止めない（次の実行は前の完了を待つ）
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # ※ environment: を付けると OIDC トークンの sub が "repo:...:environment:..." に変わり、
+    #   AWS 側の条件（ref:refs/heads/main）と合わなくなるので付けない
+    defaults:
+      run:
+        working-directory: infra
+    env:
+      CDK_DISABLE_CLI_TELEMETRY: "1"
+      ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+    steps:
+      - name: Mask the AWS account ID in logs
+        run: echo "::add-mask::${{ secrets.AWS_ACCOUNT_ID }}"
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+
+      - name: Install CDK dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Get temporary AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          role-session-name: github-actions-deploy
+          aws-region: ap-northeast-1
+          mask-aws-account-id: true
+
+      - name: Show what will change
+        run: npx cdk diff CertStack WebStack SecurityStack MonitoringStack
+
+      - name: Deploy
+        run: npx cdk deploy CertStack WebStack SecurityStack MonitoringStack --require-approval never --ci

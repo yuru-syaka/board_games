@@ -6,6 +6,8 @@ import { CertStack } from '../lib/cert-stack';
 import { WebStack } from '../lib/web-stack';
 import { SecurityStack } from '../lib/security-stack';
 import { MonitoringStack } from '../lib/monitoring-stack';
+import { PlayStack } from '../lib/play-stack';
+import { GitHubDeployStack } from '../lib/github-deploy-stack';
 
 const app = new cdk.App();
 
@@ -35,7 +37,18 @@ const web = new WebStack(app, 'WebStack', {
   certificate: cert.certificate,
 });
 
+// ゲームの WebGL ビルド（git 管理外）。手元の PC からだけ cdk deploy PlayStack で反映する
+const play = new PlayStack(app, 'PlayStack', { env: tokyo });
+play.addDependency(web); // WebStack が SSM パラメータを書いてから PlayStack を作る
+
 new SecurityStack(app, 'SecurityStack', { env: tokyo, alertEmail: email });
+
+// GitHub Actions（OIDC）からデプロイするためのロール。手元の PC からだけ更新する
+new GitHubDeployStack(app, 'GitHubDeployStack', {
+  env: tokyo,
+  repository: 'yuru-syaka/board_games',
+  branch: 'main',
+});
 
 new MonitoringStack(app, 'MonitoringStack', {
   env: usEast1,

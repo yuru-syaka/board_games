@@ -30,10 +30,10 @@
 unity build C:\Users\nullg\createGame\boardGames\ghost_tic_tac_toe --target WebGL --execute-method WebBuild.Build --output-path C:\Users\nullg\Desktop\board_games\web\play\ghost-tic-tac-toe
 ```
 
-2. `infra/` で WebStack をデプロイすると、`web/play/` にあるゲームが S3 にアップロードされます。
+2. `infra/` で PlayStack をデプロイすると、`web/play/` にあるゲームが S3 にアップロードされます（GitHub Actions からは更新されません）。
 
 ```bash
-cdk deploy WebStack --profile board-game-pia-admin
+cdk deploy PlayStack --profile board-game-pia-admin
 ```
 
 - `web/play/` は git の管理対象外です（1 本約 20MB のため）。ビルドは S3 にだけ置きます。
