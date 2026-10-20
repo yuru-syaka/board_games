@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  ゲーム「センチュリー・ゴースト」の紹介ページ（https://boardgamepia.com/games/century-ghost.html）
+  - メインビジュアル、遊ぶボタン、基本情報、ルール、遊び方、コツ、よくある質問を載せる。
+  - 「▶ PLAY」は サイト内のプレイページ ../play/century-ghost/（Unity WebGL）へ移動する。
+    プレイページは Unity のビルドで作られる（unity/README.md を参照）。
+  - ルールは、ゲーム内の「あそびかた」と同じ内容にそろえる。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: infra フォルダで cdk deploy WebStack を実行すると S3 にアップロードされ、
+    CloudFront のキャッシュも消えて boardgamepia.com に反映される。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
+  <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
+  <title>センチュリー・ゴースト｜遊び方とルール - BOARD PIA</title>
+  <meta name="description" content="4色の魂を集めて交換・強化し、おばけを呼び出して得点を競う「センチュリー・ゴースト」の遊び方・ルール・勝つためのコツを紹介します。" />
+
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="センチュリー・ゴースト｜遊び方とルール" />
+  <meta property="og:description" content="魂を集めて、おばけを呼び出せ。術カードで魂を増やして強化する、拡大再生産のカードゲーム。" />
+  <meta property="og:url" content="https://boardgamepia.com/games/century-ghost.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <!-- 上部のナビゲーション（左：トップへ戻るロゴ、右：メニュー。aria-current="page" が今いる場所） -->
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../" aria-current="page">ゲーム</a></li>
+      <li><a href="../blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <!-- ページ本体 -->
+  <main class="page">
+    <!-- パンくずリスト（今いる場所） -->
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ センチュリー・ゴースト</p>
+
+    <!-- ページの大見出し（ゲーム名）とキャッチコピー -->
+    <h1 class="page-title">センチュリー・ゴースト</h1>
+    <p class="lead">魂を集めて、おばけを呼び出せ。<br />術で魂を増やし、強めて、そろえるカードゲーム。</p>
+
+    <!-- メインビジュアル（トップページのカードと同じ SVG アイコン） -->
+    <div class="hero-visual">
+      <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="おばけと4色の魂のアイコン">
+        <path d="M18 104 V58 a26 26 0 0 1 52 0 V104 l-8.7 -7 -8.6 7 -8.7 -7 -8.7 7 -8.6 -7 z" stroke="#ffffff" stroke-width="4" />
+        <circle cx="35" cy="60" r="4" fill="#ffffff" /><circle cx="53" cy="60" r="4" fill="#ffffff" />
+        <circle cx="98" cy="96" r="9" stroke="#ffd84a" stroke-width="3.5" fill="rgba(255, 216, 74, 0.3)" />
+        <circle cx="126" cy="78" r="10" stroke="#22f3ff" stroke-width="3.5" fill="rgba(34, 243, 255, 0.3)" />
+        <circle cx="154" cy="58" r="11" stroke="#ff2fd6" stroke-width="3.5" fill="rgba(255, 47, 214, 0.3)" />
+        <circle cx="182" cy="36" r="12" stroke="#9b5cff" stroke-width="3.5" fill="rgba(155, 92, 255, 0.35)" />
+        <path d="M108 90 L114 85 M136 70 L142 66 M164 48 L170 44" stroke="#b6ff3b" stroke-width="3" />
+      </svg>
+    </div>
+
+    <!-- 遊ぶボタン：サイト内のプレイページ（../play/century-ghost/、Unity WebGL）へ移動する。ページの最後にも同じボタンがある -->
+    <a class="play-big" href="../play/century-ghost/">▶ PLAY</a>
+
+    <!-- 基本情報（ジャンル・人数・時間など）。dl / dt / dd の表 -->
+    <section class="panel">
+      <dl class="spec">
+        <dt>ジャンル</dt><dd>カードゲーム／拡大再生産</dd>
+        <dt>プレイ人数</dt><dd>1〜2人（CPU対戦／オンライン対戦）</dd>
+        <dt>プレイ時間</dt><dd>1ゲーム 約10〜20分</dd>
+        <dt>カード</dt><dd>術カード25枚、おばけカード20枚、金貨・銀貨 各4枚</dd>
+        <dt>操作</dt><dd>マウスクリック／タップ</dd>
+        <dt>対応環境</dt><dd>PC・スマートフォンのブラウザ（このサイトでそのまま遊べます）</dd>
+      </dl>
+    </section>
+
+    <!-- 本文：どんなゲーム？ ／ ルール ／ 遊び方 ／ 勝つためのコツ ／ よくある質問 ／ 開発日記へのリンク -->
+    <article class="prose">
+      <h2>どんなゲーム？</h2>
+      <p>
+        4色の「魂」を集めて、おばけを呼び出すカードゲームです。
+        術カードを使って魂を増やしたり、交換したり、強いものに変えたりしながら、
+        おばけカードに書かれた魂をそろえて呼び出すと得点になります。
+        新しい術を覚えるほど、魂を集める力がどんどん強くなっていくのが楽しいゲームです。
+      </p>
+
+      <h2>魂（4色）</h2>
+      <p>魂には4つの色があり、右にいくほど価値が高くなります。</p>
+      <ul>
+        <li><strong>黄</strong> ＜ <strong>青</strong> ＜ <strong>桃</strong> ＜ <strong>紫</strong></li>
+        <li>持てる魂は<strong>最大10個</strong>までです（あふれた分は、低い魂から捨てます）。</li>
+        <li>最初は、先手が黄の魂を3個、後手が4個持って始まります。</li>
+      </ul>
+
+      <h2>ルール</h2>
+      <p>自分の番には、次の4つのうち<strong>どれか1つ</strong>を行います。</p>
+      <h3>術を使う</h3>
+      <p>手札の術カードを1枚使います。術には3種類あります。</p>
+      <ul>
+        <li><strong>召集</strong>：カードに書かれた魂をもらう</li>
+        <li><strong>交換</strong>：左に書かれた魂を払って、右に書かれた魂をもらう（何回でもくり返せる）</li>
+        <li><strong>強化</strong>：自分の魂を1段階上げる（黄→青→桃→紫。書かれた回数まで）</li>
+      </ul>
+      <h3>術を覚える</h3>
+      <p>
+        場に並んだ6枚の術カードから1枚を取って、手札に加えます。
+        左端はタダで取れますが、それより右のカードを取るときは、<strong>左にあるカード1枚ごとに魂を1つずつ置く</strong>必要があります。
+        カードに置かれた魂は、そのカードを取った人がもらえます。
+      </p>
+      <h3>おばけを呼ぶ</h3>
+      <p>
+        場に並んだ5枚のおばけカードから、書かれた魂を<strong>ちょうど払って</strong>1枚取ります。おばけは得点になります。
+        左端のおばけには<strong>金貨（3点）</strong>、2番目のおばけには<strong>銀貨（1点）</strong>がつきます。
+      </p>
+      <h3>休む</h3>
+      <p>使い終わった術カードを、すべて手札に戻します。</p>
+
+      <h2>ゲームの終わりと勝ち負け</h2>
+      <ul>
+        <li>どちらかがおばけを<strong>4体</strong>呼んだら、そのラウンドの終わりでゲーム終了です。</li>
+        <li><strong>おばけの点数 ＋ コインの点数 ＋ 黄以外の魂1個につき1点</strong>の合計が多いほうの勝ちです。</li>
+      </ul>
+
+      <div class="note">
+        術カードは使うと手札からなくなり、「休む」で戻ってきます。休む番は魂が増えないので、いつ休むかも大切な判断です。
+      </div>
+
+      <h2>遊び方</h2>
+      <h3>1. 対戦方法を選ぶ</h3>
+      <p>タイトル画面で「CPUと対戦」か「オンライン対戦」を選びます。先手はコイントスで決まります。</p>
+
+      <h3>2. カードを選んで、することを決める</h3>
+      <p>手札の術カード、場の術カード、場のおばけカードのどれかをクリック（スマホはタップ）すると、できることが表示されます。強化のときは、上げたい自分の魂をクリックします。</p>
+
+      <h3>3. おばけを4体呼んだら終了</h3>
+      <p>ゲームが終わると、おばけ・コイン・魂の点数の内訳が表示されます。</p>
+
+      <h2>勝つためのコツ</h2>
+      <ul>
+        <li><strong>最初は術を覚える</strong>：序盤に強い召集や交換の術を覚えておくと、後半の魂の集まり方がまったく違います。</li>
+        <li><strong>交換は何回でも</strong>：交換の術は1回の使用でくり返せます。魂がたくさんあるときに使うと効果が大きくなります。</li>
+        <li><strong>左端のおばけを狙う</strong>：左端のおばけは金貨（3点）つき。相手より先に取れると大きな差になります。</li>
+        <li><strong>最後の魂も得点</strong>：黄以外の魂は1個1点。終盤は強化して点数を上乗せしましょう。</li>
+      </ul>
+
+      <h2>よくある質問</h2>
+      <h3>スマートフォンでも遊べますか？</h3>
+      <p>はい。スマートフォンのブラウザでこのページの「PLAY」を押せば、そのまま遊べます。</p>
+      <h3>オンライン対戦はどうやって始めますか？</h3>
+      <p>「オンライン対戦」から「ランダムマッチ」を選ぶと、対戦相手を自動で探します。友だちと遊ぶときは、片方が「ルームを作る」で表示された4桁のコードを伝え、もう片方が「ルームに入る」で入力します。</p>
+
+      <h2>開発日記</h2>
+      <p>このゲームの仕組みや工夫したところは、<a href="../blog/2026-10-20-century-ghost.html">開発日記</a>に書いています。</p>
+    </article>
+
+    <!-- ページの最後の遊ぶボタン（ルールを読み終えた人向け） -->
+    <a class="play-big" href="../play/century-ghost/">▶ PLAY</a>
+
+    <!-- ページ下部の戻るリンク -->
+    <div class="pager">
+      <a href="../">← ゲーム一覧に戻る</a>
+    </div>
+  </main>
+
+  <!-- フッター：プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
+  <footer>
+    <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

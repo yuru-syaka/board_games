@@ -126,6 +126,21 @@ const lineIcon = `
     <path d="M52 100 V106 H104 V100" stroke="#b6ff3b" stroke-width="3"/>
   </svg>`;
 
+// ネオン風の「おばけと 4 色の魂」アイコン（センチュリー・ゴースト用）
+//   左：おばけ（白）、右：黄 → 青 → 桃 → 紫 と、強化されて大きくなっていく魂
+const centuryIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 104 V58 a26 26 0 0 1 52 0 V104 l-8.7 -7 -8.6 7 -8.7 -7 -8.7 7 -8.6 -7 z"
+          stroke="#ffffff" stroke-width="4"/>
+    <circle cx="35" cy="60" r="4" fill="#ffffff"/>
+    <circle cx="53" cy="60" r="4" fill="#ffffff"/>
+    <circle cx="98" cy="96" r="9" stroke="#ffd84a" stroke-width="3.5" fill="rgba(255, 216, 74, 0.3)"/>
+    <circle cx="126" cy="78" r="10" stroke="#22f3ff" stroke-width="3.5" fill="rgba(34, 243, 255, 0.3)"/>
+    <circle cx="154" cy="58" r="11" stroke="#ff2fd6" stroke-width="3.5" fill="rgba(255, 47, 214, 0.3)"/>
+    <circle cx="182" cy="36" r="12" stroke="#9b5cff" stroke-width="3.5" fill="rgba(155, 92, 255, 0.35)"/>
+    <path d="M108 90 L114 85 M136 70 L142 66 M164 48 L170 44" stroke="#b6ff3b" stroke-width="3"/>
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -183,6 +198,14 @@ const games = [
     detail: "games/ghost-line.html",
     image: "",
     icon: lineIcon
+  },
+  {
+    title: "センチュリー・ゴースト",
+    description: "術カードで4色の魂を集め、交換し、強化して、おばけを呼び出すカードゲーム。術を覚えるほど魂の集まり方が強くなっていく。",
+    url: "play/century-ghost/",
+    detail: "games/century-ghost.html",
+    image: "",
+    icon: centuryIcon
   }
 ];
 
