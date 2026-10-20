@@ -160,6 +160,18 @@ function handler(event) {
       new route53.AaaaRecord(this, `${id}Aaaa`, { zone, recordName, target });
     }
 
+    // ドメイン直下の TXT レコード（所有権の確認などに使う）。
+    // 同じ名前の TXT レコードは 1 つにまとめる必要があるので、値を増やすときはこの配列に追加する。
+    new route53.TxtRecord(this, 'ApexTxt', {
+      zone,
+      recordName: domain,
+      values: [
+        // Google Search Console のドメイン所有権の確認（確認後も消さない。消すと所有権が外れる）
+        'google-site-verification=W4vvExEzk3-1BBaCKojzyUnHnKiIgpO9xxE9Yv_EPnc',
+      ],
+      ttl: cdk.Duration.minutes(5),
+    });
+
     this.distribution = distribution;
     this.bucket = bucket;
 
