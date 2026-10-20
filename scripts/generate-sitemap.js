@@ -27,7 +27,7 @@ function collect(dir, rel = '') {
     if (entry.isDirectory()) {
       if (relPath === 'play') continue;
       out.push(...collect(path.join(dir, entry.name), relPath));
-    } else if (entry.name.endsWith('.html')) {
+    } else if (entry.name.endsWith('.html') && relPath !== '404.html') { // 404 ページは noindex なので載せない
       out.push(relPath);
     }
   }

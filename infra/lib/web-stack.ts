@@ -137,6 +137,15 @@ function handler(event) {
           { function: indexRewrite, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST },
         ],
       },
+      // 存在しない URL では、S3 のエラー（OAC ではファイルがないと 403）の代わりに 404.html を返す。
+      // ステータスは 404 にそろえる（検索エンジンに「ないページ」と伝えるため）。
+      // エラーのキャッシュは短めにして、ページを追加したときにすぐ見えるようにする。
+      errorResponses: [403, 404].map((httpStatus) => ({
+        httpStatus,
+        responseHttpStatus: 404,
+        responsePagePath: '/404.html',
+        ttl: cdk.Duration.minutes(1),
+      })),
     });
 
     // サイト（HTML・CSS・画像など）。play/（ゲームのビルド）は PlayStack に任せる。
