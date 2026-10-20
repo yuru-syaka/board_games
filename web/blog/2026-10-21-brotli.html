@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  開発日記の記事（https://boardgamepia.com/blog/2026-10-21-brotli.html）
+  - 記事: ゲームのダウンロードを約3割軽くした話（Brotli 圧縮）
+  - 新しい記事を作るときは、この形をコピーして、title / description / og:* / 日付 / 本文を書き換え、
+    blog/index.html の一覧と、対応するゲームの紹介ページからのリンクも追加する。
+    （この記事は 6 本すべてに関わる話なので、ゲームの紹介ページからはリンクしていない）
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: git push で GitHub Actions が WebStack をデプロイする。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
+  <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
+  <title>ゲームのダウンロードを約3割軽くした話（Brotli 圧縮） - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="Unity の WebGL ビルドを gzip から Brotli に切り替え、ブラウザ自身に展開させるようにしました。圧縮の違い、必要なヘッダー、S3 と CloudFront での設定についてまとめます。" />
+
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="ゲームのダウンロードを約3割軽くした話（Brotli 圧縮）" />
+  <meta property="og:description" content="Unity の WebGL ビルドを Brotli に切り替え、ブラウザ自身に展開させるようにした話です。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-10-21-brotli.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <!-- 上部のナビゲーション（左：トップへ戻るロゴ、右：メニュー。aria-current="page" が今いる場所） -->
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <!-- ページ本体 -->
+  <main class="page">
+    <!-- パンくずリスト（今いる場所） -->
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <!-- 記事のタイトル -->
+    <h1 class="page-title">ゲームのダウンロードを約3割軽くした話（Brotli 圧縮）</h1>
+    <!-- 記事の日付とタグ -->
+    <div class="post-meta">
+      <time datetime="2026-10-21">2026.10.21</time>
+      <span class="tag">Unity</span>
+      <span class="tag">WebGL</span>
+      <span class="tag">AWS</span>
+    </div>
+
+    <!-- 記事の本文（h2 / h3 の見出し、段落、リスト、<pre><code> のコード、<div class="note"> の POINT の囲み） -->
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。今回はゲームそのものではなく、<strong>ゲームを届ける仕組み</strong>の話です。
+        このサイトの6本のゲームは、Unity で作ってブラウザで遊べる形（WebGL）にしています。
+        その配信のしかたを見直して、最初に読み込むデータを約3割小さくしました。
+      </p>
+
+      <h2>ブラウザで遊ぶゲームは「最初の読み込み」が重い</h2>
+      <p>
+        Unity の WebGL ビルドは、主に次の3つのファイルでできています。
+      </p>
+      <ul>
+        <li><strong>.wasm</strong>：ゲームのプログラム本体（WebAssembly）</li>
+        <li><strong>.data</strong>：画像や音などのデータ</li>
+        <li><strong>.framework.js</strong>：ブラウザとゲームをつなぐ JavaScript</li>
+      </ul>
+      <p>
+        圧縮しないと、この3つで1本あたり<strong>約69MB</strong>あります。
+        そのままでは重すぎるので、もともと gzip で圧縮して配信していました。
+      </p>
+
+      <h2>これまでのやり方：JavaScript で展開していた</h2>
+      <p>
+        圧縮したファイルは、サーバーが「これは圧縮してあります」というヘッダー（<code>Content-Encoding</code>）を付けて返せば、
+        ブラウザが自動で展開してくれます。
+        ただ、最初はサーバー側の設定なしで動かしたかったので、Unity の <strong>Decompression Fallback</strong> という機能を使っていました。
+        これは、ヘッダーがなくても、Unity のローダー（JavaScript）が自分でファイルを展開してくれる機能です。
+      </p>
+      <p>
+        手軽な反面、展開をブラウザ自身ではなく JavaScript で行うので、そのぶん時間がかかります。
+        また、圧縮の方式も、どこでも展開しやすい gzip にしていました。
+      </p>
+
+      <h2>Brotli に切り替えて、ブラウザに展開させる</h2>
+      <p>
+        今は自分でサーバー（AWS の S3 と CloudFront）を用意しているので、ヘッダーを付けられます。
+        そこで、次のように変えました。
+      </p>
+      <ul>
+        <li>圧縮の方式を、gzip よりよく縮む <strong>Brotli</strong> にする</li>
+        <li>Decompression Fallback をやめ、<strong>ブラウザ自身に展開させる</strong></li>
+      </ul>
+      <p>ビルドの設定は、この2行を変えただけです。</p>
+<pre><code>PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+PlayerSettings.WebGL.decompressionFallback = false;</code></pre>
+
+      <h2>どれくらい小さくなったか</h2>
+      <p>
+        6本とも、ほぼ同じ結果でした。1本あたりの3つのファイルの合計です。
+        （gzip は、同じファイルを最高の圧縮率で圧縮し直して比べています）
+      </p>
+      <ul>
+        <li>圧縮なし：約 68.9 MB</li>
+        <li>gzip：約 23.8 MB</li>
+        <li><strong>Brotli：約 17.1 MB</strong>（gzip より約 28% 小さい）</li>
+      </ul>
+      <p>
+        いちばん大きいのはプログラム本体の .wasm で、約 51MB が約 9.8MB まで縮んでいます。
+        さらに、展開をブラウザに任せたことで、JavaScript での展開の手間もなくなりました。
+      </p>
+
+      <h2>つまずいたところ：ファイルごとに違うヘッダーが必要</h2>
+      <p>
+        Brotli のファイルをブラウザに展開させるには、ファイルごとに2つのヘッダーが必要です。
+      </p>
+      <ul>
+        <li><code>Content-Encoding: br</code>：「Brotli で圧縮してあります」</li>
+        <li><code>Content-Type</code>：展開したあとの中身の種類（.wasm なら <code>application/wasm</code>、.js なら <code>application/javascript</code> など）</li>
+      </ul>
+      <p>
+        ところが、S3 にファイルを上げるときに使っている AWS CDK の BucketDeployment は、
+        <strong>1回のアップロードに1種類のヘッダーしか付けられません</strong>。
+        そこで、アップロードを「.wasm.br」「.js.br」「.data.br」「それ以外」の4つに分けました。
+      </p>
+<pre><code>// 種類ごとにアップロードを分け、それぞれに合ったヘッダーを付ける
+new BucketDeployment(this, 'Wasm', {
+  ...common,
+  exclude: ['*'],
+  include: ['*.wasm.br'],          // .wasm.br だけを対象にする
+  contentType: 'application/wasm',
+  contentEncoding: 'br',
+});</code></pre>
+
+      <div class="note">
+        アップロードを分けるときは、「古いファイルを消す」処理がお互いのファイルを消さないように気をつけます。
+        include と exclude で対象を絞ると、消す処理もその範囲だけに効くので、4つを同じフォルダに置いても大丈夫でした。
+        また、.br のファイルを先に置いてから最後に index.html を差し替えるようにして、
+        新しいページがまだ置かれていないファイルを読みにいくことがないようにしています。
+      </div>
+
+      <h2>確かめたこと</h2>
+      <ul>
+        <li>6本すべてのファイルに <code>Content-Encoding: br</code> と正しい <code>Content-Type</code> が付いている</li>
+        <li>ブラウザで開くと、自分で展開して、ゲームが起動する</li>
+        <li>古い gzip のファイルは、サーバーから自動で消えている</li>
+      </ul>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>サーバーを自分で用意できるなら、Decompression Fallback より、ヘッダーを付けてブラウザに展開させるほうがよい</li>
+        <li>Brotli は gzip より手間が少し増えるが、その分しっかり小さくなる</li>
+        <li>ゲームの中身を変えなくても、「届け方」を変えるだけで遊ぶ人の待ち時間を減らせる</li>
+      </ul>
+
+      <p><a href="../">▶ ゲームの一覧を見る</a></p>
+    </article>
+
+    <!-- ページ下部の戻るリンク -->
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../">ゲームの一覧へ →</a>
+    </div>
+  </main>
+
+  <!-- フッター：プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
+  <footer>
+    <nav class="footer-links"><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>
