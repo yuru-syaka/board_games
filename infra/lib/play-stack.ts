@@ -36,14 +36,39 @@ export class PlayStack extends cdk.Stack {
       });
 
       for (const slug of games) {
-        new s3deploy.BucketDeployment(this, `DeployPlay-${slug}`, {
-          sources: [s3deploy.Source.asset(path.join(playDir, slug), { exclude: ['unity-build.provenance.json'] })],
+        const source = s3deploy.Source.asset(path.join(playDir, slug), { exclude: ['unity-build.provenance.json'] });
+        const common = {
+          sources: [source],
           destinationBucket: bucket,
           destinationKeyPrefix: `play/${slug}/`,
           memoryLimit: 1024, // Unity の WebGL ビルド（数十 MB）を展開するため
+        };
+
+        // Brotli で圧縮したファイル（Build/*.br）は、ブラウザが自分で展開できるよう
+        // Content-Encoding: br と、元のファイルの Content-Type を付けて置く。
+        // BucketDeployment は 1 つにつき 1 つのヘッダーしか付けられないので、種類ごとに分ける。
+        // include / exclude は prune（不要ファイルの削除）にも効くので、互いのファイルは消さない。
+        const brotli = [
+          { id: 'Wasm', pattern: '*.wasm.br', contentType: 'application/wasm' },
+          { id: 'Js', pattern: '*.js.br', contentType: 'application/javascript' },
+          { id: 'Data', pattern: '*.data.br', contentType: 'application/octet-stream' },
+        ].map(({ id, pattern, contentType }) => new s3deploy.BucketDeployment(this, `DeployPlay-${slug}-${id}`, {
+          ...common,
+          exclude: ['*'],
+          include: [pattern],
+          contentType,
+          contentEncoding: 'br',
+        }));
+
+        // それ以外（index.html、loader.js、TemplateData など）。
+        // .br を先に置いてから index.html を差し替え、キャッシュを消す（新しい index.html が古いファイルを指さないように）。
+        const main = new s3deploy.BucketDeployment(this, `DeployPlay-${slug}`, {
+          ...common,
+          exclude: ['*.br'],
           distribution,
           distributionPaths: [`/play/${slug}/*`],
         });
+        brotli.forEach((d) => main.node.addDependency(d));
       }
     }
 

@@ -37,10 +37,10 @@ public static class WebBuild
         PlayerSettings.SetTemplateCustomValue("GAME_TITLE", settings.title);
         PlayerSettings.SetTemplateCustomValue("GAME_PAGE", settings.page);
 
-        // CloudFront / GitHub Pages のどちらでも、サーバー側の設定なしで動くようにする:
-        // gzip で圧縮し、ブラウザが展開できない場合はローダーが JS で展開する（Decompression Fallback）。
-        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Gzip;
-        PlayerSettings.WebGL.decompressionFallback = true;
+        // Brotli で圧縮し、ブラウザ自身に展開させる（JS での展開より速く、gzip よりファイルが小さい）。
+        // そのため S3 の Build/*.br には Content-Encoding: br が必要（infra/lib/play-stack.ts で付ける）。
+        PlayerSettings.WebGL.compressionFormat = WebGLCompressionFormat.Brotli;
+        PlayerSettings.WebGL.decompressionFallback = false;
         // ファイル名にハッシュを付け、更新時に古いキャッシュが使われないようにする
         PlayerSettings.WebGL.nameFilesAsHashes = true;
         PlayerSettings.WebGL.dataCaching = true;
