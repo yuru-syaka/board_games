@@ -24,7 +24,7 @@ namespace BoardGames.Net
     /// - エディターでは .NET の ClientWebSocket を使う(エディターでも本物のサーバーにつないで確かめられる)。
     /// 届いた出来事は、持ち主が毎フレーム Update() を呼んだときに、メインスレッドでイベントとして通知する。
     /// </summary>
-    public sealed class WebSocketConnection : IDisposable
+    public sealed class WebSocketConnection : ITextSocket
     {
         public SocketState State { get; private set; } = SocketState.Closed;
 

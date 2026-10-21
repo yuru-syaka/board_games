@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- com.boardpia.net の Client（ServerConnection・WebSocket）。Unity に依存しないので .NET でもビルドしてテストする -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(UnityPackages)com.boardpia.net\Runtime\Client\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BoardGames.Net.Protocol\BoardGames.Net.Protocol.csproj" />
+  </ItemGroup>
+</Project>

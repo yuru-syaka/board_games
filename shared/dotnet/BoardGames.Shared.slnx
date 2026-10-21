@@ -9,6 +9,8 @@
   <Project Path="BoardGames.Gobblet.Logic/BoardGames.Gobblet.Logic.csproj" />
   <Project Path="BoardGames.Gobblet.Tests/BoardGames.Gobblet.Tests.csproj" />
   <Project Path="BoardGames.Net.Protocol/BoardGames.Net.Protocol.csproj" />
+  <Project Path="BoardGames.Net.Tests/BoardGames.Net.Tests.csproj" />
+  <Project Path="BoardGames.Net/BoardGames.Net.csproj" />
   <Project Path="BoardGames.Quarto.Logic/BoardGames.Quarto.Logic.csproj" />
   <Project Path="BoardGames.Quarto.Tests/BoardGames.Quarto.Tests.csproj" />
   <Project Path="BoardGames.Vanish.Logic/BoardGames.Vanish.Logic.csproj" />
