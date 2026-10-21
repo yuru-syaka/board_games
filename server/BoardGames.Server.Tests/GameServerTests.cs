@@ -15,13 +15,14 @@ public class GameServerTests
     InMemoryStore _store = null!;
     FakePush _push = null!;
     GameServer _server = null!;
+    DateTimeOffset _now = new(2026, 10, 22, 12, 0, 0, TimeSpan.Zero);
 
     [SetUp]
     public void SetUp()
     {
         _store = new InMemoryStore();
         _push = new FakePush();
-        _server = new GameServer(_store, _push, GameRegistry.Default(), new Random(1234));
+        _server = new GameServer(_store, _push, GameRegistry.Default(), new Random(1234), () => _now);
     }
 
     FakeClient Client(string id) => new FakeClient(_server, _push, id);
@@ -45,14 +46,15 @@ public class GameServerTests
     {
         var a = Client("A");
         a.Send(LobbyProtocol.Quick("vanish"));
-        Assert.AreEqual(LobbyMessageKind.Joined, a.LastLobby!.Value.Kind);
-        Assert.AreEqual(0, a.LastLobby.Value.Seat);
-        Assert.IsFalse(a.LastLobby.Value.OpponentPresent);
+        var first = a.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
+        Assert.AreEqual(0, first.Seat);
+        Assert.IsFalse(first.OpponentPresent);
+        Assert.AreEqual(LobbyMessageKind.Token, a.LastLobby!.Value.Kind, "席の合言葉が届く");
         Assert.IsTrue(_store.HasQueue("vanish"));
 
         var b = Client("B");
         b.Send(LobbyProtocol.Quick("vanish"));
-        var joined = b.Lobby.Single();
+        var joined = b.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
         Assert.AreEqual(1, joined.Seat);
         Assert.IsTrue(joined.OpponentPresent);
         Assert.AreEqual(LobbyMessageKind.OpponentJoined, a.LastLobby!.Value.Kind);
@@ -99,7 +101,7 @@ public class GameServerTests
     {
         var a = Client("A");
         a.Send(LobbyProtocol.Create("vanish"));
-        var created = a.LastLobby!.Value;
+        var created = a.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
         Assert.AreEqual(LobbyMessageKind.Joined, created.Kind);
         Assert.IsTrue(LobbyProtocol.IsRoomCode(created.Code));
         Assert.IsTrue(_store.HasCode("vanish", created.Code));
@@ -107,8 +109,9 @@ public class GameServerTests
 
         var b = Client("B");
         b.Send(LobbyProtocol.Join("vanish", created.Code));
-        Assert.AreEqual(1, b.Lobby.Single().Seat);
-        Assert.AreEqual(created.Code, b.Lobby.Single().Code);
+        var joinedB = b.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
+        Assert.AreEqual(1, joinedB.Seat);
+        Assert.AreEqual(created.Code, joinedB.Code);
         Assert.IsTrue(b.Received.Last().StartsWith("S|"));
         Assert.IsFalse(_store.HasCode("vanish", created.Code), "そろったらコードを返す");
 
@@ -239,17 +242,21 @@ public class GameServerTests
         // 次に来た人は、切れた人と組まされずに待つ側になる
         var b = Client("B");
         b.Send(LobbyProtocol.Quick("vanish"));
-        Assert.AreEqual(0, b.LastLobby!.Value.Seat);
-        Assert.IsFalse(b.LastLobby.Value.OpponentPresent);
+        var bJoined = b.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
+        Assert.AreEqual(0, bJoined.Seat);
+        Assert.IsFalse(bJoined.OpponentPresent);
     }
 
     [Test]
-    public void Disconnect_DuringAGame_TellsTheOpponent()
+    public void Disconnect_DuringAGame_KeepsTheRoomAndTellsTheOpponentToWait()
     {
         var (a, b) = QuickPair();
         b.Disconnect();
-        Assert.AreEqual(LobbyMessageKind.OpponentLeft, a.LastLobby!.Value.Kind);
-        Assert.AreEqual(0, _store.MatchCount);
+        var away = a.LastLobby!.Value;
+        Assert.AreEqual(LobbyMessageKind.OpponentAway, away.Kind);
+        Assert.AreEqual(90, away.Seconds);
+        Assert.AreEqual(1, _store.MatchCount, "部屋は消さずに待つ");
+        Assert.IsNotNull(_store.PeekMatch()!.AwaySince[1]);
     }
 
     [Test]
@@ -257,7 +264,7 @@ public class GameServerTests
     {
         var a = Client("A");
         a.Send(LobbyProtocol.Create("vanish"));
-        var code = a.LastLobby!.Value.Code;
+        var code = a.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined).Code;
         a.Send(LobbyProtocol.Quick("vanish"));
         Assert.IsFalse(_store.HasCode("vanish", code), "前の部屋のコードは返す");
         Assert.AreEqual(1, _store.MatchCount);

@@ -24,6 +24,10 @@ public sealed class MatchRecord
     /// 0 = まだ保存されていない。
     /// </summary>
     public long Version { get; set; }
+    /// <summary>席ごとの合言葉。通信が切れたあと、これを持っている人だけが同じ席に戻れる。</summary>
+    public string?[] Tokens { get; init; } = new string?[2];
+    /// <summary>席ごとの「通信が切れた時刻」（UNIX ミリ秒。いれば null）。待ち時間を過ぎたら相手が勝ちを申請できる。</summary>
+    public long?[] AwaySince { get; init; } = new long?[2];
 
     public int OtherSeat(int seat) => 1 - seat;
 }
@@ -64,6 +68,13 @@ public interface IMatchStore
 
     /// <summary>ルームコードがこの対局のものなら消す。</summary>
     Task ReleaseCodeAsync(string game, string code, string matchId);
+
+    /// <summary>合言葉 → 対局と席、を覚える（Resume で探すため）。</summary>
+    Task PutTokenAsync(string token, string matchId, int seat);
+
+    Task<(string MatchId, int Seat)?> FindTokenAsync(string token);
+
+    Task DeleteTokenAsync(string token);
 }
 
 /// <summary>接続にメッセージを送る（本番は API Gateway の管理 API）。</summary>

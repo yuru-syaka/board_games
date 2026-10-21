@@ -69,7 +69,7 @@ namespace BoardGames.Net.Tests
         public void SetUp()
         {
             _socket = new FakeSocket();
-            _server = new ServerConnection("vanish", "wss://example.test", _socket);
+            _server = new ServerConnection("vanish", "wss://example.test", _socket, new MemorySessionStore());
             _errors = new List<string>();
             _gameMessages = new List<string>();
             _server.Error += _errors.Add;

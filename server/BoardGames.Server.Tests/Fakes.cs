@@ -9,6 +9,7 @@ sealed class InMemoryStore : IMatchStore
     readonly Dictionary<string, ConnectionRecord> _connections = new();
     readonly Dictionary<string, string> _queue = new();
     readonly Dictionary<string, string> _codes = new();
+    readonly Dictionary<string, (string, int)> _tokens = new();
 
     /// <summary>次の TryPutMatchAsync をこの回数だけ「ほかの書き込みに負けた」ことにする（競合のテスト用）。</summary>
     public int FailNextMatchWrites { get; set; }
@@ -17,6 +18,8 @@ sealed class InMemoryStore : IMatchStore
     public int ConnectionCount => _connections.Count;
     public bool HasQueue(string game) => _queue.ContainsKey(game);
     public bool HasCode(string game, string code) => _codes.ContainsKey(game + "#" + code);
+    public int TokenCount => _tokens.Count;
+    public MatchRecord? PeekMatch() => _matches.Values.SingleOrDefault();
 
     public Task<MatchRecord?> GetMatchAsync(string matchId) =>
         Task.FromResult(_matches.TryGetValue(matchId, out var m) ? Clone(m) : null);
@@ -80,6 +83,21 @@ sealed class InMemoryStore : IMatchStore
         return Task.CompletedTask;
     }
 
+    public Task PutTokenAsync(string token, string matchId, int seat)
+    {
+        _tokens[token] = (matchId, seat);
+        return Task.CompletedTask;
+    }
+
+    public Task<(string MatchId, int Seat)?> FindTokenAsync(string token) =>
+        Task.FromResult<(string MatchId, int Seat)?>(_tokens.TryGetValue(token, out var t) ? t : null);
+
+    public Task DeleteTokenAsync(string token)
+    {
+        _tokens.Remove(token);
+        return Task.CompletedTask;
+    }
+
     static MatchRecord Clone(MatchRecord m)
     {
         var copy = new MatchRecord
@@ -91,6 +109,11 @@ sealed class InMemoryStore : IMatchStore
         copy.Moves.AddRange(m.Moves);
         copy.Rematch[0] = m.Rematch[0];
         copy.Rematch[1] = m.Rematch[1];
+        for (int seat = 0; seat < 2; seat++)
+        {
+            copy.Tokens[seat] = m.Tokens[seat];
+            copy.AwaySince[seat] = m.AwaySince[seat];
+        }
         return copy;
     }
 }

@@ -10,6 +10,7 @@ namespace BoardGames.Server.Aws;
 ///   c#接続ID           接続がどの対局のどの席にいるか
 ///   q#ゲーム           ランダムマッチの待ち行列（待っている対局 1 つ）
 ///   r#ゲーム#コード    ルームコード → 対局
+///   k#合言葉           合言葉 → 対局と席（通信が切れたあと、同じ席に戻るため）
 /// どの行にも ttl（期限）を付け、古いものは DynamoDB が自動で消す（消えるまで最大 2 日ほどかかる）。
 /// </summary>
 public sealed class DynamoMatchStore : IMatchStore
@@ -47,6 +48,11 @@ public sealed class DynamoMatchStore : IMatchStore
         var rematch = OptionalString(item, "rm") ?? "00";
         match.Rematch[0] = rematch[0] == '1';
         match.Rematch[1] = rematch[1] == '1';
+        for (int seat = 0; seat < 2; seat++)
+        {
+            match.Tokens[seat] = OptionalString(item, "k" + seat);
+            if (item.TryGetValue("a" + seat, out var away)) match.AwaySince[seat] = long.Parse(away.N, CultureInfo.InvariantCulture);
+        }
         return match;
     }
 
@@ -66,6 +72,11 @@ public sealed class DynamoMatchStore : IMatchStore
         if (match.Connections[0] != null) item["c0"] = S(match.Connections[0]!);
         if (match.Connections[1] != null) item["c1"] = S(match.Connections[1]!);
         if (match.Code != null) item["code"] = S(match.Code);
+        for (int seat = 0; seat < 2; seat++)
+        {
+            if (match.Tokens[seat] != null) item["k" + seat] = S(match.Tokens[seat]!);
+            if (match.AwaySince[seat] is long away) item["a" + seat] = N(away);
+        }
 
         var request = new PutItemRequest { TableName = _table, Item = item };
         if (match.Version == 0)
@@ -135,6 +146,29 @@ public sealed class DynamoMatchStore : IMatchStore
     public async Task<string?> FindCodeAsync(string game, string code) => OptionalString(await GetAsync($"r#{game}#{code}"), "mid");
 
     public Task ReleaseCodeAsync(string game, string code, string matchId) => DeleteIfAsync($"r#{game}#{code}", matchId);
+
+    // ---------- 合言葉 ----------
+
+    public Task PutTokenAsync(string token, string matchId, int seat) =>
+        _db.PutItemAsync(new PutItemRequest
+        {
+            TableName = _table,
+            Item = new Dictionary<string, AttributeValue>
+            {
+                ["pk"] = S("k#" + token),
+                ["mid"] = S(matchId),
+                ["seat"] = N(seat),
+                ["ttl"] = Ttl(MatchTtl),
+            },
+        });
+
+    public async Task<(string MatchId, int Seat)?> FindTokenAsync(string token)
+    {
+        var item = await GetAsync("k#" + token);
+        return item == null ? null : (item["mid"].S, int.Parse(item["seat"].N, CultureInfo.InvariantCulture));
+    }
+
+    public Task DeleteTokenAsync(string token) => DeleteAsync("k#" + token);
 
     // ---------- 内部 ----------
 

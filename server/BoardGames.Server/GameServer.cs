@@ -1,13 +1,17 @@
+using System.Security.Cryptography;
 using BoardGames.Net;
 using BoardGames.Server.Games;
 
 namespace BoardGames.Server;
 
 /// <summary>
-/// オンライン対戦サーバーの中身。AWS には依存しない（保存先と送信先は差し替えられる）。
+/// オンライン対戦サーバーの中身。AWS には依存しない（保存先・送信先・時計は差し替えられる）。
 /// - ロビー: ランダムマッチ（待ち行列）とルームコード。最初にいた人が席 0、あとから来た人が席 1。
 /// - 対局: サーバーが局面を持つ（サーバー権威型）。手は各ゲームのルールで検証し、両方の席に局面を送る。
 ///   ブラウザ側は両者とも OnlineMatch の「ゲスト」として動く。
+/// - 通信が切れたとき: 対局中なら部屋は消さず、その席を「離席中」にして相手に知らせる。
+///   切れた側は合言葉（Token）で同じ席に戻れる（Resume）。待ち時間（ServerSettings.AwayGrace）を過ぎても
+///   戻らなければ、残った側が勝ちを申請できる（Claim）。タイマーは動かさず、申請が届いたときに時刻を確かめる。
 /// - メッセージ: ロビーは LobbyProtocol（"@…"）、対局中は各ゲームの NetProtocol（"S|1|…" など）。
 /// </summary>
 public sealed class GameServer
@@ -19,17 +23,55 @@ public sealed class GameServer
     readonly IConnectionPush _push;
     readonly GameRegistry _games;
     readonly Random _rng;
+    readonly Func<DateTimeOffset> _clock;
+    readonly ServerSettings _settings;
 
-    public GameServer(IMatchStore store, IConnectionPush push, GameRegistry games, Random? rng = null)
+    public GameServer(IMatchStore store, IConnectionPush push, GameRegistry games, Random? rng = null,
+        Func<DateTimeOffset>? clock = null, ServerSettings? settings = null)
     {
         _store = store;
         _push = push;
         _games = games;
         _rng = rng ?? Random.Shared;
+        _clock = clock ?? (() => DateTimeOffset.UtcNow);
+        _settings = settings ?? ServerSettings.Default;
     }
 
-    /// <summary>接続が切れた（ブラウザを閉じた・通信が切れた）。対局中なら相手に知らせて部屋を閉じる。</summary>
-    public Task OnDisconnectAsync(string connectionId) => LeaveAsync(connectionId);
+    long NowMs => _clock().ToUnixTimeMilliseconds();
+
+    /// <summary>
+    /// 接続が切れた（ブラウザを閉じた・通信が切れた）。
+    /// 対局中なら席を「離席中」にして相手に知らせる（戻ってくるのを待つ）。それ以外なら部屋から抜ける。
+    /// </summary>
+    public async Task OnDisconnectAsync(string connectionId)
+    {
+        var connection = await _store.GetConnectionAsync(connectionId);
+        if (connection == null) return;
+
+        for (int attempt = 0; attempt < MaxRetries; attempt++)
+        {
+            var match = await _store.GetMatchAsync(connection.MatchId);
+            if (match == null || match.Connections[connection.Seat] != connectionId)
+            {
+                await _store.DeleteConnectionAsync(connectionId); // もう別の接続で戻っている・対局が無い
+                return;
+            }
+            if (!match.Started || Rebuild(match).IsOver)
+            {
+                await LeaveAsync(connectionId); // 相手待ち・終局後は、これまでどおり抜ける
+                return;
+            }
+
+            match.Connections[connection.Seat] = null;
+            match.AwaySince[connection.Seat] = NowMs;
+            if (!await _store.TryPutMatchAsync(match)) continue;
+
+            await _store.DeleteConnectionAsync(connectionId);
+            var other = match.Connections[match.OtherSeat(connection.Seat)];
+            if (other != null) await _push.SendAsync(other, LobbyProtocol.OpponentAway((int)_settings.AwayGrace.TotalSeconds));
+            return;
+        }
+    }
 
     /// <summary>ブラウザからのメッセージ 1 つを処理する。</summary>
     public async Task OnMessageAsync(string connectionId, string? message)
@@ -50,6 +92,8 @@ public sealed class GameServer
                 case LobbyMessageKind.Join: await JoinAsync(connectionId, lobby.Game, lobby.Code); break;
                 case LobbyMessageKind.Leave: await LeaveAsync(connectionId); break;
                 case LobbyMessageKind.Ping: await _push.SendAsync(connectionId, LobbyProtocol.Pong()); break;
+                case LobbyMessageKind.Resume: await ResumeAsync(connectionId, lobby.Token); break;
+                case LobbyMessageKind.Claim: await ClaimAsync(connectionId); break;
                 default: await _push.SendAsync(connectionId, LobbyProtocol.Error(LobbyErrors.BadRequest)); break;
             }
             return;
@@ -81,8 +125,7 @@ public sealed class GameServer
             if (!await _store.TryPutMatchAsync(match)) continue;
             if (await _store.TryEnqueueAsync(game, match.Id))
             {
-                await _store.PutConnectionAsync(new ConnectionRecord(connectionId, match.Id, 0));
-                await _push.SendAsync(connectionId, LobbyProtocol.Joined(0, null, opponentPresent: false));
+                await SeatFirstAsync(match, connectionId);
                 return;
             }
             await _store.DeleteMatchAsync(match.Id); // ほぼ同時にほかの人が並んだ: その人と組めるか探し直す
@@ -104,8 +147,7 @@ public sealed class GameServer
                 await _store.ReleaseCodeAsync(game, code, match.Id);
                 continue;
             }
-            await _store.PutConnectionAsync(new ConnectionRecord(connectionId, match.Id, 0));
-            await _push.SendAsync(connectionId, LobbyProtocol.Joined(0, code, opponentPresent: false));
+            await SeatFirstAsync(match, connectionId);
             return;
         }
         await _push.SendAsync(connectionId, LobbyProtocol.Error(LobbyErrors.ServerBusy));
@@ -138,22 +180,35 @@ public sealed class GameServer
         return true;
     }
 
+    /// <summary>作った部屋の席 0 に座る（保存済みの部屋に対して）。</summary>
+    async Task SeatFirstAsync(MatchRecord match, string connectionId)
+    {
+        await _store.PutConnectionAsync(new ConnectionRecord(connectionId, match.Id, 0));
+        await _store.PutTokenAsync(match.Tokens[0]!, match.Id, 0);
+        await _push.SendAsync(connectionId, LobbyProtocol.Joined(0, match.Code, opponentPresent: false));
+        await _push.SendAsync(connectionId, LobbyProtocol.Token(match.Tokens[0]!));
+    }
+
     /// <summary>部屋の席 1 に入り、対局を始める。席が埋まっていた・ほかの書き込みに負けたら false。</summary>
     async Task<bool> TrySeatSecondAsync(MatchRecord match, string connectionId)
     {
         if (match.Connections[1] != null || match.Started) return false;
         match.Connections[1] = connectionId;
+        match.Tokens[1] = NewToken();
         StartNewGame(match);
         if (!await _store.TryPutMatchAsync(match)) return false;
 
         if (match.Code != null) await _store.ReleaseCodeAsync(match.Game, match.Code, match.Id); // もう入れないのでコードを返す
         await _store.PutConnectionAsync(new ConnectionRecord(connectionId, match.Id, 1));
+        await _store.PutTokenAsync(match.Tokens[1]!, match.Id, 1);
         await _push.SendAsync(connectionId, LobbyProtocol.Joined(1, match.Code, opponentPresent: true));
+        await _push.SendAsync(connectionId, LobbyProtocol.Token(match.Tokens[1]!));
         await _push.SendAsync(match.Connections[0]!, LobbyProtocol.OpponentJoined());
         await SendSnapshotsAsync(match, Rebuild(match));
         return true;
     }
 
+    /// <summary>部屋から抜ける（自分で抜けた・相手待ちや終局後に切れた）。相手がいれば「相手が抜けた」と知らせる。</summary>
     async Task LeaveAsync(string connectionId)
     {
         var connection = await _store.GetConnectionAsync(connectionId);
@@ -162,9 +217,7 @@ public sealed class GameServer
 
         var match = await _store.GetMatchAsync(connection.MatchId);
         if (match == null) return;
-        await _store.DeleteMatchAsync(match.Id);
-        await _store.RemoveFromQueueAsync(match.Game, match.Id);
-        if (match.Code != null) await _store.ReleaseCodeAsync(match.Game, match.Code, match.Id);
+        await CloseMatchAsync(match);
 
         // 相手には「相手が抜けた」と知らせ、相手の席の記録も消す（相手はロビーに戻る）
         var other = match.Connections[match.OtherSeat(connection.Seat)];
@@ -173,6 +226,64 @@ public sealed class GameServer
             await _store.DeleteConnectionAsync(other);
             await _push.SendAsync(other, LobbyProtocol.OpponentLeft());
         }
+    }
+
+    /// <summary>合言葉で、通信が切れる前の席に戻る。</summary>
+    async Task ResumeAsync(string connectionId, string token)
+    {
+        for (int attempt = 0; attempt < MaxRetries; attempt++)
+        {
+            var found = await _store.FindTokenAsync(token);
+            var match = found == null ? null : await _store.GetMatchAsync(found.Value.MatchId);
+            if (found == null || match == null || match.Tokens[found.Value.Seat] != token)
+            {
+                await _push.SendAsync(connectionId, LobbyProtocol.Error(LobbyErrors.SessionExpired));
+                return;
+            }
+
+            int seat = found.Value.Seat;
+            int otherSeat = match.OtherSeat(seat);
+            var previous = match.Connections[seat];
+            bool wasAway = match.AwaySince[seat] != null;
+            match.Connections[seat] = connectionId;
+            match.AwaySince[seat] = null;
+            if (!await _store.TryPutMatchAsync(match)) continue;
+
+            if (previous != null && previous != connectionId) await _store.DeleteConnectionAsync(previous); // 切れたと気づく前の古い接続
+            await _store.PutConnectionAsync(new ConnectionRecord(connectionId, match.Id, seat));
+
+            bool opponentPresent = match.Connections[otherSeat] != null || match.AwaySince[otherSeat] != null;
+            await _push.SendAsync(connectionId, LobbyProtocol.Resumed(seat, match.Code, opponentPresent));
+            if (match.Started)
+            {
+                await _push.SendAsync(connectionId, Rebuild(match).SnapshotFor(seat));
+                if (match.Rematch[otherSeat]) await _push.SendAsync(connectionId, RematchMessage);
+                if (match.AwaySince[otherSeat] is long since) await _push.SendAsync(connectionId, LobbyProtocol.OpponentAway(RemainingAwaySeconds(since)));
+            }
+            var other = match.Connections[otherSeat];
+            if (other != null && wasAway) await _push.SendAsync(other, LobbyProtocol.OpponentBack());
+            return;
+        }
+        await _push.SendAsync(connectionId, LobbyProtocol.Error(LobbyErrors.ServerBusy));
+    }
+
+    /// <summary>勝ちの申請。相手の通信が切れてから待ち時間を過ぎていれば、申請した側の勝ちにして対局を閉じる。</summary>
+    async Task ClaimAsync(string connectionId)
+    {
+        var connection = await _store.GetConnectionAsync(connectionId);
+        if (connection == null) return;
+        var match = await _store.GetMatchAsync(connection.MatchId);
+        if (match == null || !match.Started) return;
+
+        int otherSeat = match.OtherSeat(connection.Seat);
+        if (match.AwaySince[otherSeat] is long since && NowMs - since >= (long)_settings.AwayGrace.TotalMilliseconds)
+        {
+            await CloseMatchAsync(match);
+            await _store.DeleteConnectionAsync(connectionId);
+            await _push.SendAsync(connectionId, LobbyProtocol.Won(LobbyEndReasons.Abandon));
+            return;
+        }
+        await _push.SendAsync(connectionId, LobbyProtocol.Error(LobbyErrors.TooEarly));
     }
 
     // ---------- 対局 ----------
@@ -240,8 +351,25 @@ public sealed class GameServer
     {
         var match = new MatchRecord { Id = Guid.NewGuid().ToString("N"), Game = game, Code = code };
         match.Connections[0] = connectionId;
+        match.Tokens[0] = NewToken();
         return match;
     }
+
+    /// <summary>推測できない合言葉（16 進数 32 文字 = 128 ビット）。</summary>
+    static string NewToken() => RandomNumberGenerator.GetHexString(LobbyProtocol.TokenLength, lowercase: true);
+
+    /// <summary>対局と、それに付いている待ち行列・ルームコード・合言葉を消す。</summary>
+    async Task CloseMatchAsync(MatchRecord match)
+    {
+        await _store.DeleteMatchAsync(match.Id);
+        await _store.RemoveFromQueueAsync(match.Game, match.Id);
+        if (match.Code != null) await _store.ReleaseCodeAsync(match.Game, match.Code, match.Id);
+        foreach (var token in match.Tokens)
+            if (token != null) await _store.DeleteTokenAsync(token);
+    }
+
+    int RemainingAwaySeconds(long since) =>
+        (int)Math.Max(0, Math.Ceiling((_settings.AwayGrace.TotalMilliseconds - (NowMs - since)) / 1000.0));
 
     /// <summary>新しい対局にする（種を引き直し、手と再戦の希望を消す）。</summary>
     void StartNewGame(MatchRecord match)
