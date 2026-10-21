@@ -1,0 +1,15 @@
+<Solution>
+  <Project Path="BoardGames.BattleLine.Logic/BoardGames.BattleLine.Logic.csproj" />
+  <Project Path="BoardGames.BattleLine.Tests/BoardGames.BattleLine.Tests.csproj" />
+  <Project Path="BoardGames.CenturyGhost.Logic/BoardGames.CenturyGhost.Logic.csproj" />
+  <Project Path="BoardGames.CenturyGhost.Tests/BoardGames.CenturyGhost.Tests.csproj" />
+  <Project Path="BoardGames.Core/BoardGames.Core.csproj" />
+  <Project Path="BoardGames.Geister.Logic/BoardGames.Geister.Logic.csproj" />
+  <Project Path="BoardGames.Geister.Tests/BoardGames.Geister.Tests.csproj" />
+  <Project Path="BoardGames.Gobblet.Logic/BoardGames.Gobblet.Logic.csproj" />
+  <Project Path="BoardGames.Gobblet.Tests/BoardGames.Gobblet.Tests.csproj" />
+  <Project Path="BoardGames.Quarto.Logic/BoardGames.Quarto.Logic.csproj" />
+  <Project Path="BoardGames.Quarto.Tests/BoardGames.Quarto.Tests.csproj" />
+  <Project Path="BoardGames.Vanish.Logic/BoardGames.Vanish.Logic.csproj" />
+  <Project Path="BoardGames.Vanish.Tests/BoardGames.Vanish.Tests.csproj" />
+</Solution>

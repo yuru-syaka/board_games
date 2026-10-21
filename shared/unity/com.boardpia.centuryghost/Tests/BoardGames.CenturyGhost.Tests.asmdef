@@ -1,0 +1,25 @@
+﻿{
+    "name": "BoardGames.CenturyGhost.Tests",
+    "rootNamespace": "BoardGames.CenturyGhost.Tests",
+    "references": [
+        "BoardGames.Core",
+        "BoardGames.CenturyGhost.Logic",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Unity の API 互換レベル（.NET Standard 2.1）に合わせる -->
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(UnityPackages)com.boardpia.core\Runtime\**\*.cs" />
+  </ItemGroup>
+</Project>

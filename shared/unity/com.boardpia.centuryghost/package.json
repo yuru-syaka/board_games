@@ -1,0 +1,10 @@
+{
+  "name": "com.boardpia.centuryghost",
+  "displayName": "BOARD PIA CenturyGhost",
+  "version": "1.0.0",
+  "unity": "6000.0",
+  "description": "センチュリー・ゴーストのルール（Logic）とテスト。Unity に依存しない C# で、Unity とサーバーの両方で使う。",
+  "dependencies": {
+    "com.boardpia.core": "1.0.0"
+  }
+}

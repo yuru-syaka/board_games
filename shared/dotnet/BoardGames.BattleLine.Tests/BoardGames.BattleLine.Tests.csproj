@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Unity の EditMode テストと同じファイルを dotnet test で動かす（アセンブリ名も Unity と同じにする） -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(UnityPackages)com.boardpia.battleline\Tests\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Unity の NUnit（3 系）と同じ書き方（Assert.AreEqual など）が使えるよう、NUnit 3 を使う -->
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="NUnit" Version="3.14.0" />
+    <PackageReference Include="NUnit3TestAdapter" Version="5.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BoardGames.Core\BoardGames.Core.csproj" />
+    <ProjectReference Include="..\BoardGames.BattleLine.Logic\BoardGames.BattleLine.Logic.csproj" />
+  </ItemGroup>
+</Project>

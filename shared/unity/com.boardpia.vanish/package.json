@@ -1,0 +1,10 @@
+{
+  "name": "com.boardpia.vanish",
+  "displayName": "BOARD PIA Vanish",
+  "version": "1.0.0",
+  "unity": "6000.0",
+  "description": "ゴースト・マルバツゲームのルール（Logic）とテスト。Unity に依存しない C# で、Unity とサーバーの両方で使う。",
+  "dependencies": {
+    "com.boardpia.core": "1.0.0"
+  }
+}

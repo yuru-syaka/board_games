@@ -1,0 +1,15 @@
+<Project>
+  <!--
+    shared/unity/ のパッケージにある .cs を、そのままサーバー側（.NET）でもビルドするための共通設定。
+    - .cs はコピーしない（ルールの正本は shared/unity/ の 1 か所だけ）。
+    - Unity と同じ C# 9 に合わせる（Unity で使えない新しい書き方が混ざらないように）。
+  -->
+  <PropertyGroup>
+    <LangVersion>9.0</LangVersion>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <UnityPackages>$(MSBuildThisFileDirectory)..\unity\</UnityPackages>
+  </PropertyGroup>
+</Project>
