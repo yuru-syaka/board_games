@@ -185,7 +185,7 @@ public class ReconnectTests
         var a2 = Client("A2");
         a2.Send(LobbyProtocol.Resume(tokenA));
         var away = a2.Lobby.Last(l => l.Kind == LobbyMessageKind.OpponentAway);
-        Assert.AreEqual(80, away.Seconds, "相手が切れてから 10 秒たっている");
+        Assert.AreEqual(70, away.Seconds, "相手（B）が切れてから 20 秒たっている");
     }
 
     [Test]
