@@ -94,9 +94,8 @@ function handler(event) {
       "font-src 'self' https://fonts.gstatic.com",
       "img-src 'self' data: blob: https:", // 広告の画像は配信元が多いため https を許可
       "media-src 'self' blob:",
-      // PUN2（Photon Cloud）への WebSocket。AWS 版のゲームサーバーに移ったら外す
-      // ws.<domain> は自前のオンライン対戦サーバー（GameStack）。Photon はゲームを移し終えたら外す
-      `connect-src 'self' blob: data: wss://ws.${domain} https://*.exitgames.com wss://*.exitgames.com https://*.photonengine.io wss://*.photonengine.io ${ads}`,
+      // ws.<domain> は自前のオンライン対戦サーバー（GameStack）。Photon は 2026-10-21 に使うのをやめた
+      `connect-src 'self' blob: data: wss://ws.${domain} ${ads}`,
       `frame-src ${ads}`,
       "worker-src 'self' blob:",
       "frame-ancestors 'self'",

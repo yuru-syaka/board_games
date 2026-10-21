@@ -1,5 +1,12 @@
 # PUN2 棚卸し（2026-10-18、センチュリー・ゴーストを 2026-10-21 に追加）
 
+> **2026-10-21: 6 本すべてを自前のオンライン対戦サーバーに移し、PUN2 は使うのをやめた。** この文書は移行前の記録。
+> - サーバー: `server/`（AWS Lambda、C#）＋ `infra/lib/game-stack.ts`（API Gateway WebSocket・DynamoDB、`wss://ws.boardgamepia.com`）。
+>   サーバーが局面を持つ「サーバー権威型」で、下の課題 1・2・4（ホストの不正・のぞき見、乱数、手の検証）は解消済み。
+> - Unity 側: 各ゲームの `View/Online/AwsOnlineService.cs`（`Online.Photon/` は削除）。通信の部品は `shared/unity/com.boardpia.net`。
+> - Photon の SDK（`Assets/Photon/`）は各プロジェクトから `C:\Users\nullg\createGame\backup-photon-sdk-2026-10-21` に移した。
+> - 残りの課題: 3（再接続の猶予）、5（対局結果の保存）、6（持ち時間）はロードマップのステップ 4・5 で対応する。
+
 対象: `C:\Users\nullg\createGame\boardGames` 配下の Unity プロジェクト 6 本（Unity 6000.5.8f1）。
 Photon パッケージ本体（`Assets/Photon/`）は除外し、自作コードだけを調べた。
 
