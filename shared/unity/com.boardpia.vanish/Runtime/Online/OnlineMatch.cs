@@ -5,6 +5,7 @@ namespace BoardGames.Vanish.Online
     /// <summary>
     /// オンライン対局(ホスト権威型)。ホスト = P0 が正式な局面を持ち、ゲスト = P1 から届いた手を検証して適用し、
     /// 新しい局面を送り返す。ゲストは受け取った局面を表示するだけ。
+    /// サーバー(AWS)が局面を持つときは、両プレイヤーともゲストとして動き、席(P0 / P1)はサーバーが決める。
     /// </summary>
     public sealed class OnlineMatch : IVanishMatch, IDisposable
     {
@@ -14,10 +15,11 @@ namespace BoardGames.Vanish.Online
         readonly IMatchTransport _transport;
         readonly VanishRules _rules = new VanishRules();
         readonly Random _rng;
+        readonly int _guestPlayer = GuestPlayer;
 
         public bool IsHost { get; }
-        /// <summary>この画面で操作するプレイヤー(ホスト = 0、ゲスト = 1)。</summary>
-        public int LocalPlayer => IsHost ? HostPlayer : GuestPlayer;
+        /// <summary>この画面で操作するプレイヤー(ホスト = 0、ゲスト = 1。サーバー対戦ではサーバーが決めた席)。</summary>
+        public int LocalPlayer => IsHost ? HostPlayer : _guestPlayer;
         public VanishState State { get; private set; }
 
         public bool LocalWantsRematch { get; private set; }
@@ -34,6 +36,17 @@ namespace BoardGames.Vanish.Online
             IsHost = isHost;
             _rng = rng ?? new Random();
             _transport.MessageReceived += OnMessage;
+        }
+
+        /// <summary>
+        /// サーバーが局面を持つ対戦のゲストとして作る。localPlayer はサーバーが割り当てた席(0 か 1)。
+        /// 手と再戦の希望をサーバーへ送り、サーバーから届いた局面を表示する。
+        /// </summary>
+        public OnlineMatch(IMatchTransport transport, int localPlayer)
+            : this(transport, false)
+        {
+            if (localPlayer != 0 && localPlayer != 1) throw new ArgumentOutOfRangeException(nameof(localPlayer));
+            _guestPlayer = localPlayer;
         }
 
         public void Dispose() => _transport.MessageReceived -= OnMessage;

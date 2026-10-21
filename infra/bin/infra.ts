@@ -7,6 +7,7 @@ import { WebStack } from '../lib/web-stack';
 import { SecurityStack } from '../lib/security-stack';
 import { MonitoringStack } from '../lib/monitoring-stack';
 import { PlayStack } from '../lib/play-stack';
+import { GameStack } from '../lib/game-stack';
 import { GitHubDeployStack } from '../lib/github-deploy-stack';
 
 const app = new cdk.App();
@@ -42,6 +43,10 @@ const web = new WebStack(app, 'WebStack', {
 // ゲームの WebGL ビルド（git 管理外）。手元の PC からだけ cdk deploy PlayStack で反映する
 const play = new PlayStack(app, 'PlayStack', { env: tokyo });
 play.addDependency(web); // WebStack が SSM パラメータを書いてから PlayStack を作る
+
+// オンライン対戦サーバー（API Gateway WebSocket ＋ Lambda ＋ DynamoDB）。手元の PC からだけ cdk deploy GameStack で反映する
+// （Lambda のコードを手元の dotnet publish で作るため。GitHub Actions には .NET 10 がなく、デプロイもしないので読み込まない）
+if (!process.env.GITHUB_ACTIONS) new GameStack(app, 'GameStack', { env: tokyo, domainName });
 
 new SecurityStack(app, 'SecurityStack', { env: tokyo, alertEmail: email });
 

@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="../shared/dotnet/BoardGames.Core/BoardGames.Core.csproj" />
+  <Project Path="../shared/dotnet/BoardGames.Net.Protocol/BoardGames.Net.Protocol.csproj" />
+  <Project Path="../shared/dotnet/BoardGames.Vanish.Logic/BoardGames.Vanish.Logic.csproj" />
+  <Project Path="BoardGames.Server.Tests/BoardGames.Server.Tests.csproj" />
+  <Project Path="BoardGames.Server/BoardGames.Server.csproj" />
+</Solution>

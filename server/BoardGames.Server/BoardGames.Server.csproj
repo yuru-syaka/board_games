@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    オンライン対戦サーバー（AWS Lambda、.NET 10、arm64）。
+    ゲームのルールは shared/ のプロジェクトをそのまま参照する（Unity と同じコード）。
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Library</OutputType>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <AWSProjectType>Lambda</AWSProjectType>
+    <!-- Lambda の起動を少し速くする -->
+    <TieredPGO>true</TieredPGO>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\shared\dotnet\BoardGames.Core\BoardGames.Core.csproj" />
+    <ProjectReference Include="..\..\shared\dotnet\BoardGames.Net.Protocol\BoardGames.Net.Protocol.csproj" />
+    <ProjectReference Include="..\..\shared\dotnet\BoardGames.Vanish.Logic\BoardGames.Vanish.Logic.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="3.0.1" />
+    <PackageReference Include="Amazon.Lambda.Core" Version="3.4.0" />
+    <PackageReference Include="Amazon.Lambda.Serialization.SystemTextJson" Version="3.0.1" />
+    <PackageReference Include="AWSSDK.ApiGatewayManagementApi" Version="4.0.100.20" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.109" />
+  </ItemGroup>
+</Project>

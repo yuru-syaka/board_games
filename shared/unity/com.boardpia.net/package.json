@@ -1,0 +1,7 @@
+{
+  "name": "com.boardpia.net",
+  "displayName": "BOARD PIA Net",
+  "version": "1.0.0",
+  "unity": "6000.0",
+  "description": "オンライン対戦サーバー（AWS）との通信。ロビーのメッセージの形式（Unity とサーバーで共有）と、ブラウザ・エディター両方で動く WebSocket。"
+}

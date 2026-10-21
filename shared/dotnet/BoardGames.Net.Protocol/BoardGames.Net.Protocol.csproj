@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- ロビーのメッセージの形式（com.boardpia.net の Protocol）。Unity とサーバーの両方で使う -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="$(UnityPackages)com.boardpia.net\Runtime\Protocol\**\*.cs" />
+  </ItemGroup>
+</Project>

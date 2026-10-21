@@ -1,0 +1,16 @@
+{
+    "name": "BoardGames.Net",
+    "rootNamespace": "BoardGames.Net",
+    "references": [
+        "BoardGames.Net.Protocol"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

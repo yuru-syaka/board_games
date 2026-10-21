@@ -1,0 +1,14 @@
+{
+    "name": "BoardGames.Net.Protocol",
+    "rootNamespace": "BoardGames.Net",
+    "references": [],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

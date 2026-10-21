@@ -219,6 +219,38 @@ namespace BoardGames.Vanish.Tests
             Assert.IsFalse(_guest.LocalWantsRematch);
         }
 
+        // ---------- サーバー対戦のゲスト(席をサーバーが決める) ----------
+
+        [Test]
+        public void ServerGuest_UsesTheSeatGivenByTheServer()
+        {
+            LoopbackTransport.CreatePair(out var server, out var client);
+            var seat0 = new OnlineMatch(client, 0);
+            Assert.IsFalse(seat0.IsHost);
+            Assert.AreEqual(0, seat0.LocalPlayer);
+            Assert.Throws<ArgumentOutOfRangeException>(() => new OnlineMatch(client, 2));
+        }
+
+        [Test]
+        public void ServerGuest_OnSeat0_SendsMovesOnlyOnItsTurn()
+        {
+            LoopbackTransport.CreatePair(out var server, out var client);
+            var seat0 = new OnlineMatch(client, 0);
+            server.Send(VanishNetProtocol.EncodeSnapshot(VanishState.Initial(0)));
+            server.Pump();
+            Assert.AreEqual(0, seat0.State.CurrentPlayer);
+
+            var move = _rules.GetLegalMoves(seat0.State)[0];
+            Assert.IsTrue(seat0.SubmitMove(move));
+            Assert.AreEqual(VanishNetProtocol.EncodeMove(move), client.SentLog.Last(), "手はサーバーに送るだけ");
+            Assert.AreEqual(0, seat0.State.Ply, "局面はサーバーから届くまで変えない");
+
+            server.Send(VanishNetProtocol.EncodeSnapshot(_rules.ApplyMove(VanishState.Initial(0), move)));
+            server.Pump();
+            Assert.AreEqual(1, seat0.State.CurrentPlayer);
+            Assert.IsFalse(seat0.SubmitMove(_rules.GetLegalMoves(seat0.State)[0]), "相手の番には打てない");
+        }
+
         // ---------- 補助 ----------
 
         void PlayRandomGame(Random rng)
