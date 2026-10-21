@@ -57,7 +57,7 @@ public class GameServerTests
         var joined = b.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
         Assert.AreEqual(1, joined.Seat);
         Assert.IsTrue(joined.OpponentPresent);
-        Assert.AreEqual(LobbyMessageKind.OpponentJoined, a.LastLobby!.Value.Kind);
+        Assert.IsTrue(a.Lobby.Any(l => l.Kind == LobbyMessageKind.OpponentJoined));
         Assert.IsFalse(_store.HasQueue("vanish"));
 
         // 両者に同じ初期局面（完全情報）

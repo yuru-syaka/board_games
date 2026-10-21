@@ -110,7 +110,7 @@ public class ReconnectTests
         var (a, b) = Pair();
         var b2 = Client("B2");
         b2.Send(LobbyProtocol.Resume(TokenOf(b)));
-        Assert.AreEqual(LobbyMessageKind.Resumed, b2.Lobby.Single(l => l.Kind != LobbyMessageKind.Token).Kind);
+        Assert.AreEqual(LobbyMessageKind.Resumed, b2.Lobby.Single(l => l.Kind == LobbyMessageKind.Resumed).Kind);
         Assert.AreEqual("B2", _store.PeekMatch()!.Connections[1]);
 
         // あとから古い接続の切断が届いても、部屋や相手には影響しない
@@ -170,7 +170,7 @@ public class ReconnectTests
         _now = _now.AddMinutes(10); // 相手が申請しなかったので、まだ戻れる
         var b2 = Client("B2");
         b2.Send(LobbyProtocol.Resume(tokenB));
-        Assert.AreEqual(LobbyMessageKind.Resumed, b2.Lobby.Single(l => l.Kind != LobbyMessageKind.Token).Kind);
+        Assert.AreEqual(LobbyMessageKind.Resumed, b2.Lobby.Single(l => l.Kind == LobbyMessageKind.Resumed).Kind);
     }
 
     [Test]

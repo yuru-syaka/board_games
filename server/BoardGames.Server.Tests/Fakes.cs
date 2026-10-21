@@ -103,6 +103,7 @@ sealed class InMemoryStore : IMatchStore
         var copy = new MatchRecord
         {
             Id = m.Id, Game = m.Game, Code = m.Code, Started = m.Started, Seed = m.Seed, Version = m.Version,
+            TurnStartedAt = m.TurnStartedAt,
         };
         copy.Connections[0] = m.Connections[0];
         copy.Connections[1] = m.Connections[1];
