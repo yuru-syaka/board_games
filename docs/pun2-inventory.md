@@ -108,7 +108,15 @@ CenturyGhost の Snapshot は 16 項目で、`/`・`.`・`,` の 3 段の区切�
 | 5 | 対局結果がどこにも残らない | 戦績・レーティングを作れない | 終局時にサーバーが DynamoDB に保存する |
 | 6 | 持ち時間・放置への対策がない | 相手が放置すると終わらない | サーバー側にターンの制限時間を設ける（任意） |
 
-## 7. 移行方針（2026-10-18 決定）
+## 7. 移行方針（2026-10-18 決定、2026-10-21 変更）
+
+> **2026-10-21 の変更: ECS Fargate はやめ、サーバーレスにする。**
+> 小規模な個人開発として費用を抑えるため、常に動いているサーバー（ECS Fargate＋ALB、月 40〜50 USD）は使わない。
+> 対戦サーバーは **API Gateway（WebSocket）＋ Lambda（C#）＋ DynamoDB** で作り、使った分だけ払う（月数 USD の見込み）。
+> 「C# で作り、Logic を Unity と共有する」方針はそのまま。また、中継だけのステップ A は飛ばし、
+> **最初からサーバー権威型（下のステップ B の形）で作る。**
+> ゲームの順番は、完全情報のもの（Vanish → Gobblet → Quarto）のあとに Geister → BattleLine → CenturyGhost。
+> 詳しい手順は docs/roadmap-2026-10-20.txt の 6 章（手元だけのファイル）。以下は 2026-10-18 時点の内容。
 
 ### 方針: ゲームサーバーを C#（ASP.NET Core）で作り、Logic を共有する（Colyseus 案は不採用）
 
@@ -125,8 +133,8 @@ Unity 側（各ゲームでの変更）
   WebSocket ライブラリ（例: NativeWebSocket）で接続
   OnlineMatch は「両者ゲスト」モードで動かす（局面はサーバーから受け取る）
 
-サーバー側（server/、.NET 8 以降、ECS Fargate）
-  WebSocket の受け口、ロビー / マッチング / ルームコード
+サーバー側（server/、.NET 8 以降。2026-10-21 に ECS Fargate から Lambda に変更）
+  WebSocket の受け口（API Gateway）、ロビー / マッチング / ルームコード（局面は DynamoDB に置く）
   ルームごとに「サーバー版 OnlineMatch」がルール（<Game>Rules）で手を検証し、
   各プレイヤーに MatchSnapshot.For(state, player) で伏せた局面を送る
 ```
