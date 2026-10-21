@@ -10,6 +10,11 @@ public sealed class GameRegistry
     public static GameRegistry Default() => new GameRegistry(new IGameEngine[]
     {
         new VanishEngine(),
+        new GobbletEngine(),
+        new QuartoEngine(),
+        new GeisterEngine(),
+        new BattleLineEngine(),
+        new CenturyGhostEngine(),
     });
 
     public IGameEngine? Find(string id) => _engines.GetValueOrDefault(id);

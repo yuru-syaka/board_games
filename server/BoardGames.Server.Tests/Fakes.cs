@@ -130,7 +130,9 @@ sealed class FakePush : IConnectionPush
 /// ブラウザ役。Unity の AwsOnlineService と同じく、"@…" はロビー、それ以外は OnlineMatch に渡す。
 /// 送信はそのままサーバーに届け、返事は FakePush.Pump で受け取る。
 /// </summary>
-sealed class FakeClient : Vanish.Online.IMatchTransport
+sealed class FakeClient :
+    Vanish.Online.IMatchTransport, Gobblet.Online.IMatchTransport, Quarto.Online.IMatchTransport,
+    Geister.Online.IMatchTransport, BattleLine.Online.IMatchTransport, CenturyGhost.Online.IMatchTransport
 {
     readonly GameServer _server;
     readonly FakePush _push;

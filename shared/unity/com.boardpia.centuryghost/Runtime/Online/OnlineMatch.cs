@@ -5,6 +5,7 @@ namespace BoardGames.CenturyGhost.Online
     /// <summary>
     /// オンライン対局(ホスト権威型)。ホスト = P0 が完全な局面(山札の並びを含む)を持ち、ゲスト = P1 から届いた手を
     /// 検証して適用し、ゲストには山札の並びを含まない局面だけを送る。ゲストは受け取った局面を表示するだけ。
+    /// サーバー(AWS)が局面を持つときは、両プレイヤーともゲストとして動き、席(P0 / P1)はサーバーが決める。
     /// </summary>
     public sealed class OnlineMatch : ICenturyMatch, IDisposable
     {
@@ -14,10 +15,11 @@ namespace BoardGames.CenturyGhost.Online
         readonly IMatchTransport _transport;
         readonly CenturyRules _rules = new CenturyRules();
         readonly Random _rng;
+        readonly int _guestPlayer = GuestPlayer;
         CenturyState _state; // ホストだけが持つ
 
         public bool IsHost { get; }
-        public int LocalPlayer => IsHost ? HostPlayer : GuestPlayer;
+        public int LocalPlayer => IsHost ? HostPlayer : _guestPlayer;
         public MatchSnapshot Snapshot { get; private set; }
 
         public bool LocalWantsRematch { get; private set; }
@@ -34,6 +36,17 @@ namespace BoardGames.CenturyGhost.Online
             IsHost = isHost;
             _rng = rng ?? new Random();
             _transport.MessageReceived += OnMessage;
+        }
+
+        /// <summary>
+        /// サーバーが局面を持つ対戦のゲストとして作る。localPlayer はサーバーが割り当てた席(0 か 1)。
+        /// 手と再戦の希望をサーバーへ送り、サーバーから届いた局面を表示する。
+        /// </summary>
+        public OnlineMatch(IMatchTransport transport, int localPlayer)
+            : this(transport, false)
+        {
+            if (localPlayer != 0 && localPlayer != 1) throw new ArgumentOutOfRangeException(nameof(localPlayer));
+            _guestPlayer = localPlayer;
         }
 
         public void Dispose() => _transport.MessageReceived -= OnMessage;
@@ -80,7 +93,7 @@ namespace BoardGames.CenturyGhost.Online
             switch (CenturyNetProtocol.KindOf(message))
             {
                 case NetMessageKind.Snapshot when !IsHost:
-                    if (!CenturyNetProtocol.TryDecodeSnapshot(message, out var snapshot) || snapshot.Viewer != GuestPlayer)
+                    if (!CenturyNetProtocol.TryDecodeSnapshot(message, out var snapshot) || snapshot.Viewer != LocalPlayer)
                     {
                         ProtocolError?.Invoke("invalid snapshot");
                         return;

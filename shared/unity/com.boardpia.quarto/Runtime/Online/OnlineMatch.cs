@@ -5,6 +5,7 @@ namespace BoardGames.Quarto.Online
     /// <summary>
     /// オンライン対局(ホスト権威型)。ホスト = P0 が完全な局面を持ち、ゲスト = P1 から届いた手を検証して適用し、
     /// ゲストには同じ局面(ゲスト視点)を送る。ゲストは受け取った局面を表示するだけ。
+    /// サーバー(AWS)が局面を持つときは、両プレイヤーともゲストとして動き、席(P0 / P1)はサーバーが決める。
     /// </summary>
     public sealed class OnlineMatch : IQuartoMatch, IDisposable
     {
@@ -14,10 +15,11 @@ namespace BoardGames.Quarto.Online
         readonly IMatchTransport _transport;
         readonly QuartoRules _rules = new QuartoRules();
         readonly Random _rng;
+        readonly int _guestPlayer = GuestPlayer;
         QuartoState _state; // ホストだけが持つ
 
         public bool IsHost { get; }
-        public int LocalPlayer => IsHost ? HostPlayer : GuestPlayer;
+        public int LocalPlayer => IsHost ? HostPlayer : _guestPlayer;
         public MatchSnapshot Snapshot { get; private set; }
 
         public bool LocalWantsRematch { get; private set; }
@@ -34,6 +36,17 @@ namespace BoardGames.Quarto.Online
             IsHost = isHost;
             _rng = rng ?? new Random();
             _transport.MessageReceived += OnMessage;
+        }
+
+        /// <summary>
+        /// サーバーが局面を持つ対戦のゲストとして作る。localPlayer はサーバーが割り当てた席(0 か 1)。
+        /// 手と再戦の希望をサーバーへ送り、サーバーから届いた局面を表示する。
+        /// </summary>
+        public OnlineMatch(IMatchTransport transport, int localPlayer)
+            : this(transport, false)
+        {
+            if (localPlayer != 0 && localPlayer != 1) throw new ArgumentOutOfRangeException(nameof(localPlayer));
+            _guestPlayer = localPlayer;
         }
 
         public void Dispose() => _transport.MessageReceived -= OnMessage;
@@ -80,7 +93,7 @@ namespace BoardGames.Quarto.Online
             switch (QuartoNetProtocol.KindOf(message))
             {
                 case NetMessageKind.Snapshot when !IsHost:
-                    if (!QuartoNetProtocol.TryDecodeSnapshot(message, out var snapshot) || snapshot.Viewer != GuestPlayer)
+                    if (!QuartoNetProtocol.TryDecodeSnapshot(message, out var snapshot) || snapshot.Viewer != LocalPlayer)
                     {
                         ProtocolError?.Invoke("invalid snapshot");
                         return;
