@@ -156,7 +156,7 @@ public class ReconnectTests
     public void Claim_WhileTheOpponentIsConnected_IsTooEarly()
     {
         var (a, b) = Pair();
-        _now = _now.AddHours(1);
+        _now = _now.AddSeconds(30); // 1 手の制限時間（90 秒）より短い: 時間切れでもない
         a.Send(LobbyProtocol.Claim());
         Assert.AreEqual(LobbyErrors.TooEarly, a.LastLobby!.Value.ErrorCode);
     }
