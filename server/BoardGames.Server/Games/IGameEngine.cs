@@ -20,6 +20,9 @@ public interface IGameSession
 {
     bool IsOver { get; }
 
+    /// <summary>今の手番の席（0 か 1）。</summary>
+    int CurrentPlayer { get; }
+
     /// <summary>
     /// seat の席からの手（NetProtocol の "M|…"）を検証して適用する。
     /// 手番違い・非合法・壊れたメッセージなら false。成功したら、保存用に整えた手を返す。

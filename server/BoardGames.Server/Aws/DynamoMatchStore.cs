@@ -41,6 +41,7 @@ public sealed class DynamoMatchStore : IMatchStore
             Started = item.TryGetValue("started", out var started) && started.BOOL == true,
             Seed = int.Parse(item["seed"].N, CultureInfo.InvariantCulture),
             Version = long.Parse(item["ver"].N, CultureInfo.InvariantCulture),
+            TurnStartedAt = item.TryGetValue("ts", out var ts) ? long.Parse(ts.N, CultureInfo.InvariantCulture) : 0,
         };
         match.Connections[0] = OptionalString(item, "c0");
         match.Connections[1] = OptionalString(item, "c1");
@@ -67,6 +68,7 @@ public sealed class DynamoMatchStore : IMatchStore
             ["moves"] = new AttributeValue { L = match.Moves.Select(S).ToList() },
             ["rm"] = S((match.Rematch[0] ? "1" : "0") + (match.Rematch[1] ? "1" : "0")),
             ["ver"] = N(match.Version + 1),
+            ["ts"] = N(match.TurnStartedAt),
             ["ttl"] = Ttl(MatchTtl),
         };
         if (match.Connections[0] != null) item["c0"] = S(match.Connections[0]!);

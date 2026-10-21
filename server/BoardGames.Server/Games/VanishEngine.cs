@@ -20,6 +20,8 @@ public sealed class VanishEngine : IGameEngine
 
         public bool IsOver => _state.Result.IsOver;
 
+        public int CurrentPlayer => _state.CurrentPlayer;
+
         public bool TryApply(int seat, string moveMessage, [NotNullWhen(true)] out string? normalizedMove)
         {
             normalizedMove = null;

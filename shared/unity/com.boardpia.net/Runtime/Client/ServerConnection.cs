@@ -22,6 +22,7 @@ namespace BoardGames.Net
     /// - 対局中に通信が切れたら、自動でつなぎ直して合言葉で同じ席に戻る(ConnectionLost → Reconnected)。
     ///   合言葉はタブの中(ISessionStore)にも覚えるので、ページを再読み込みしても Connect で戻れる(IsResuming)。
     /// - 相手の通信が切れたら OpponentAway(待つ秒数)、戻ったら OpponentBack。待ち時間を過ぎたら Claim で勝ちを申請する。
+    /// - 手番の残り時間は TurnTimer(手番の席, 秒)。相手の手番で時間が過ぎたら Claim で勝ちを申請する。
     /// 各ゲームの AwsOnlineService(View/Online/)は、これを各ゲームの IOnlineService の形に合わせるだけ。
     /// Unity に依存しない(時刻は Update の引数でもらう)ので、Unity なしでもテストできる。
     /// </summary>
@@ -81,6 +82,8 @@ namespace BoardGames.Net
         public event Action<int> OpponentAway;
         /// <summary>通信が切れていた相手が戻った。</summary>
         public event Action OpponentBack;
+        /// <summary>手番の残り時間(手番の席, 秒)。席が -1 なら時間の計測なし(終局後など)。</summary>
+        public event Action<int, int> TurnTimer;
 
         public ServerConnection(string gameId, string url = DefaultUrl, ITextSocket socket = null, ISessionStore sessions = null)
         {
@@ -227,6 +230,9 @@ namespace BoardGames.Net
                     break;
                 case LobbyMessageKind.OpponentBack:
                     OpponentBack?.Invoke();
+                    break;
+                case LobbyMessageKind.Turn:
+                    TurnTimer?.Invoke(lobby.Seat, lobby.Seconds);
                     break;
                 case LobbyMessageKind.Won:
                 case LobbyMessageKind.Lost:

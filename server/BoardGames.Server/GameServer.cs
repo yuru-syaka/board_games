@@ -12,6 +12,8 @@ namespace BoardGames.Server;
 /// - 通信が切れたとき: 対局中なら部屋は消さず、その席を「離席中」にして相手に知らせる。
 ///   切れた側は合言葉（Token）で同じ席に戻れる（Resume）。待ち時間（ServerSettings.AwayGrace）を過ぎても
 ///   戻らなければ、残った側が勝ちを申請できる（Claim）。タイマーは動かさず、申請が届いたときに時刻を確かめる。
+/// - 1 手の制限時間（ServerSettings.TurnLimitFor）: 局面と一緒に残り時間（@turn）を送る。過ぎたら待っている側が
+///   Claim で勝ちを申請できる。申請される前に手が届けば、その手は受け付ける。
 /// - メッセージ: ロビーは LobbyProtocol（"@…"）、対局中は各ゲームの NetProtocol（"S|1|…" など）。
 /// </summary>
 public sealed class GameServer
@@ -204,7 +206,7 @@ public sealed class GameServer
         await _push.SendAsync(connectionId, LobbyProtocol.Joined(1, match.Code, opponentPresent: true));
         await _push.SendAsync(connectionId, LobbyProtocol.Token(match.Tokens[1]!));
         await _push.SendAsync(match.Connections[0]!, LobbyProtocol.OpponentJoined());
-        await SendSnapshotsAsync(match, Rebuild(match));
+        await SendStateAsync(match, Rebuild(match));
         return true;
     }
 
@@ -256,7 +258,9 @@ public sealed class GameServer
             await _push.SendAsync(connectionId, LobbyProtocol.Resumed(seat, match.Code, opponentPresent));
             if (match.Started)
             {
-                await _push.SendAsync(connectionId, Rebuild(match).SnapshotFor(seat));
+                var session = Rebuild(match);
+                await _push.SendAsync(connectionId, session.SnapshotFor(seat));
+                await _push.SendAsync(connectionId, TurnMessage(match, session));
                 if (match.Rematch[otherSeat]) await _push.SendAsync(connectionId, RematchMessage);
                 if (match.AwaySince[otherSeat] is long since) await _push.SendAsync(connectionId, LobbyProtocol.OpponentAway(RemainingAwaySeconds(since)));
             }
@@ -283,6 +287,23 @@ public sealed class GameServer
             await _push.SendAsync(connectionId, LobbyProtocol.Won(LobbyEndReasons.Abandon));
             return;
         }
+
+        // 相手の手番で、1 手の制限時間を過ぎている: 時間切れ負け
+        var session = Rebuild(match);
+        if (!session.IsOver && session.CurrentPlayer == otherSeat &&
+            NowMs - match.TurnStartedAt >= (long)_settings.TurnLimitFor(match.Game).TotalMilliseconds)
+        {
+            await CloseMatchAsync(match);
+            await _store.DeleteConnectionAsync(connectionId);
+            await _push.SendAsync(connectionId, LobbyProtocol.Won(LobbyEndReasons.Timeout));
+            var other = match.Connections[otherSeat];
+            if (other != null)
+            {
+                await _store.DeleteConnectionAsync(other);
+                await _push.SendAsync(other, LobbyProtocol.Lost(LobbyEndReasons.Timeout));
+            }
+            return;
+        }
         await _push.SendAsync(connectionId, LobbyProtocol.Error(LobbyErrors.TooEarly));
     }
 
@@ -306,9 +327,10 @@ public sealed class GameServer
                 return;
             }
             match.Moves.Add(connection.Seat + ":" + normalized);
+            match.TurnStartedAt = NowMs;
             if (await _store.TryPutMatchAsync(match))
             {
-                await SendSnapshotsAsync(match, session);
+                await SendStateAsync(match, session);
                 return;
             }
             // ほかの書き込みが先に入った: 読み直してやり直す
@@ -334,7 +356,7 @@ public sealed class GameServer
 
             if (both)
             {
-                await SendSnapshotsAsync(match, Rebuild(match));
+                await SendStateAsync(match, Rebuild(match));
             }
             else
             {
@@ -378,6 +400,7 @@ public sealed class GameServer
         match.Seed = _rng.Next();
         match.Moves.Clear();
         match.Rematch[0] = match.Rematch[1] = false;
+        match.TurnStartedAt = NowMs;
     }
 
     /// <summary>「種 ＋ 手の一覧」から局面を作り直す。</summary>
@@ -394,12 +417,24 @@ public sealed class GameServer
         return session;
     }
 
-    async Task SendSnapshotsAsync(MatchRecord match, IGameSession session)
+    /// <summary>両方の席に、局面と手番の残り時間を送る（通信が切れている席には送らない）。</summary>
+    async Task SendStateAsync(MatchRecord match, IGameSession session)
     {
+        var turn = TurnMessage(match, session);
         for (int seat = 0; seat < 2; seat++)
         {
             var connectionId = match.Connections[seat];
-            if (connectionId != null) await _push.SendAsync(connectionId, session.SnapshotFor(seat));
+            if (connectionId == null) continue;
+            await _push.SendAsync(connectionId, session.SnapshotFor(seat));
+            await _push.SendAsync(connectionId, turn);
         }
+    }
+
+    /// <summary>手番の残り時間（終局していれば「計測なし」）。</summary>
+    string TurnMessage(MatchRecord match, IGameSession session)
+    {
+        if (session.IsOver) return LobbyProtocol.TurnOff();
+        double left = _settings.TurnLimitFor(match.Game).TotalMilliseconds - (NowMs - match.TurnStartedAt);
+        return LobbyProtocol.Turn(session.CurrentPlayer, (int)Math.Max(0, Math.Ceiling(left / 1000.0)));
     }
 }

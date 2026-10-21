@@ -28,6 +28,8 @@ public sealed class MatchRecord
     public string?[] Tokens { get; init; } = new string?[2];
     /// <summary>席ごとの「通信が切れた時刻」（UNIX ミリ秒。いれば null）。待ち時間を過ぎたら相手が勝ちを申請できる。</summary>
     public long?[] AwaySince { get; init; } = new long?[2];
+    /// <summary>今の手番が始まった時刻（UNIX ミリ秒）。1 手の制限時間を過ぎたかを確かめるため。</summary>
+    public long TurnStartedAt { get; set; }
 
     public int OtherSeat(int seat) => 1 - seat;
 }

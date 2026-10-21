@@ -40,6 +40,8 @@ public sealed class RuleSession<TState, TMove> : IGameSession
 
     public bool IsOver => _rules.GetResult(_state).IsOver;
 
+    public int CurrentPlayer => _currentPlayer(_state);
+
     public bool TryApply(int seat, string moveMessage, [NotNullWhen(true)] out string? normalizedMove)
     {
         normalizedMove = null;

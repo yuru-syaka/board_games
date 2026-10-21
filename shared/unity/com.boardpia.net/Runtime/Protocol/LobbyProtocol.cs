@@ -46,6 +46,8 @@ namespace BoardGames.Net
         Won,
         /// <summary>負けが決まった(Reason は Won と同じ)。</summary>
         Lost,
+        /// <summary>手番の残り時間(Seat の手番で、あと Seconds 秒)。Seat が -1 なら時間の計測なし(終局後など)。</summary>
+        Turn,
     }
 
     /// <summary>ロビーのメッセージを読み取った結果。</summary>
@@ -116,6 +118,7 @@ namespace BoardGames.Net
     ///   ブラウザ → サーバー: @quick|game  @create|game  @join|game|code  @leave  @ping  @resume|token  @claim
     ///   サーバー → ブラウザ: @joined|seat|code(無ければ -)|opp(0/1)  @opp  @left  @error|reason  @pong
     ///                        @token|token  @resumed|seat|code|opp  @away|seconds  @back  @won|reason  @lost|reason
+    ///                        @turn|seat(終局後などは -)|seconds
     /// 知らない種類のメッセージは読み飛ばす(古いブラウザ側が新しいサーバーにつないでも壊れないように)。
     /// Unity とサーバー(AWS Lambda)の両方がこのファイルを使う。
     /// </summary>
@@ -150,6 +153,15 @@ namespace BoardGames.Net
         public static string OpponentBack() => "@back";
         public static string Won(string reason) => "@won|" + RequireReason(reason);
         public static string Lost(string reason) => "@lost|" + RequireReason(reason);
+
+        public static string Turn(int seat, int seconds)
+        {
+            if (seat != 0 && seat != 1) throw new ArgumentOutOfRangeException(nameof(seat));
+            return "@turn|" + seat.ToString(CultureInfo.InvariantCulture) + "|" + Math.Max(0, seconds).ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>時間の計測なし(終局後など)。</summary>
+        public static string TurnOff() => "@turn|-|0";
 
         // ---------- 読む ----------
 
@@ -213,6 +225,10 @@ namespace BoardGames.Net
                     return true;
                 case "lost" when p.Length == 2 && LobbyEndReasons.IsValid(p[1]):
                     result = new LobbyMessage(LobbyMessageKind.Lost, reason: p[1]);
+                    return true;
+                case "turn" when p.Length == 3 && (p[1] == "0" || p[1] == "1" || p[1] == "-") &&
+                                 int.TryParse(p[2], NumberStyles.None, CultureInfo.InvariantCulture, out int turnSeconds):
+                    result = new LobbyMessage(LobbyMessageKind.Turn, seat: p[1] == "-" ? -1 : p[1] == "1" ? 1 : 0, seconds: turnSeconds);
                     return true;
                 default:
                     return false;

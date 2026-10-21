@@ -61,8 +61,8 @@ public class GameServerTests
         Assert.IsFalse(_store.HasQueue("vanish"));
 
         // 両者に同じ初期局面（完全情報）
-        var snapA = a.Received.Last();
-        var snapB = b.Received.Last();
+        var snapA = a.Received.Last(m => m.StartsWith("S|"));
+        var snapB = b.Received.Last(m => m.StartsWith("S|"));
         Assert.AreEqual(snapA, snapB);
         Assert.IsTrue(VanishNetProtocol.TryDecodeSnapshot(snapA, out var state));
         Assert.AreEqual(0, state.Ply);
@@ -112,7 +112,7 @@ public class GameServerTests
         var joinedB = b.Lobby.Single(l => l.Kind == LobbyMessageKind.Joined);
         Assert.AreEqual(1, joinedB.Seat);
         Assert.AreEqual(created.Code, joinedB.Code);
-        Assert.IsTrue(b.Received.Last().StartsWith("S|"));
+        Assert.IsTrue(b.Received.Last(m => m.StartsWith("S|")).StartsWith("S|"));
         Assert.IsFalse(_store.HasCode("vanish", created.Code), "そろったらコードを返す");
 
         var c = Client("C");
@@ -154,7 +154,7 @@ public class GameServerTests
     public void IllegalOrOutOfTurnMove_ResendsTheCurrentStateOnlyToTheSender()
     {
         var (a, b) = QuickPair();
-        VanishNetProtocol.TryDecodeSnapshot(a.Received.Last(), out var state);
+        VanishNetProtocol.TryDecodeSnapshot(a.Received.Last(m => m.StartsWith("S|")), out var state);
         var waiting = state.CurrentPlayer == 0 ? b : a;
         var moving = waiting == a ? b : a;
         int before = moving.Received.Count;
@@ -171,12 +171,12 @@ public class GameServerTests
     public void Move_RetriesWhenAnotherWriteWinsTheRace()
     {
         var (a, b) = QuickPair();
-        VanishNetProtocol.TryDecodeSnapshot(a.Received.Last(), out var state);
+        VanishNetProtocol.TryDecodeSnapshot(a.Received.Last(m => m.StartsWith("S|")), out var state);
         var moving = state.CurrentPlayer == 0 ? a : b;
 
         _store.FailNextMatchWrites = 2;
         moving.Send(VanishNetProtocol.EncodeMove(new VanishRules().GetLegalMoves(state)[0]));
-        Assert.IsTrue(VanishNetProtocol.TryDecodeSnapshot(a.Received.Last(), out var after));
+        Assert.IsTrue(VanishNetProtocol.TryDecodeSnapshot(a.Received.Last(m => m.StartsWith("S|")), out var after));
         Assert.AreEqual(1, after.Ply);
     }
 
