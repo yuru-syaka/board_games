@@ -6,10 +6,12 @@
  *   本番（CloudFront）と同じく Content-Encoding: br と元の Content-Type を付けて返す。
  *   普通の静的サーバー（http-server など）ではこのヘッダーが付かず、ゲームが起動しない。
  * - "/blog/" のようなフォルダの URL は index.html を返す。無いファイルは 404.html を返す。
+ * - /api/… は本番の API に中継する（ランキング・マイページの確認用）。
  *
  * 使い方: node scripts/serve-web.js [port]
  */
 const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
@@ -32,6 +34,8 @@ const types = {
 };
 
 http.createServer((req, res) => {
+  // ランキングなどの API（/api/…）は、本番（https://boardgamepia.com）に中継する（手元に API はないため。ステップ 5-4）
+  if (req.url.startsWith('/api/')) return proxyApi(req, res);
   let rel = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   if (rel.endsWith('/')) rel += 'index.html';
   let file = path.join(root, rel);
@@ -53,6 +57,21 @@ http.createServer((req, res) => {
   res.writeHead(200, headers);
   fs.createReadStream(file).pipe(res);
 }).listen(port, () => console.log(`serving ${root} at http://localhost:${port}`));
+
+function proxyApi(req, res) {
+  const headers = { accept: 'application/json' };
+  if (req.headers.authorization) headers.authorization = req.headers.authorization;
+  if (req.headers['content-type']) headers['content-type'] = req.headers['content-type'];
+  const upstream = https.request({ host: 'boardgamepia.com', path: req.url, method: req.method, headers }, (up) => {
+    res.writeHead(up.statusCode || 502, {
+      'Content-Type': up.headers['content-type'] || 'application/json',
+      'Cache-Control': 'no-store',
+    });
+    up.pipe(res);
+  });
+  upstream.on('error', () => send(res, 502, 'api proxy error'));
+  req.pipe(upstream);
+}
 
 function send(res, status, text) {
   res.writeHead(status, { 'Content-Type': 'text/plain' });

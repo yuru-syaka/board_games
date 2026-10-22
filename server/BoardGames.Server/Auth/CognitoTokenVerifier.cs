@@ -4,10 +4,17 @@ using System.Text.Json;
 
 namespace BoardGames.Server.Auth;
 
+/// <summary>確かめた ID トークンの持ち主。Sub = ユーザー ID、Username = Cognito のユーザー名（アカウントの削除に使う）。</summary>
+public sealed record VerifiedUser(string Sub, string Username);
+
 /// <summary>ログインしている人の ID トークンを確かめる。正しければユーザー ID（sub）、だめなら null。</summary>
 public interface ITokenVerifier
 {
     Task<string?> VerifyAsync(string idToken);
+
+    /// <summary>ユーザー名も要るとき（アカウントの削除）。既定ではユーザー名 = ユーザー ID とする。</summary>
+    async Task<VerifiedUser?> VerifyUserAsync(string idToken) =>
+        await VerifyAsync(idToken) is { } sub ? new VerifiedUser(sub, sub) : null;
 }
 
 /// <summary>
@@ -44,7 +51,9 @@ public sealed class CognitoTokenVerifier : ITokenVerifier
         return new CognitoTokenVerifier(issuer, clientId, () => http.GetStringAsync(issuer + "/.well-known/jwks.json"));
     }
 
-    public async Task<string?> VerifyAsync(string idToken)
+    public async Task<string?> VerifyAsync(string idToken) => (await VerifyUserAsync(idToken))?.Sub;
+
+    public async Task<VerifiedUser?> VerifyUserAsync(string idToken)
     {
         try
         {
@@ -69,7 +78,9 @@ public sealed class CognitoTokenVerifier : ITokenVerifier
             if (!claims.TryGetProperty("exp", out var exp) || exp.ValueKind != JsonValueKind.Number ||
                 exp.GetInt64() <= _clock().ToUnixTimeSeconds()) return null;
             var sub = Str(claims, "sub");
-            return string.IsNullOrEmpty(sub) || sub.Length > 64 ? null : sub;
+            if (string.IsNullOrEmpty(sub) || sub.Length > 64) return null;
+            var username = Str(claims, "cognito:username");
+            return new VerifiedUser(sub, string.IsNullOrEmpty(username) ? sub : username);
         }
         catch (Exception e) when (e is FormatException or JsonException or CryptographicException or ArgumentException or InvalidOperationException)
         {

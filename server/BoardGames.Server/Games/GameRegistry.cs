@@ -18,4 +18,7 @@ public sealed class GameRegistry
     });
 
     public IGameEngine? Find(string id) => _engines.GetValueOrDefault(id);
+
+    /// <summary>ゲームの ID の一覧（ランキングなどの API で、知らないゲームをはねるため）。</summary>
+    public IReadOnlyCollection<string> Ids => _engines.Keys;
 }

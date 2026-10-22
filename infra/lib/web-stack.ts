@@ -9,6 +9,7 @@ import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
+import { GameStack } from './game-stack';
 
 export interface WebStackProps extends cdk.StackProps {
   /** 独自ドメイン（例: boardgamepia.com）。www 付きはこのドメインへ転送する */
@@ -123,6 +124,23 @@ function handler(event) {
       },
     });
 
+    // ランキング・プロフィール・マイページの API（ステップ 5-4。GameStack の HTTP API）。
+    // 行き先のドメインは GameStack が SSM に書いたもの（GameStack を先にデプロイしておく）
+    const apiDomain = ssm.StringParameter.valueForStringParameter(this, GameStack.apiDomainParam);
+    // 覚えておく時間は API の Cache-Control に従う（ランキング・プロフィールは 60 秒、自分の情報は覚えない）。
+    // ログインのトークン（Authorization）はキャッシュのキーに入れて API に渡す（ほかの人の情報が返らないように）
+    const apiCachePolicy = new cloudfront.CachePolicy(this, 'ApiCachePolicy', {
+      comment: 'board pia api (honors Cache-Control, max 60 s)',
+      minTtl: cdk.Duration.seconds(0),
+      defaultTtl: cdk.Duration.seconds(0),
+      maxTtl: cdk.Duration.seconds(60),
+      headerBehavior: cloudfront.CacheHeaderBehavior.allowList('Authorization'),
+      queryStringBehavior: cloudfront.CacheQueryStringBehavior.none(),
+      cookieBehavior: cloudfront.CacheCookieBehavior.none(),
+      enableAcceptEncodingGzip: true,
+      enableAcceptEncodingBrotli: true,
+    });
+
     const distribution = new cloudfront.Distribution(this, 'SiteDistribution', {
       comment: 'board pia site',
       defaultRootObject: 'index.html',
@@ -139,6 +157,18 @@ function handler(event) {
         functionAssociations: [
           { function: indexRewrite, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST },
         ],
+      },
+      additionalBehaviors: {
+        '/api/*': {
+          origin: new origins.HttpOrigin(apiDomain, { protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY }),
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.HTTPS_ONLY,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL, // 名前の変更（PUT）・アカウントの削除（DELETE）
+          cachePolicy: apiCachePolicy,
+          // Host 以外のヘッダー（Content-Type など）を API に渡す。Host は API Gateway 自身のものにする
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          responseHeadersPolicy: securityHeaders,
+          compress: true,
+        },
       },
       // 存在しない URL では、S3 のエラー（OAC ではファイルがないと 403）の代わりに 404.html を返す。
       // ステータスは 404 にそろえる（検索エンジンに「ないページ」と伝えるため）。

@@ -314,7 +314,9 @@ main.page {
 /* ===== スマートフォン（画面幅 520px 以下）向けの調整 ===== */
 @media (max-width: 520px) {
   .site-nav { padding: 12px 16px; }
-  .site-nav ul { gap: 14px; font-size: 0.9rem; }
+  /* メニューが 1 行に収まらないときは、項目ごとに次の行へ（項目の途中では折り返さない） */
+  .site-nav ul { gap: 4px 14px; font-size: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
+  .site-nav ul a { white-space: nowrap; }
   .panel { padding: 18px; }
   .spec { grid-template-columns: 1fr; gap: 2px; } /* 基本情報の表を 1 列にする */
   .spec dd { margin-bottom: 10px; }

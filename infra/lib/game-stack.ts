@@ -5,7 +5,8 @@ import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
-import { WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { HttpLambdaIntegration, WebSocketLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as iam from 'aws-cdk-lib/aws-iam';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
@@ -31,6 +32,9 @@ export interface GameStackProps extends cdk.StackProps {
  * GitHub Actions からはデプロイしない（PlayStack と同じく手元の PC から）。
  */
 export class GameStack extends cdk.Stack {
+  /** ランキングなどの API（HTTP API）のドメイン。WebStack の CloudFront が /api/* の行き先に使う */
+  static readonly apiDomainParam = '/boardpia/api/domain';
+
   constructor(scope: Construct, id: string, props: GameStackProps) {
     super(scope, id, props);
 
@@ -76,36 +80,41 @@ export class GameStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    // 対戦サーバーと API は同じ C# のコード（入口だけが違う）
+    const code = lambda.Code.fromAsset(repoRoot, {
+      // server/ と shared/ の中身が変わったときだけ作り直す
+      assetHashType: cdk.AssetHashType.CUSTOM,
+      assetHash: hashSources([path.join(repoRoot, 'server'), path.join(repoRoot, 'shared')]),
+      bundling: {
+        image: cdk.DockerImage.fromRegistry('unused'), // Docker は使わない（local で作る）
+        local: {
+          tryBundle(outputDir: string) {
+            execFileSync('dotnet', [
+              'publish', path.join(repoRoot, 'server', 'BoardGames.Server', 'BoardGames.Server.csproj'),
+              '-c', 'Release', '-r', 'linux-arm64', '--self-contained', 'false', '-o', outputDir,
+            ], { stdio: 'inherit' });
+            return true;
+          },
+        },
+      },
+    });
+    // ログインの確認に使う（AuthStack が SSM に書いた値。デプロイのときに読む）
+    const userPoolId = ssm.StringParameter.valueForStringParameter(this, AuthStack.userPoolIdParam);
+    const userPoolClientId = ssm.StringParameter.valueForStringParameter(this, AuthStack.clientIdParam);
+
     const fn = new lambda.Function(this, 'GameServer', {
       runtime: lambda.Runtime.DOTNET_10,
       architecture: lambda.Architecture.ARM_64, // x86 より安い
       memorySize: 512,
       timeout: cdk.Duration.seconds(10),
       handler: 'BoardGames.Server::BoardGames.Server.Function::HandleAsync',
-      code: lambda.Code.fromAsset(repoRoot, {
-        // server/ と shared/ の中身が変わったときだけ作り直す
-        assetHashType: cdk.AssetHashType.CUSTOM,
-        assetHash: hashSources([path.join(repoRoot, 'server'), path.join(repoRoot, 'shared')]),
-        bundling: {
-          image: cdk.DockerImage.fromRegistry('unused'), // Docker は使わない（local で作る）
-          local: {
-            tryBundle(outputDir: string) {
-              execFileSync('dotnet', [
-                'publish', path.join(repoRoot, 'server', 'BoardGames.Server', 'BoardGames.Server.csproj'),
-                '-c', 'Release', '-r', 'linux-arm64', '--self-contained', 'false', '-o', outputDir,
-              ], { stdio: 'inherit' });
-              return true;
-            },
-          },
-        },
-      }),
+      code,
       environment: {
         TABLE_NAME: table.tableName,
         RESULTS_TABLE_NAME: resultsTable.tableName,
         PLAYERS_TABLE_NAME: playersTable.tableName,
-        // ログインの確認に使う（AuthStack が SSM に書いた値。デプロイのときに読む）
-        USER_POOL_ID: ssm.StringParameter.valueForStringParameter(this, AuthStack.userPoolIdParam),
-        USER_POOL_CLIENT_ID: ssm.StringParameter.valueForStringParameter(this, AuthStack.clientIdParam),
+        USER_POOL_ID: userPoolId,
+        USER_POOL_CLIENT_ID: userPoolClientId,
       },
       logGroup,
       description: 'BOARD PIA online game server (WebSocket)',
@@ -114,6 +123,63 @@ export class GameStack extends cdk.Stack {
     resultsTable.grant(fn, 'dynamodb:PutItem'); // 結果は書き足すだけ（読む・消す権限は渡さない）
     // 戦績は読んで書き直す（結果と同時に TransactWriteItems で書く。中身は PutItem の権限で足りる）。消す権限は渡さない
     playersTable.grant(fn, 'dynamodb:Query', 'dynamodb:PutItem');
+
+    // ---------- ランキング・プロフィール・マイページの API（ステップ 5-4） ----------
+    // HTTP API ＋ Lambda。CloudFront（WebStack）の https://<domain>/api/* から呼ぶ（サイトと同じドメインなので CORS は要らない）
+    const apiLogGroup = new logs.LogGroup(this, 'PlayerApiLogs', {
+      retention: logs.RetentionDays.ONE_WEEK,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+    const apiFn = new lambda.Function(this, 'PlayerApi', {
+      runtime: lambda.Runtime.DOTNET_10,
+      architecture: lambda.Architecture.ARM_64,
+      memorySize: 512,
+      timeout: cdk.Duration.seconds(10),
+      handler: 'BoardGames.Server::BoardGames.Server.Api.ApiFunction::HandleAsync',
+      code,
+      environment: {
+        PLAYERS_TABLE_NAME: playersTable.tableName,
+        RESULTS_TABLE_NAME: resultsTable.tableName,
+        USER_POOL_ID: userPoolId,
+        USER_POOL_CLIENT_ID: userPoolClientId,
+      },
+      logGroup: apiLogGroup,
+      description: 'BOARD PIA ranking / profile / my page API',
+    });
+    // 読む（ランキングの索引も）・名前を書く・アカウントの削除で消す
+    playersTable.grant(apiFn, 'dynamodb:Query', 'dynamodb:BatchGetItem', 'dynamodb:PutItem', 'dynamodb:DeleteItem',
+      'dynamodb:BatchWriteItem');
+    // アカウントの削除: 対局結果の行から、その人の ID だけを取り除く
+    resultsTable.grant(apiFn, 'dynamodb:UpdateItem');
+    // アカウントの削除: ログインのユーザーを消す（このユーザープールだけ）
+    apiFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['cognito-idp:AdminDeleteUser'],
+      resources: [`arn:aws:cognito-idp:${this.region}:${this.account}:userpool/${userPoolId}`],
+    }));
+
+    const httpApi = new apigwv2.HttpApi(this, 'PlayerHttpApi', {
+      apiName: 'boardpia-player-api',
+      description: 'BOARD PIA ranking / profile / my page API (via CloudFront /api/*)',
+      createDefaultStage: false,
+    });
+    httpApi.addRoutes({
+      path: '/api/{proxy+}',
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.PUT, apigwv2.HttpMethod.DELETE],
+      integration: new HttpLambdaIntegration('PlayerApiIntegration', apiFn),
+    });
+    new apigwv2.HttpStage(this, 'PlayerApiStage', {
+      httpApi,
+      stageName: '$default',
+      autoDeploy: true,
+      // 費用の安全装置（ランキングは CloudFront が 60 秒覚えるので、ここまで届くのはごく一部）
+      throttle: { rateLimit: 20, burstLimit: 40 },
+    });
+    // WebStack（GitHub Actions からデプロイ）が CloudFront の行き先に使う。出力ではなく SSM で渡す（GameStack は CI で読み込まないため）
+    new ssm.StringParameter(this, 'ApiDomainParam', {
+      parameterName: GameStack.apiDomainParam,
+      stringValue: `${httpApi.apiId}.execute-api.${this.region}.amazonaws.com`,
+    });
+    new cdk.CfnOutput(this, 'PlayerApiUrl', { value: httpApi.apiEndpoint });
 
     // ---------- API Gateway（WebSocket） ----------
     const integration = (name: string) => new WebSocketLambdaIntegration(name, fn);

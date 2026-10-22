@@ -10,7 +10,7 @@
    - 設定（ドメインとクライアント ID）は js/auth-config.js（デプロイのときに WebStack が書き出す）。
      読み込めないとき（手元の確認など）は、ログインのリンクを出さないだけで、ほかは今までどおり動く。
    - 読み込み: <script src="/js/auth-config.js" defer></script><script src="/js/auth.js" defer></script>
-   - ほかのスクリプト（ゲームなど）からは window.BoardPiaAuth を使う。
+   - ほかのスクリプト（ゲームなど）からは window.BoardPiaAuth を使う。API は BoardPiaAuth.fetchApi('/api/…') で呼ぶ。
    ========================================================================= */
 (function () {
   'use strict';
@@ -172,6 +172,33 @@
     },
 
     /**
+     * サイトの API（/api/…）を呼ぶ。ログインしていれば ID トークンを付ける（ステップ 5-4）。
+     * 返り値は { status, data }（data は JSON。読めなければ null）。通信できなければ status 0。
+     */
+    fetchApi: async function (path, options) {
+      options = options || {};
+      const headers = { Accept: 'application/json' };
+      const token = await auth.getIdToken();
+      if (token) headers.Authorization = 'Bearer ' + token;
+      if (options.body !== undefined) headers['Content-Type'] = 'application/json';
+      try {
+        const res = await fetch(path, {
+          method: options.method || 'GET',
+          headers: headers,
+          body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
+          cache: 'no-store',
+        });
+        const data = await res.json().catch(function () { return null; });
+        return { status: res.status, data: data };
+      } catch (e) {
+        return { status: 0, data: null };
+      }
+    },
+
+    /** このブラウザのログインを消す（アカウントを削除したあとなど。ログイン画面には移らない） */
+    forget: function () { write(localStorage, STORE_KEY, null); },
+
+    /**
      * /auth/callback.html で呼ぶ。code をトークンに引き換えて保存し、戻り先のパスを返す。
      * うまくいかなかったら、利用者に見せる日本語のメッセージ付きの Error を投げる。
      */
@@ -200,7 +227,8 @@
   };
   window.BoardPiaAuth = auth;
 
-  // ---------- ヘッダーに「ログイン / ログアウト」を出す ----------
+  // ---------- ヘッダーに「ログイン / マイページ」を出す ----------
+  // ログイン中は「マイページ」（ログアウトはマイページから）。ログインしていなければ「ログイン」
   function addHeaderLink() {
     if (!config || location.pathname === CALLBACK_PATH) return;
     const link = document.createElement('a');
@@ -208,9 +236,10 @@
     link.className = 'auth-link';
     if (auth.isSignedIn()) {
       const claims = auth.getClaims();
-      link.textContent = 'ログアウト';
+      link.textContent = 'マイページ';
+      link.href = '/mypage/';
       if (claims && claims.email) link.title = claims.email + ' でログイン中';
-      link.addEventListener('click', function (e) { e.preventDefault(); auth.signOut(); });
+      if (location.pathname === '/mypage/' || location.pathname === '/mypage/index.html') link.setAttribute('aria-current', 'page');
     } else {
       link.textContent = 'ログイン';
       link.addEventListener('click', function (e) { e.preventDefault(); auth.signIn(); });
@@ -232,10 +261,14 @@
     }
     const header = document.querySelector('body > header');
     if (header) {
-      const box = document.createElement('div');
-      box.className = 'header-auth';
+      // トップページ: ヘッダーの右上の欄（「ランキング」のリンクがあれば、その右）
+      let box = header.querySelector('.header-auth');
+      if (!box) {
+        box = document.createElement('div');
+        box.className = 'header-auth';
+        header.appendChild(box);
+      }
       box.appendChild(link);
-      header.appendChild(box);
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addHeaderLink);

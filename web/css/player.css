@@ -1,0 +1,101 @@
+/* =========================================================================
+   player.css … ランキング・プロフィール・マイページ用のスタイル（ステップ 5-4）
+   -------------------------------------------------------------------------
+   - style.css・page.css の後に読み込む（色の変数や .panel などはそちらのもの）。
+   - ゲームの切り替え（.game-tabs）、成績の表（.stats-table）、入力欄とボタン（.form-row / .button）。
+   ========================================================================= */
+
+/* ===== ゲームの切り替え（ランキング） ===== */
+.game-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+.game-tabs a {
+  display: inline-block;
+  padding: 6px 14px;
+  border: 1px solid rgba(155, 92, 255, 0.6);
+  border-radius: 999px;
+  color: var(--sub);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+.game-tabs a:hover { color: var(--cyan); border-color: var(--cyan); }
+.game-tabs a[aria-current="true"] {
+  color: #fff;
+  border-color: var(--cyan);
+  background: rgba(34, 243, 255, 0.12);
+  text-shadow: 0 0 6px var(--cyan);
+}
+
+/* ===== 成績の表 ===== */
+.table-wrap { overflow-x: auto; } /* スマホで表がはみ出したら、表だけを横にずらせる */
+.stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+.stats-table th,
+.stats-table td {
+  padding: 10px 8px;
+  border-bottom: 1px solid rgba(155, 92, 255, 0.25);
+  text-align: right;
+}
+.stats-table th { color: var(--sub); font-size: 0.8rem; font-weight: 700; }
+.stats-table .name { text-align: left; white-space: normal; word-break: break-all; }
+.stats-table .rank { text-align: center; color: var(--pink); font-weight: 700; }
+.stats-table .rating { color: #fff; font-weight: 700; }
+.stats-table a { color: var(--cyan); text-decoration: none; }
+.stats-table a:hover { text-shadow: 0 0 8px var(--cyan); }
+.stats-table tr.me td { background: rgba(34, 243, 255, 0.08); }
+
+/* 読み込み中・空・エラーのお知らせ */
+.status-text { color: var(--sub); margin: 16px 0; }
+.status-text.error { color: var(--pink); }
+
+/* ===== 入力欄とボタン（マイページ） ===== */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin: 12px 0;
+}
+.form-row input[type="text"] {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 10px 12px;
+  font: inherit;
+  color: var(--text);
+  background: rgba(7, 6, 15, 0.8);
+  border: 1px solid rgba(155, 92, 255, 0.6);
+  border-radius: 8px;
+}
+.form-row input[type="text"]:focus { outline: none; border-color: var(--cyan); box-shadow: 0 0 8px rgba(34, 243, 255, 0.4); }
+.button {
+  display: inline-block;
+  padding: 10px 18px;
+  font: inherit;
+  font-weight: 700;
+  color: #fff;
+  background: transparent;
+  border: 1px solid var(--cyan);
+  border-radius: 999px;
+  cursor: pointer;
+  text-decoration: none;
+}
+.button:hover:not(:disabled) { background: rgba(34, 243, 255, 0.15); }
+.button:disabled { opacity: 0.45; cursor: default; }
+.button.danger { border-color: var(--pink); }
+.button.danger:hover:not(:disabled) { background: rgba(255, 47, 214, 0.15); }
+.form-message { min-height: 1.5em; margin: 4px 0 0; color: var(--sub); }
+.form-message.error { color: var(--pink); }
+.form-message.ok { color: var(--lime); }
+.check-row { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; color: var(--text); }
+
+.page-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; }

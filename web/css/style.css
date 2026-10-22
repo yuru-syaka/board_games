@@ -239,21 +239,23 @@ footer {
 .footer-links a { color: var(--sub); text-decoration: none; }
 .footer-links a:hover { color: var(--cyan); text-decoration: underline; }
 
-/* ===== ログイン / ログアウトのリンク（js/auth.js が出す。ステップ 5） ===== */
+/* ===== 右上のリンク（ランキングと、js/auth.js が出すログイン / マイページ。ステップ 5） ===== */
 /* トップページはヘッダーの右上。サブページは上部のメニューの右端（page.css の .site-nav ul a の見た目） */
 header { position: relative; }
 .header-auth {
   position: absolute;
   top: 16px;
   right: 20px;
+  display: flex;
+  gap: 18px; /* 「ランキング」と「ログイン / マイページ」の間 */
 }
-.header-auth .auth-link {
+.header-auth a {
   color: var(--sub);
   font-weight: 700;
   text-decoration: none;
   transition: color 0.2s, text-shadow 0.2s;
 }
-.header-auth .auth-link:hover {
+.header-auth a:hover {
   color: var(--cyan);
   text-shadow: 0 0 8px var(--cyan);
 }

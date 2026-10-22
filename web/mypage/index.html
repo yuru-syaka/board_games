@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  マイページ（ステップ 5-4）。https://boardgamepia.com/mypage/
+  - ログインしている人だけが使える。名前を決める・変える、自分の成績、ログアウト、アカウントの削除。
+  - 初めてログインして名前がまだないときは、ログインのあとにここへ案内される（?welcome=1&next=<元のページ>）。
+  - 中身は js/mypage.js が API（/api/me）を呼んで作る。検索結果には出さない（noindex）。広告は入れない。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>マイページ - BOARD PIA</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="/css/style.css" rel="stylesheet" />
+  <link href="/css/page.css" rel="stylesheet" />
+  <link href="/css/player.css" rel="stylesheet" />
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/game-list.js" defer></script>
+  <script src="/js/player.js" defer></script>
+  <script src="/js/mypage.js" defer></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="/">BOARD PIA</a>
+    <ul>
+      <li><a href="/">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="/blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="/">ホーム</a> ＞ マイページ</p>
+    <h1 class="page-title">マイページ</h1>
+    <p class="status-text" id="mypage-status">読み込んでいます…</p>
+
+    <!-- ログインしていないとき -->
+    <section class="panel" id="signed-out" hidden>
+      <p>マイページを使うには、ログインしてください。ログインしなくてもゲームは遊べます。</p>
+      <div class="page-actions"><button class="button" type="button" id="login-button">ログイン</button></div>
+    </section>
+
+    <div id="signed-in" hidden>
+      <!-- 名前 -->
+      <section class="panel">
+        <h2>名前</h2>
+        <p id="welcome" hidden>ようこそ！ まず、ランキングや対戦相手に表示される名前を決めてください（あとで変えられます）。</p>
+        <form id="name-form" autocomplete="off">
+          <div class="form-row">
+            <input type="text" id="name-input" maxlength="40" aria-label="名前" placeholder="2〜12 文字" />
+            <button class="button" type="submit" id="name-save">保存</button>
+          </div>
+          <p class="form-message" id="name-message" role="status"></p>
+        </form>
+        <p class="status-text">同じ名前の人がいても使えます。メールアドレスは表示されません。</p>
+        <p id="next-link" hidden><a class="button" id="next-anchor" href="/">元のページに戻る</a></p>
+      </section>
+
+      <!-- 成績 -->
+      <section class="panel purple">
+        <h2>成績</h2>
+        <p class="status-text" id="stats-empty" hidden>まだオンライン対戦の記録がありません。ログインしたまま、オンライン対戦で遊ぶと記録されます。</p>
+        <div class="table-wrap">
+          <table class="stats-table" id="stats-table" hidden>
+            <thead>
+              <tr><th class="name">ゲーム</th><th>レート</th><th>レート戦</th><th>対局</th><th>勝ち</th><th>負け</th><th>引き分け</th></tr>
+            </thead>
+            <tbody id="stats-body"></tbody>
+          </table>
+        </div>
+        <p><a id="profile-link" href="/player/">公開プロフィールを見る</a></p>
+      </section>
+
+      <!-- ログアウト -->
+      <section class="panel">
+        <h2>ログアウト</h2>
+        <p id="signed-in-as" class="status-text"></p>
+        <div class="page-actions"><button class="button" type="button" id="logout-button">ログアウト</button></div>
+      </section>
+
+      <!-- アカウントの削除 -->
+      <section class="panel pink">
+        <h2>アカウントの削除</h2>
+        <p>
+          アカウントを削除すると、ログインの情報（メールアドレスなど）・名前・成績とレートがすべて消え、元に戻せません。
+          これまでの対局の結果は、あなたのものと分からない形でだけ残ります。
+        </p>
+        <label class="check-row"><input type="checkbox" id="delete-confirm" /> 元に戻せないことを理解しました</label>
+        <div class="page-actions"><button class="button danger" type="button" id="delete-button" disabled>アカウントを削除する</button></div>
+        <p class="form-message" id="delete-message" role="status"></p>
+      </section>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

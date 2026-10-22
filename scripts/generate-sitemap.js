@@ -25,7 +25,7 @@ function collect(dir, rel = '') {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const relPath = rel ? `${rel}/${entry.name}` : entry.name;
     if (entry.isDirectory()) {
-      if (relPath === 'play' || relPath === 'auth') continue; // auth/ はログインの戻り先（noindex）
+      if (['play', 'auth', 'player', 'mypage'].includes(relPath)) continue; // ログインの戻り先・人ごとのページ・マイページは noindex
       out.push(...collect(path.join(dir, entry.name), relPath));
     } else if (entry.name.endsWith('.html') && relPath !== '404.html') { // 404 ページは noindex なので載せない
       out.push(relPath);

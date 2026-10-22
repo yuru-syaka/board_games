@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  プロフィール（ステップ 5-4）。https://boardgamepia.com/player/?id=<ユーザー ID>
+  - 中身は js/player.js が API（/api/players/<ID>）から読んで作る。名前とゲームごとのレート・勝敗。
+  - 人ごとのページは検索結果に出さない（noindex）。sitemap.xml にも載せない。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>プロフィール - BOARD PIA</title>
+  <meta name="robots" content="noindex" />
+  <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="/images/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="/css/style.css" rel="stylesheet" />
+  <link href="/css/page.css" rel="stylesheet" />
+  <link href="/css/player.css" rel="stylesheet" />
+  <!-- ログイン（ステップ 5）。auth-config.js はデプロイのときに書き出される。ヘッダーに「ログイン / マイページ」を出す -->
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/game-list.js" defer></script>
+  <script src="/js/player.js" defer></script>
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="/">BOARD PIA</a>
+    <ul>
+      <li><a href="/">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="/blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="/">ホーム</a> ＞ <a href="/ranking/">ランキング</a> ＞ プロフィール</p>
+    <h1 class="page-title" id="player-name">プロフィール</h1>
+
+    <section class="panel">
+      <p class="status-text" id="player-status">読み込んでいます…</p>
+      <div class="table-wrap">
+        <table class="stats-table" id="player-table" hidden>
+          <thead>
+            <tr><th class="name">ゲーム</th><th>レート</th><th>レート戦</th><th>対局</th><th>勝ち</th><th>負け</th><th>引き分け</th></tr>
+          </thead>
+          <tbody id="player-body"></tbody>
+        </table>
+      </div>
+    </section>
+    <p class="status-text">レートはランダムマッチ（両者ログイン中）で動きます。対局・勝ち・負けには、ルームコードの対戦も入ります。</p>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

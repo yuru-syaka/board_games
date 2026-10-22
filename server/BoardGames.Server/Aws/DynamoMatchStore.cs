@@ -16,15 +16,13 @@ namespace BoardGames.Server.Aws;
 /// 対局結果は別のテーブル（期限なし）に、キー id = 対局ID#何局目 で残す。
 /// プレイヤーのテーブル（期限なし、ステップ 5-2）: キー id = ユーザー ID、key = 行の種類
 ///   profile            表示名（name。5-4 のマイページで決める）
-///   g#ゲーム           そのゲームの戦績（rating・games・wins・losses・draws・rated・ver）。
+///   g#ゲーム           そのゲームの戦績（rating・games・wins・losses・draws・rated・ver）。r#… は結果へのつながり（DynamoPlayerStore）
 ///                      rankGame（= ゲーム）と rating で、索引 ranking からレートの高い順に読める
 /// </summary>
 public sealed class DynamoMatchStore : IMatchStore
 {
     static readonly TimeSpan MatchTtl = TimeSpan.FromDays(1);
     static readonly TimeSpan QueueTtl = TimeSpan.FromHours(1);
-    const string ProfileKey = "profile";
-    const string GameKeyPrefix = "g#";
 
     readonly IAmazonDynamoDB _db;
     readonly string _table;
@@ -223,7 +221,7 @@ public sealed class DynamoMatchStore : IMatchStore
                 Item = new Dictionary<string, AttributeValue>
                 {
                     ["id"] = S(s.UserId),
-                    ["key"] = S(GameKeyPrefix + s.Game),
+                    ["key"] = S(DynamoPlayerStore.GameKeyPrefix + s.Game),
                     ["game"] = S(s.Game),
                     ["rankGame"] = S(s.Game),
                     ["rating"] = N(s.Rating),
@@ -246,6 +244,29 @@ public sealed class DynamoMatchStore : IMatchStore
                 put.ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":v"] = N(s.Version) };
             }
             items.Add(new TransactWriteItem { Put = put });
+        }
+
+        // ログインしていた席ごとに「この人のこの結果」の行（アカウントを消すとき、結果の行からその人の ID を取り除くため）
+        for (int seat = 0; seat < 2; seat++)
+        {
+            if (result.Users?[seat] is not { } user) continue;
+            if (seat == 1 && result.Users[0] == user) continue; // 同じアカウントが両方の席: 1 行だけ（同じキーを 2 回は書けない）
+            items.Add(new TransactWriteItem
+            {
+                Put = new Put
+                {
+                    TableName = _playersTable,
+                    Item = new Dictionary<string, AttributeValue>
+                    {
+                        ["id"] = S(user),
+                        ["key"] = S(DynamoPlayerStore.ResultLinkKey(result.EndedAt, result.Id)),
+                        ["rid"] = S(result.Id),
+                        ["seat"] = N(seat),
+                        ["game"] = S(result.Game),
+                        ["endedAt"] = N(result.EndedAt),
+                    },
+                },
+            });
         }
 
         try
@@ -278,37 +299,8 @@ public sealed class DynamoMatchStore : IMatchStore
 
     public async Task<string?> GetAuthAsync(string connectionId) => OptionalString(await GetAsync("u#" + connectionId), "uid");
 
-    public async Task<PlayerProfile> GetPlayerAsync(string userId)
-    {
-        // 1 人の行は profile と、遊んだゲームの数（最大 6）だけなので、1 回の Query で全部読める
-        var response = await _db.QueryAsync(new QueryRequest
-        {
-            TableName = _playersTable,
-            KeyConditionExpression = "id = :u",
-            ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":u"] = S(userId) },
-            ConsistentRead = true,
-        });
-        string? name = null;
-        var stats = new Dictionary<string, PlayerStats>();
-        foreach (var item in response.Items ?? new List<Dictionary<string, AttributeValue>>())
-        {
-            var key = item["key"].S;
-            if (key == ProfileKey)
-            {
-                name = OptionalString(item, "name");
-            }
-            else if (key.StartsWith(GameKeyPrefix, StringComparison.Ordinal))
-            {
-                var game = key.Substring(GameKeyPrefix.Length);
-                stats[game] = new PlayerStats(userId, game, Int(item, "rating"), Int(item, "games"), Int(item, "wins"),
-                    Int(item, "losses"), Int(item, "draws"), Int(item, "rated"), Int(item, "ver"));
-            }
-        }
-        return new PlayerProfile(userId, name, stats);
-    }
-
-    static int Int(Dictionary<string, AttributeValue> item, string name) =>
-        item.TryGetValue(name, out var v) && v.N != null ? int.Parse(v.N, CultureInfo.InvariantCulture) : 0;
+    // 表示名と戦績（profile と g#…。結果へのつながりの行 r#… は読まない）
+    public Task<PlayerProfile> GetPlayerAsync(string userId) => DynamoPlayerStore.LoadProfileAsync(_db, _playersTable, userId);
 
     // ---------- 内部 ----------
 
