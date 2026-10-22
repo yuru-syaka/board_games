@@ -99,3 +99,7 @@
 .check-row { display: flex; gap: 8px; align-items: flex-start; margin: 12px 0; color: var(--text); }
 
 .page-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 0; }
+
+/* ===== 広告枠（広告④。js/ads.js が広告ユニットの ID があるときだけ中身を入れて表示する） ===== */
+.ad-slot { margin: 0 0 32px; min-height: 0; }
+.ad-label { margin: 0 0 4px; font-size: 0.75rem; color: var(--sub); }

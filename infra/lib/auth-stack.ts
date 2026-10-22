@@ -98,6 +98,19 @@ export class AuthStack extends cdk.Stack {
       useCognitoProvidedValues: true,
     });
 
+    // ログイン画面（新規登録）に、利用規約とプライバシーポリシーへのリンクを出す（ステップ 5-5）。
+    // 両方そろうと表示される。ページの URL を変えたら、ここも直す
+    for (const [id, termsName, page] of [['TermsOfUse', 'terms-of-use', 'terms.html'], ['PrivacyPolicy', 'privacy-policy', 'privacy.html']]) {
+      new cognito.CfnTerms(this, id, {
+        userPoolId: userPool.userPoolId,
+        clientId: client.userPoolClientId,
+        termsName,
+        termsSource: 'LINK',
+        enforcement: 'NONE',
+        links: { 'cognito:default': `${site}/${page}`, 'cognito:japanese': `${site}/${page}` },
+      });
+    }
+
     const zone = route53.HostedZone.fromLookup(this, 'Zone', { domainName: props.domainName });
     new route53.ARecord(this, 'AuthRecord', {
       zone,
