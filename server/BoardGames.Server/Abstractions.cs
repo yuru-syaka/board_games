@@ -30,8 +30,45 @@ public sealed class MatchRecord
     public long?[] AwaySince { get; init; } = new long?[2];
     /// <summary>今の手番が始まった時刻（UNIX ミリ秒）。1 手の制限時間を過ぎたかを確かめるため。</summary>
     public long TurnStartedAt { get; set; }
+    /// <summary>この部屋で何局目か（再戦するたびに 1 増える。最初の対局は 1）。結果の行の名前に使う。</summary>
+    public int GameNo { get; set; }
 
     public int OtherSeat(int seat) => 1 - seat;
+}
+
+/// <summary>対局結果の終わり方。</summary>
+public static class ResultReasons
+{
+    /// <summary>ルールどおりに勝敗がついた。</summary>
+    public const string Normal = "normal";
+    /// <summary>ルールどおりに引き分けになった。</summary>
+    public const string Draw = "draw";
+    /// <summary>手番の側が制限時間を過ぎ、相手が勝ちを申請した。</summary>
+    public const string Timeout = "timeout";
+    /// <summary>通信が切れた側が待ち時間のうちに戻らず、相手が勝ちを申請した。</summary>
+    public const string Abandoned = "abandoned";
+    /// <summary>対局の途中で、自分で部屋から抜けた（相手の勝ち）。</summary>
+    public const string Left = "left";
+}
+
+/// <summary>
+/// 1 局の結果（ステップ 4-4）。期限なしで残し、ステップ 5 のレーティング・ランキングの元にする。
+/// 「誰が」はまだ残さない（ログインはステップ 5）。棋譜（Moves）と乱数の種（Seed）から対局をそのまま再現できる。
+/// </summary>
+public sealed record MatchResult(
+    string MatchId,
+    int GameNo,
+    string Game,
+    long EndedAt,
+    // 勝った席（0 か 1）。引き分けは -1
+    int Winner,
+    string Reason,
+    int Plies,
+    IReadOnlyList<string> Moves,
+    int Seed)
+{
+    /// <summary>結果の行の名前（同じ対局の結果を 2 回書かないため）。</summary>
+    public string Id => MatchId + "#" + GameNo;
 }
 
 /// <summary>接続ごとの「どの対局のどの席にいるか」。対局に入っていない接続は保存しない。</summary>
@@ -77,6 +114,9 @@ public interface IMatchStore
     Task<(string MatchId, int Seat)?> FindTokenAsync(string token);
 
     Task DeleteTokenAsync(string token);
+
+    /// <summary>対局結果を残す。同じ結果（MatchResult.Id）がもう残っていれば何もしないで false。</summary>
+    Task<bool> TryPutResultAsync(MatchResult result);
 }
 
 /// <summary>接続にメッセージを送る（本番は API Gateway の管理 API）。</summary>

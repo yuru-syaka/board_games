@@ -13,9 +13,10 @@ namespace BoardGames.Server;
 /// <summary>
 /// Lambda の入口。API Gateway（WebSocket）の 3 つのルートをすべてここで受ける。
 ///   $connect     接続した（何もしない。対局に入るまで記録もしない）
-///   $disconnect  切断した（対局中なら相手に知らせて部屋を閉じる）
+///   $disconnect  切断した（対局中なら席を「離席中」にして相手に知らせる。それ以外は部屋から抜ける）
 ///   $default     メッセージが届いた
-/// 環境変数: TABLE_NAME（DynamoDB のテーブル）、CALLBACK_URL（管理 API の URL）。CDK（infra/lib/game-stack.ts）が設定する。
+/// 環境変数: TABLE_NAME（対局中のデータ）、RESULTS_TABLE_NAME（対局結果）、CALLBACK_URL（管理 API の URL）。
+/// CDK（infra/lib/game-stack.ts）が設定する。
 /// </summary>
 public sealed class Function
 {
@@ -23,8 +24,9 @@ public sealed class Function
     static readonly Lazy<GameServer> Server = new(() =>
     {
         var table = Environment.GetEnvironmentVariable("TABLE_NAME") ?? throw new InvalidOperationException("TABLE_NAME is not set");
+        var results = Environment.GetEnvironmentVariable("RESULTS_TABLE_NAME") ?? throw new InvalidOperationException("RESULTS_TABLE_NAME is not set");
         var callback = Environment.GetEnvironmentVariable("CALLBACK_URL") ?? throw new InvalidOperationException("CALLBACK_URL is not set");
-        var store = new DynamoMatchStore(new AmazonDynamoDBClient(), table);
+        var store = new DynamoMatchStore(new AmazonDynamoDBClient(), table, results);
         var push = new ApiGatewayPush(new AmazonApiGatewayManagementApiClient(new AmazonApiGatewayManagementApiConfig { ServiceURL = callback }));
         return new GameServer(store, push, GameRegistry.Default());
     });

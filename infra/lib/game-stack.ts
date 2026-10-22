@@ -22,6 +22,7 @@ export interface GameStackProps extends cdk.StackProps {
  *   API Gateway（WebSocket）… ブラウザとつながり続ける。メッセージが届いたときだけ Lambda を呼ぶ
  *   Lambda（C#、.NET 10、arm64）… server/BoardGames.Server。ルールは shared/ の Unity と同じコード
  *   DynamoDB（オンデマンド）… 接続・待ち行列・ルームコード・対局（種 ＋ 手の一覧）。ttl で自動的に消える
+ *                              対局結果は別のテーブル（期限なし）。ステップ 5 のレーティング・ランキングの元
  * 費用の安全装置: API Gateway のスロットリング（1 秒あたりの上限）、ログの保存は 1 週間。
  * ビルド: cdk deploy GameStack のときに、手元の dotnet publish で Lambda のコードを作る（Docker は使わない）。
  * GitHub Actions からはデプロイしない（PlayStack と同じく手元の PC から）。
@@ -39,6 +40,13 @@ export class GameStack extends cdk.Stack {
       billing: dynamodb.Billing.onDemand(),
       timeToLiveAttribute: 'ttl',
       // いずれ対局結果（戦績）も入るので、スタックを消してもテーブルは残す
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
+    // 対局結果（1 局 1 行。キー id = 対局ID#何局目）。期限なしで残す。Lambda は書き込むだけ
+    const resultsTable = new dynamodb.TableV2(this, 'ResultsTable', {
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      billing: dynamodb.Billing.onDemand(),
       removalPolicy: cdk.RemovalPolicy.RETAIN,
     });
 
@@ -73,11 +81,13 @@ export class GameStack extends cdk.Stack {
       }),
       environment: {
         TABLE_NAME: table.tableName,
+        RESULTS_TABLE_NAME: resultsTable.tableName,
       },
       logGroup,
       description: 'BOARD PIA online game server (WebSocket)',
     });
     table.grantReadWriteData(fn);
+    resultsTable.grant(fn, 'dynamodb:PutItem'); // 結果は書き足すだけ（読む・消す権限は渡さない）
 
     // ---------- API Gateway（WebSocket） ----------
     const integration = (name: string) => new WebSocketLambdaIntegration(name, fn);

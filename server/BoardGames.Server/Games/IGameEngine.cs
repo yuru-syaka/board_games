@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using BoardGames.Core;
 
 namespace BoardGames.Server.Games;
 
@@ -19,6 +20,9 @@ public interface IGameEngine
 public interface IGameSession
 {
     bool IsOver { get; }
+
+    /// <summary>勝敗（終局していなければ Ongoing）。</summary>
+    GameResult Result { get; }
 
     /// <summary>今の手番の席（0 か 1）。</summary>
     int CurrentPlayer { get; }

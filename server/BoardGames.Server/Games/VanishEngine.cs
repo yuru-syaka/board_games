@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using BoardGames.Core;
 using BoardGames.Vanish;
 using BoardGames.Vanish.Online;
 
@@ -19,6 +20,8 @@ public sealed class VanishEngine : IGameEngine
         public Session(VanishState state) => _state = state;
 
         public bool IsOver => _state.Result.IsOver;
+
+        public GameResult Result => _state.Result;
 
         public int CurrentPlayer => _state.CurrentPlayer;
 

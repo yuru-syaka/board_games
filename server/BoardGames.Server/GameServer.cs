@@ -14,6 +14,7 @@ namespace BoardGames.Server;
 ///   戻らなければ、残った側が勝ちを申請できる（Claim）。タイマーは動かさず、申請が届いたときに時刻を確かめる。
 /// - 1 手の制限時間（ServerSettings.TurnLimitFor）: 局面と一緒に残り時間（@turn）を送る。過ぎたら待っている側が
 ///   Claim で勝ちを申請できる。申請される前に手が届けば、その手は受け付ける。
+/// - 対局結果: 終局・時間切れ・離脱のたびに 1 局 1 行（MatchResult）を残す。同じ対局を 2 回は書かない。
 /// - メッセージ: ロビーは LobbyProtocol（"@…"）、対局中は各ゲームの NetProtocol（"S|1|…" など）。
 /// </summary>
 public sealed class GameServer
@@ -219,6 +220,11 @@ public sealed class GameServer
 
         var match = await _store.GetMatchAsync(connection.MatchId);
         if (match == null) return;
+        if (match.Started)
+        {
+            var session = Rebuild(match);
+            if (!session.IsOver) await SaveResultAsync(match, match.OtherSeat(connection.Seat), ResultReasons.Left); // 対局の途中で抜けた: 相手の勝ち
+        }
         await CloseMatchAsync(match);
 
         // 相手には「相手が抜けた」と知らせ、相手の席の記録も消す（相手はロビーに戻る）
@@ -282,6 +288,7 @@ public sealed class GameServer
         int otherSeat = match.OtherSeat(connection.Seat);
         if (match.AwaySince[otherSeat] is long since && NowMs - since >= (long)_settings.AwayGrace.TotalMilliseconds)
         {
+            await SaveResultAsync(match, connection.Seat, ResultReasons.Abandoned);
             await CloseMatchAsync(match);
             await _store.DeleteConnectionAsync(connectionId);
             await _push.SendAsync(connectionId, LobbyProtocol.Won(LobbyEndReasons.Abandon));
@@ -293,6 +300,7 @@ public sealed class GameServer
         if (!session.IsOver && session.CurrentPlayer == otherSeat &&
             NowMs - match.TurnStartedAt >= (long)_settings.TurnLimitFor(match.Game).TotalMilliseconds)
         {
+            await SaveResultAsync(match, connection.Seat, ResultReasons.Timeout);
             await CloseMatchAsync(match);
             await _store.DeleteConnectionAsync(connectionId);
             await _push.SendAsync(connectionId, LobbyProtocol.Won(LobbyEndReasons.Timeout));
@@ -331,6 +339,12 @@ public sealed class GameServer
             if (await _store.TryPutMatchAsync(match))
             {
                 await SendStateAsync(match, session);
+                if (session.IsOver)
+                {
+                    var result = session.Result;
+                    await SaveResultAsync(match, result.Status == Core.GameStatus.Win ? result.Winner : -1,
+                        result.Status == Core.GameStatus.Win ? ResultReasons.Normal : ResultReasons.Draw);
+                }
                 return;
             }
             // ほかの書き込みが先に入った: 読み直してやり直す
@@ -401,7 +415,13 @@ public sealed class GameServer
         match.Moves.Clear();
         match.Rematch[0] = match.Rematch[1] = false;
         match.TurnStartedAt = NowMs;
+        match.GameNo++;
     }
+
+    /// <summary>対局結果を 1 行残す（同じ対局の 2 回目は書かれない）。</summary>
+    Task SaveResultAsync(MatchRecord match, int winner, string reason) =>
+        _store.TryPutResultAsync(new MatchResult(
+            match.Id, match.GameNo, match.Game, NowMs, winner, reason, match.Moves.Count, match.Moves.ToArray(), match.Seed));
 
     /// <summary>「種 ＋ 手の一覧」から局面を作り直す。</summary>
     IGameSession Rebuild(MatchRecord match)

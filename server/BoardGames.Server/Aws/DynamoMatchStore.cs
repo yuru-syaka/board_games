@@ -12,6 +12,7 @@ namespace BoardGames.Server.Aws;
 ///   r#ゲーム#コード    ルームコード → 対局
 ///   k#合言葉           合言葉 → 対局と席（通信が切れたあと、同じ席に戻るため）
 /// どの行にも ttl（期限）を付け、古いものは DynamoDB が自動で消す（消えるまで最大 2 日ほどかかる）。
+/// 対局結果だけは別のテーブル（期限なし）に、キー id = 対局ID#何局目 で残す。
 /// </summary>
 public sealed class DynamoMatchStore : IMatchStore
 {
@@ -20,11 +21,13 @@ public sealed class DynamoMatchStore : IMatchStore
 
     readonly IAmazonDynamoDB _db;
     readonly string _table;
+    readonly string _resultsTable;
 
-    public DynamoMatchStore(IAmazonDynamoDB db, string table)
+    public DynamoMatchStore(IAmazonDynamoDB db, string table, string resultsTable)
     {
         _db = db;
         _table = table;
+        _resultsTable = resultsTable;
     }
 
     // ---------- 対局 ----------
@@ -42,6 +45,7 @@ public sealed class DynamoMatchStore : IMatchStore
             Seed = int.Parse(item["seed"].N, CultureInfo.InvariantCulture),
             Version = long.Parse(item["ver"].N, CultureInfo.InvariantCulture),
             TurnStartedAt = item.TryGetValue("ts", out var ts) ? long.Parse(ts.N, CultureInfo.InvariantCulture) : 0,
+            GameNo = item.TryGetValue("gn", out var gn) ? int.Parse(gn.N, CultureInfo.InvariantCulture) : 0,
         };
         match.Connections[0] = OptionalString(item, "c0");
         match.Connections[1] = OptionalString(item, "c1");
@@ -69,6 +73,7 @@ public sealed class DynamoMatchStore : IMatchStore
             ["rm"] = S((match.Rematch[0] ? "1" : "0") + (match.Rematch[1] ? "1" : "0")),
             ["ver"] = N(match.Version + 1),
             ["ts"] = N(match.TurnStartedAt),
+            ["gn"] = N(match.GameNo),
             ["ttl"] = Ttl(MatchTtl),
         };
         if (match.Connections[0] != null) item["c0"] = S(match.Connections[0]!);
@@ -171,6 +176,26 @@ public sealed class DynamoMatchStore : IMatchStore
     }
 
     public Task DeleteTokenAsync(string token) => DeleteAsync("k#" + token);
+
+    // ---------- 対局結果 ----------
+
+    public Task<bool> TryPutResultAsync(MatchResult result) =>
+        TryAsync(() => _db.PutItemAsync(new PutItemRequest
+        {
+            TableName = _resultsTable,
+            Item = new Dictionary<string, AttributeValue>
+            {
+                ["id"] = S(result.Id),
+                ["game"] = S(result.Game),
+                ["endedAt"] = N(result.EndedAt),
+                ["winner"] = N(result.Winner),
+                ["reason"] = S(result.Reason),
+                ["plies"] = N(result.Plies),
+                ["moves"] = new AttributeValue { L = result.Moves.Select(S).ToList() },
+                ["seed"] = N(result.Seed),
+            },
+            ConditionExpression = "attribute_not_exists(id)", // 同じ対局の結果は 1 回だけ
+        }));
 
     // ---------- 内部 ----------
 

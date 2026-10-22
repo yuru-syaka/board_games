@@ -11,6 +11,9 @@ sealed class InMemoryStore : IMatchStore
     readonly Dictionary<string, string> _codes = new();
     readonly Dictionary<string, (string, int)> _tokens = new();
 
+    /// <summary>残された対局結果（書かれた順）。</summary>
+    public List<MatchResult> Results { get; } = new();
+
     /// <summary>次の TryPutMatchAsync をこの回数だけ「ほかの書き込みに負けた」ことにする（競合のテスト用）。</summary>
     public int FailNextMatchWrites { get; set; }
 
@@ -98,12 +101,19 @@ sealed class InMemoryStore : IMatchStore
         return Task.CompletedTask;
     }
 
+    public Task<bool> TryPutResultAsync(MatchResult result)
+    {
+        if (Results.Any(r => r.Id == result.Id)) return Task.FromResult(false);
+        Results.Add(result);
+        return Task.FromResult(true);
+    }
+
     static MatchRecord Clone(MatchRecord m)
     {
         var copy = new MatchRecord
         {
             Id = m.Id, Game = m.Game, Code = m.Code, Started = m.Started, Seed = m.Seed, Version = m.Version,
-            TurnStartedAt = m.TurnStartedAt,
+            TurnStartedAt = m.TurnStartedAt, GameNo = m.GameNo,
         };
         copy.Connections[0] = m.Connections[0];
         copy.Connections[1] = m.Connections[1];
