@@ -34,9 +34,10 @@ unity build C:\Users\nullg\createGame\boardGames\ghost_tic_tac_toe --target WebG
 2. `infra/` で PlayStack をデプロイすると、`web/play/` にあるゲームが S3 にアップロードされます（GitHub Actions からは更新されません）。
 
 ```bash
-cdk deploy PlayStack --profile board-game-pia-admin
+cdk deploy PlayStack --exclusively --profile board-game-pia-admin
 ```
 
+- `--exclusively` を付けて、依存する WebStack・AuthStack には触れません（AuthStack は Google ログインのシークレットが要るので GitHub Actions からだけ出します。付け忘れると、シークレットがないというエラーで止まります）。
 - `web/play/` は git の管理対象外です（1 本約 20MB のため）。ビルドは S3 にだけ置きます。
 - 手元に `web/play/<slug>/` がないゲームは、デプロイしても S3 から消えません（そのゲームはアップロードされないだけ）。
 - 同じゲームを再ビルドしてデプロイすると、S3 の `play/<slug>/` の中身は新しいビルドに置き換わります（古いファイルは削除）。

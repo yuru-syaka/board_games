@@ -34,12 +34,16 @@ const email = alertEmail();
 
 const cert = new CertStack(app, 'CertStack', { env: usEast1, crossRegionReferences: true, domainName });
 
-// ログイン（Cognito）。ログイン画面 auth.<domain> の証明書は CertStack（us-east-1）から受け取る
+// ログイン（Cognito）。ログイン画面 auth.<domain> の証明書は CertStack（us-east-1）から受け取る。
+// Google ログインの ID とシークレットは GitHub Actions の Secrets から環境変数で受け取る（公開リポジトリなので書かない）
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
 const auth = new AuthStack(app, 'AuthStack', {
   env: tokyo,
   crossRegionReferences: true,
   domainName,
   authCertificate: cert.authCertificate,
+  google: googleClientId && googleClientSecret ? { clientId: googleClientId, clientSecret: googleClientSecret } : undefined,
 });
 
 const web = new WebStack(app, 'WebStack', {

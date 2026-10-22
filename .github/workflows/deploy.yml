@@ -13,6 +13,8 @@
 #   AWS_DEPLOY_ROLE_ARN … GitHubActionsDeployRole の ARN
 #   AWS_ACCOUNT_ID      … ログでのマスク用
 #   ALERT_EMAIL         … 通知先（SecurityStack / MonitoringStack の設定に必要）
+#   GOOGLE_CLIENT_ID    … Google ログインの OAuth クライアント ID（AuthStack。ステップ 5-6）
+#   GOOGLE_CLIENT_SECRET … 同じクライアントのシークレット（ログでは自動で伏せられる）
 
 name: Deploy to AWS
 
@@ -42,6 +44,9 @@ jobs:
     env:
       CDK_DISABLE_CLI_TELEMETRY: "1"
       ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+      # Google ログイン（AuthStack）。無いと AuthStack は止まる（Google ログインを消さないように）
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
     steps:
       - name: Mask the AWS account ID in logs
         working-directory: . # まだ checkout 前で infra/ がないため

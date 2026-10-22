@@ -10,11 +10,17 @@ export interface AuthStackProps extends cdk.StackProps {
   domainName: string;
   /** CertStack（us-east-1）で発行した auth.<domain> の証明書 */
   authCertificate: acm.ICertificate;
+  /**
+   * Google ログイン（ステップ 5-6）。Google Cloud の OAuth クライアントの ID とシークレット。
+   * GitHub Actions の Secrets（GOOGLE_CLIENT_ID・GOOGLE_CLIENT_SECRET）から渡す。公開リポジトリなのでコードには書かない。
+   * 無いときは、このスタックをデプロイできないようにする（Google ログインを消してしまわないように）。
+   */
+  google?: { clientId: string; clientSecret: string };
 }
 
 /**
  * ログイン（ステップ 5）。Amazon Cognito のユーザープール。
- *   - メールアドレスとパスワードでログイン（Google はあとで足す）。ログインしなくてもゲームは遊べる
+ *   - メールアドレスとパスワード、または Google でログイン（ステップ 5-6）。ログインしなくてもゲームは遊べる
  *   - ログイン画面は AWS の managed login（https://auth.<domain>、lang=ja で日本語）。
  *     日本語の画面は Essentials プラン以上（Lite は英語の画面だけ）。月 10,000 人までは無料
  *   - サイト（js/auth.js）が認可コード ＋ PKCE でログインし、ID トークンをゲームと API に渡す
@@ -65,6 +71,28 @@ export class AuthStack extends cdk.Stack {
       deletionProtection: true,
     });
 
+    // Google ログイン（ステップ 5-6）。Google のアカウントは、メールで作ったアカウントとは別のアカウントになる
+    // （同じメールアドレスでも、つなげない）。Google Cloud に登録するリダイレクト先は https://auth.<domain>/oauth2/idpresponse
+    let google: cognito.UserPoolIdentityProviderGoogle | undefined;
+    if (props.google) {
+      google = new cognito.UserPoolIdentityProviderGoogle(this, 'Google', {
+        userPool,
+        clientId: props.google.clientId,
+        clientSecretValue: cdk.SecretValue.unsafePlainText(props.google.clientSecret),
+        scopes: ['openid', 'email'], // メールアドレスだけを受け取る（名前やプロフィール写真は受け取らない）
+        attributeMapping: {
+          email: cognito.ProviderAttribute.GOOGLE_EMAIL,
+          emailVerified: cognito.ProviderAttribute.other('email_verified'),
+        },
+      });
+    } else {
+      // 手元で `cdk deploy PlayStack`（依存で AuthStack も含まれる）などをしたとき、Google ログインを消さないように止める。
+      // 手元からは `cdk deploy PlayStack --exclusively` で、AuthStack に触れずにデプロイする
+      cdk.Annotations.of(this).addError(
+        'Google ログインの設定（環境変数 GOOGLE_CLIENT_ID・GOOGLE_CLIENT_SECRET）がありません。' +
+        'AuthStack は GitHub Actions からデプロイします。手元から PlayStack などを出すときは --exclusively を付けてください。');
+    }
+
     // サイト（ブラウザ）用のクライアント。ブラウザには秘密を置けないので、シークレットなし ＋ PKCE
     const callbackPath = '/auth/callback.html';
     const client = userPool.addClient('WebClient', {
@@ -78,13 +106,17 @@ export class AuthStack extends cdk.Stack {
         callbackUrls: [site + callbackPath, 'http://localhost:8080' + callbackPath],
         logoutUrls: [site + '/', 'http://localhost:8080/'],
       },
-      supportedIdentityProviders: [cognito.UserPoolClientIdentityProvider.COGNITO],
+      supportedIdentityProviders: [
+        cognito.UserPoolClientIdentityProvider.COGNITO,
+        ...(google ? [cognito.UserPoolClientIdentityProvider.GOOGLE] : []),
+      ],
       idTokenValidity: cdk.Duration.hours(1),
       accessTokenValidity: cdk.Duration.hours(1),
       refreshTokenValidity: cdk.Duration.days(30), // 30 日ごとにログインし直す
       preventUserExistenceErrors: true, // 「そのメールアドレスは登録されていない」を外から見分けられないように
       enableTokenRevocation: true,
     });
+    if (google) client.node.addDependency(google); // Google を作ってから、クライアントで使えるようにする
 
     // ログイン画面のドメイン（https://auth.boardgamepia.com）。親のドメインに A レコードがある必要がある（ある）
     const domain = userPool.addDomain('Domain', {
