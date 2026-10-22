@@ -41,6 +41,10 @@ namespace BoardGames.Net
         Action _afterCountdownAction;
         /// <summary>帯に「相手の時間切れ」の申請ボタンが出ているか(手番が変わったら消す)。</summary>
         bool _showingTimeoutPrompt;
+        /// <summary>しばらくして自動で消すお知らせの、消す時刻(無ければ -1)。</summary>
+        float _autoHideAt = -1f;
+        const float MatchStartSeconds = 4f;
+        const float RatedSeconds = 6f;
 
         GameObject _timer;
         Image _timerFrame;
@@ -60,11 +64,34 @@ namespace BoardGames.Net
             return bar;
         }
 
+        // ---------- 名前とレート(ステップ 5-3) ----------
+
+        /// <summary>
+        /// 対局の始まりに対戦相手の名前とレートを、終局後に新しいレートと増減を、帯に数秒だけ出す。
+        /// ほかのお知らせ(通信が切れた など)が出ていれば、そちらを優先して上書きしない。
+        /// </summary>
+        public void BindRatings(ServerConnection server)
+        {
+            server.PlayersUpdated += (names, ratings) =>
+                ShowBriefly(RatingText.MatchStart(names, ratings, server.LocalSeat, server.RoomCode != null), MatchStartSeconds);
+            server.RatingChanged += (rating, delta) => ShowBriefly(RatingText.Rated(rating, delta), RatedSeconds);
+        }
+
+        /// <summary>お知らせを seconds 秒だけ出す(ほかのお知らせが出ているときは出さない)。</summary>
+        public void ShowBriefly(string text, float seconds)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            if (_bar.activeSelf && _autoHideAt < 0f) return; // もっと大事なお知らせが出ている
+            Show(text, warning: false);
+            _autoHideAt = Time.unscaledTime + seconds;
+        }
+
         // ---------- お知らせの帯 ----------
 
         /// <summary>お知らせを出す(ボタンなし)。</summary>
         public void Show(string text, bool warning)
         {
+            _autoHideAt = -1f;
             StopCountdown();
             _showingTimeoutPrompt = false;
             SetText(text, warning ? Warning : Info);
@@ -75,6 +102,7 @@ namespace BoardGames.Net
         /// <summary>お知らせとボタンを出す。</summary>
         public void ShowPrompt(string text, string buttonLabel, Action onButton)
         {
+            _autoHideAt = -1f;
             StopCountdown();
             _showingTimeoutPrompt = false;
             SetText(text, Info);
@@ -85,6 +113,7 @@ namespace BoardGames.Net
         /// <summary>残り秒数を数えながらお知らせを出し、0 秒になったら別の文とボタンに切り替える。</summary>
         public void ShowCountdown(string text, int seconds, string afterText, string buttonLabel, Action onButton)
         {
+            _autoHideAt = -1f;
             _showingTimeoutPrompt = false;
             _countdownText = text;
             _countdownEndsAt = Time.unscaledTime + Mathf.Max(0, seconds);
@@ -98,6 +127,7 @@ namespace BoardGames.Net
 
         public void Hide()
         {
+            _autoHideAt = -1f;
             StopCountdown();
             _showingTimeoutPrompt = false;
             SetButton(null, null);
@@ -131,6 +161,7 @@ namespace BoardGames.Net
         {
             if (_countdownEndsAt >= 0f) UpdateCountdown();
             if (_timerEndsAt >= 0f) UpdateTimer();
+            if (_autoHideAt >= 0f && Time.unscaledTime >= _autoHideAt) Hide();
         }
 
         void UpdateTimer()

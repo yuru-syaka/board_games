@@ -23,6 +23,10 @@ namespace BoardGames.Net
     ///   合言葉はタブの中(ISessionStore)にも覚えるので、ページを再読み込みしても Connect で戻れる(IsResuming)。
     /// - 相手の通信が切れたら OpponentAway(待つ秒数)、戻ったら OpponentBack。待ち時間を過ぎたら Claim で勝ちを申請する。
     /// - 手番の残り時間は TurnTimer(手番の席, 秒)。相手の手番で時間が過ぎたら Claim で勝ちを申請する。
+    /// - ログイン(ステップ 5-3): つながったら、サイトでログインしていれば ID トークンを @auth で送り、返事(@authed)を待ってから
+    ///   ロビーに入る(部屋に入るときに、サーバーが席とユーザーを結びつけるため)。ログインしていない・確かめられない・
+    ///   AuthTimeout 秒たっても返事がないときは、ログインしていない扱いでそのまま進む。
+    ///   対局の始まりに両者の名前とレート(PlayersUpdated)、レートが動いたら新しいレートと増減(RatingChanged)が届く。
     /// 各ゲームの AwsOnlineService(View/Online/)は、これを各ゲームの IOnlineService の形に合わせるだけ。
     /// Unity に依存しない(時刻は Update の引数でもらう)ので、Unity なしでもテストできる。
     /// </summary>
@@ -35,9 +39,18 @@ namespace BoardGames.Net
         public const double ReconnectGiveUp = 100;
         /// <summary>つなぎ直す間隔の上限(秒)。1 → 2 → 4 → 8 → 8 …</summary>
         const double MaxReconnectDelay = 8;
+        /// <summary>ID トークンの受け取りと、サーバーの返事を待つ時間(秒)。過ぎたらログインしていない扱いで進む。</summary>
+        public const double AuthTimeout = 5;
+
+        enum AuthStep { Idle, WaitingToken, WaitingReply }
 
         readonly ITextSocket _socket;
         readonly ISessionStore _sessions;
+        readonly IIdTokenSource _tokens;
+        AuthStep _authStep;
+        double _authDeadline;
+        /// <summary>つながったが、ログインの確認が終わるまでロビーに入るのを待っているところ。</summary>
+        bool _lobbyPending;
         readonly string _url;
         readonly string _gameId;
         readonly string _sessionKey;
@@ -65,6 +78,10 @@ namespace BoardGames.Net
         public bool IsReconnecting => _reconnecting;
         /// <summary>このタブに、戻れるかもしれない対局の合言葉が残っているか(ページの再読み込み後)。</summary>
         public bool HasSavedSession => LobbyProtocol.IsToken(_sessions.Load(_sessionKey));
+        /// <summary>この接続がログインしている人のものとして、サーバーに受け付けられたか。</summary>
+        public bool SignedIn { get; private set; }
+        /// <summary>自分の表示名(ログインしていない・まだ決めていなければ null)。</summary>
+        public string DisplayName { get; private set; }
 
         public event Action StateChanged;
         public event Action JoinedRoom;
@@ -84,8 +101,13 @@ namespace BoardGames.Net
         public event Action OpponentBack;
         /// <summary>手番の残り時間(手番の席, 秒)。席が -1 なら時間の計測なし(終局後など)。</summary>
         public event Action<int, int> TurnTimer;
+        /// <summary>両方の席の名前とレート(名前は無ければ null、レートはログインしていなければ -1)。対局の始まりに届く。</summary>
+        public event Action<string[], int[]> PlayersUpdated;
+        /// <summary>レートが動いた(新しいレート, 増減)。終局のあと、レートのある対局でだけ届く。</summary>
+        public event Action<int, int> RatingChanged;
 
-        public ServerConnection(string gameId, string url = DefaultUrl, ITextSocket socket = null, ISessionStore sessions = null)
+        public ServerConnection(string gameId, string url = DefaultUrl, ITextSocket socket = null, ISessionStore sessions = null,
+            IIdTokenSource tokens = null)
         {
             if (!LobbyProtocol.IsGameId(gameId)) throw new ArgumentException("invalid game id", nameof(gameId));
             _gameId = gameId;
@@ -93,6 +115,7 @@ namespace BoardGames.Net
             _sessionKey = "boardpia.session." + gameId;
             _socket = socket ?? new WebSocketConnection();
             _sessions = sessions ?? new BrowserSessionStore();
+            _tokens = tokens ?? new BrowserIdTokenSource();
             _socket.Opened += OnOpened;
             _socket.MessageReceived += OnSocketMessage;
             _socket.Closed += OnClosed;
@@ -112,6 +135,7 @@ namespace BoardGames.Net
             _now = now;
             _socket.Update();
             if (_socket.State == SocketState.Open && _now >= _nextPingAt) SendRaw(LobbyProtocol.Ping());
+            UpdateAuth();
             if (_reconnecting && _socket.State == SocketState.Closed && _now >= _reconnectAt)
             {
                 if (_now >= _reconnectDeadline) GiveUpReconnecting();
@@ -126,6 +150,7 @@ namespace BoardGames.Net
         {
             if (_socket.State == SocketState.Open)
             {
+                if (_lobbyPending) return; // ログインの確認が終わったらロビーに入る
                 SetState(RoomCode != null || OpponentPresent ? ServerState.InRoom : ServerState.Lobby);
                 return;
             }
@@ -181,11 +206,66 @@ namespace BoardGames.Net
         void OnOpened()
         {
             _nextPingAt = _now + PingInterval;
+            // 接続のたびにログインを確かめ直す(つなぎ直すと接続が新しくなり、サーバーは前の接続のログインを知らない)
+            StartAuth();
             if (_reconnecting || _resumingSaved)
             {
-                SendRaw(LobbyProtocol.Resume(_token));
+                SendRaw(LobbyProtocol.Resume(_token)); // 席のユーザーは部屋に入ったときに決まっているので、戻るのは待たない
                 return;
             }
+            EnterLobbyWhenReady();
+        }
+
+        // ---------- ログイン ----------
+
+        void StartAuth()
+        {
+            SignedIn = false;
+            DisplayName = null;
+            _tokens.Request();
+            _authStep = AuthStep.WaitingToken;
+            _authDeadline = _now + AuthTimeout;
+        }
+
+        void UpdateAuth()
+        {
+            if (_authStep == AuthStep.WaitingToken)
+            {
+                if (_tokens.TryTake(out var idToken))
+                {
+                    if (LobbyProtocol.IsIdToken(idToken) && _socket.State == SocketState.Open)
+                    {
+                        SendRaw(LobbyProtocol.Auth(idToken));
+                        _authStep = AuthStep.WaitingReply;
+                        _authDeadline = _now + AuthTimeout;
+                    }
+                    else FinishAuth(); // ログインしていない
+                }
+                else if (_now >= _authDeadline) FinishAuth();
+            }
+            else if (_authStep == AuthStep.WaitingReply && _now >= _authDeadline)
+            {
+                FinishAuth(); // 返事がない: ログインしていない扱いで進む
+            }
+        }
+
+        void FinishAuth()
+        {
+            _authStep = AuthStep.Idle;
+            TryEnterLobby();
+        }
+
+        /// <summary>ログインの確認が終わったら(終わっていればすぐ)ロビーに入り、押されていた操作を続ける。</summary>
+        void EnterLobbyWhenReady()
+        {
+            _lobbyPending = true;
+            TryEnterLobby();
+        }
+
+        void TryEnterLobby()
+        {
+            if (!_lobbyPending || _authStep != AuthStep.Idle) return;
+            _lobbyPending = false;
             SetState(ServerState.Lobby);
             RunAfterConnect();
         }
@@ -238,6 +318,17 @@ namespace BoardGames.Net
                 case LobbyMessageKind.Lost:
                     EndMatch(EndText(lobby.Kind == LobbyMessageKind.Won, lobby.Reason));
                     break;
+                case LobbyMessageKind.Authed:
+                    SignedIn = true;
+                    DisplayName = lobby.Name;
+                    if (_authStep == AuthStep.WaitingReply) FinishAuth();
+                    break;
+                case LobbyMessageKind.Players:
+                    PlayersUpdated?.Invoke(lobby.Names, lobby.Ratings);
+                    break;
+                case LobbyMessageKind.Rated:
+                    RatingChanged?.Invoke(lobby.Rating, lobby.Delta);
+                    break;
                 case LobbyMessageKind.Error:
                     OnServerError(lobby.ErrorCode);
                     break;
@@ -267,6 +358,12 @@ namespace BoardGames.Net
         void OnServerError(string code)
         {
             if (code == LobbyErrors.TooEarly) return; // まだ申請できない: 画面の残り時間のとおりに待つ
+            if (code == LobbyErrors.AuthFailed)
+            {
+                // ログインを確かめられなかった(期限切れなど): 何も言わずにログインしていない扱いで進む
+                if (_authStep == AuthStep.WaitingReply) FinishAuth();
+                return;
+            }
             if (code == LobbyErrors.SessionExpired)
             {
                 ForgetSession();
@@ -274,8 +371,7 @@ namespace BoardGames.Net
                 {
                     // 再読み込み前の対局はもう終わっていた: 何も言わずにロビーへ(押していた操作があれば続ける)
                     _resumingSaved = false;
-                    SetState(ServerState.Lobby);
-                    RunAfterConnect();
+                    EnterLobbyWhenReady();
                     return;
                 }
                 if (_reconnecting)
@@ -307,6 +403,8 @@ namespace BoardGames.Net
 
             bool wasInRoom = State == ServerState.InRoom;
             bool wasConnecting = State == ServerState.Connecting;
+            _authStep = AuthStep.Idle;
+            _lobbyPending = false;
             _afterConnect = null;
             _resumingSaved = false;
             RoomCode = null;
@@ -331,7 +429,7 @@ namespace BoardGames.Net
         /// <summary>サーバーにつながっていなければつなぎ、つながってから action を実行する。</summary>
         void InLobby(Action action)
         {
-            if (_socket.State == SocketState.Open && !_resumingSaved)
+            if (_socket.State == SocketState.Open && !_resumingSaved && !_lobbyPending)
             {
                 action();
                 return;

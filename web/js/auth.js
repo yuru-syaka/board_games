@@ -215,6 +215,13 @@
       link.textContent = 'ログイン';
       link.addEventListener('click', function (e) { e.preventDefault(); auth.signIn(); });
     }
+    // プレイページ（/play/<slug>/）は上部のバーのボタンの先頭（ほかのボタンと同じ見た目）
+    const playActions = document.querySelector('.play-bar .actions');
+    if (playActions) {
+      link.className = 'btn auth-link';
+      playActions.insertBefore(link, playActions.firstChild);
+      return;
+    }
     // サブページは上部のメニューの右端、トップページはヘッダーの右上
     const menu = document.querySelector('.site-nav ul');
     if (menu) {
