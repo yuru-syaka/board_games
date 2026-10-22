@@ -14,6 +14,8 @@ export interface CertStackProps extends cdk.StackProps {
  */
 export class CertStack extends cdk.Stack {
   readonly certificate: acm.ICertificate;
+  /** ログイン画面（auth.<domain>、Cognito）用。Cognito の独自ドメインも us-east-1 の証明書しか使えない */
+  readonly authCertificate: acm.ICertificate;
 
   constructor(scope: Construct, id: string, props: CertStackProps) {
     super(scope, id, props);
@@ -23,6 +25,11 @@ export class CertStack extends cdk.Stack {
     this.certificate = new acm.Certificate(this, 'SiteCertificate', {
       domainName: props.domainName,
       subjectAlternativeNames: [`www.${props.domainName}`],
+      validation: acm.CertificateValidation.fromDns(zone),
+    });
+
+    this.authCertificate = new acm.Certificate(this, 'AuthCertificate', {
+      domainName: `auth.${props.domainName}`,
       validation: acm.CertificateValidation.fromDns(zone),
     });
 

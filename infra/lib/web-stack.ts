@@ -15,6 +15,8 @@ export interface WebStackProps extends cdk.StackProps {
   domainName: string;
   /** CertStack（us-east-1）で発行した証明書 */
   certificate: acm.ICertificate;
+  /** ログイン（AuthStack）。サイトの js/auth-config.js に書き出す */
+  auth: { domain: string; clientId: string };
 }
 
 /**
@@ -95,7 +97,8 @@ function handler(event) {
       "img-src 'self' data: blob: https:", // 広告の画像は配信元が多いため https を許可
       "media-src 'self' blob:",
       // ws.<domain> は自前のオンライン対戦サーバー（GameStack）。Photon は 2026-10-21 に使うのをやめた
-      `connect-src 'self' blob: data: wss://ws.${domain} ${ads}`,
+      // auth.<domain> はログイン（Cognito）。トークンの受け取りと更新に使う
+      `connect-src 'self' blob: data: wss://ws.${domain} https://${props.auth.domain} ${ads}`,
       `frame-src ${ads}`,
       "worker-src 'self' blob:",
       "frame-ancestors 'self'",
@@ -152,9 +155,14 @@ function handler(event) {
     // exclude したファイルは prune（S3 側の不要ファイル削除）の対象にもならないので、ゲームのビルドは消えない。
     // GitHub Actions からデプロイしても（CI には play/ がない）、ここは同じ内容になる。
     const webDir = path.join(__dirname, '..', '..', 'web');
+    // ログインの設定（js/auth.js が読む）。クライアント ID は AuthStack を作ったときに決まるので、ここで書き出す。
+    // 秘密の値ではない（ブラウザに見える値）。手元で確かめるときは、同じ内容の web/js/auth-config.js（git 管理外）を置く
+    const authConfig = s3deploy.Source.data('js/auth-config.js',
+      `window.BOARDPIA_AUTH = ${JSON.stringify({ domain: props.auth.domain, clientId: props.auth.clientId })};\n`);
     new s3deploy.BucketDeployment(this, 'DeploySite', {
-      // play フォルダ自体も除外する（あるかないかでアップロード内容のハッシュが変わらないように）
-      sources: [s3deploy.Source.asset(webDir, { exclude: ['play', 'play/**'] })],
+      // play フォルダ自体も除外する（あるかないかでアップロード内容のハッシュが変わらないように）。
+      // 手元の auth-config.js も除外する（上で書き出すものと重ならないように）
+      sources: [s3deploy.Source.asset(webDir, { exclude: ['play', 'play/**', 'js/auth-config.js'] }), authConfig],
       destinationBucket: bucket,
       exclude: ['play/*'],
       distribution,

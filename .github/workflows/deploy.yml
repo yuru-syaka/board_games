@@ -3,7 +3,7 @@
 # - AWS への接続は OIDC（アクセスキーは使わない）。GitHub が発行したトークンを AWS が確認し、
 #   1 時間ほどで失効する一時的な鍵で cdk deploy する。使えるのは yuru-syaka/board_games の main だけ。
 #   ロールは infra/lib/github-deploy-stack.ts（GitHubActionsDeployRole）。
-# - デプロイするスタック: CertStack / WebStack / SecurityStack / MonitoringStack
+# - デプロイするスタック: CertStack / AuthStack / WebStack / SecurityStack / MonitoringStack
 #   次の 2 つは手元の PC から更新する（ここでは更新しない）:
 #     PlayStack         … ゲームの WebGL ビルド（git に入っていないため）
 #     GitHubDeployStack … このワークフロー自身の権限
@@ -67,7 +67,7 @@ jobs:
           mask-aws-account-id: true
 
       - name: Show what will change
-        run: npx cdk diff CertStack WebStack SecurityStack MonitoringStack
+        run: npx cdk diff CertStack AuthStack WebStack SecurityStack MonitoringStack
 
       - name: Deploy
-        run: npx cdk deploy CertStack WebStack SecurityStack MonitoringStack --require-approval never --ci
+        run: npx cdk deploy CertStack AuthStack WebStack SecurityStack MonitoringStack --require-approval never --ci

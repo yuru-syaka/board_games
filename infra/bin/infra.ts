@@ -3,6 +3,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as cdk from 'aws-cdk-lib/core';
 import { CertStack } from '../lib/cert-stack';
+import { AuthStack } from '../lib/auth-stack';
 import { WebStack } from '../lib/web-stack';
 import { SecurityStack } from '../lib/security-stack';
 import { MonitoringStack } from '../lib/monitoring-stack';
@@ -33,11 +34,20 @@ const email = alertEmail();
 
 const cert = new CertStack(app, 'CertStack', { env: usEast1, crossRegionReferences: true, domainName });
 
+// ログイン（Cognito）。ログイン画面 auth.<domain> の証明書は CertStack（us-east-1）から受け取る
+const auth = new AuthStack(app, 'AuthStack', {
+  env: tokyo,
+  crossRegionReferences: true,
+  domainName,
+  authCertificate: cert.authCertificate,
+});
+
 const web = new WebStack(app, 'WebStack', {
   env: tokyo,
   crossRegionReferences: true,
   domainName,
   certificate: cert.certificate,
+  auth: { domain: auth.authDomain, clientId: auth.client.userPoolClientId },
 });
 
 // ゲームの WebGL ビルド（git 管理外）。手元の PC からだけ cdk deploy PlayStack で反映する

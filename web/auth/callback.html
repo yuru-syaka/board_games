@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  ログインのあとに戻ってくるページ（ステップ 5）。
+  ログイン画面（https://auth.boardgamepia.com）から ?code=… 付きで開かれ、
+  js/auth.js がそれをトークンに引き換えて、ログインする前のページに戻す。
+  - 利用者が自分で開くページではないので、検索結果に出さない（noindex）。sitemap.xml にも載せない。
+  - 広告は入れない。
+  - この URL は Cognito のアプリクライアント（infra/lib/auth-stack.ts）に登録してある。変えるときは両方を直す。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ログイン - BOARD PIA</title>
+  <meta name="robots" content="noindex" />
+  <!-- ?code=… を、よそのサイトへのリンクの Referer で渡さない -->
+  <meta name="referrer" content="no-referrer" />
+
+  <link rel="icon" href="/images/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="/css/style.css" rel="stylesheet" />
+  <link href="/css/page.css" rel="stylesheet" />
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/auth/callback.js" defer></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="/">BOARD PIA</a>
+    <ul>
+      <li><a href="/">ゲーム</a></li>
+      <li><a href="/blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <h1 class="page-title">ログイン</h1>
+    <article class="prose">
+      <!-- 結果は callback.js が書き換える -->
+      <p id="auth-status" role="status">ログインしています…</p>
+      <p id="auth-back" hidden><a href="/">トップページに戻る</a></p>
+    </article>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="/privacy.html">プライバシーポリシー</a><a href="/contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>
