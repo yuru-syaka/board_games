@@ -101,12 +101,48 @@ sealed class InMemoryStore : IMatchStore
         return Task.CompletedTask;
     }
 
-    public Task<bool> TryPutResultAsync(MatchResult result)
+    // ---------- 戦績とログイン（ステップ 5-2） ----------
+
+    readonly Dictionary<string, string> _auth = new();
+    readonly Dictionary<(string User, string Game), PlayerStats> _stats = new();
+    readonly Dictionary<string, string> _names = new();
+
+    /// <summary>次の TrySaveResultAsync をこの回数だけ「戦績が競合した」ことにする（やり直しのテスト用）。</summary>
+    public int FailNextResultWrites { get; set; }
+
+    public PlayerStats? Stats(string user, string game) => _stats.GetValueOrDefault((user, game));
+
+    public void SetName(string user, string name) => _names[user] = name;
+
+    public Task<SaveOutcome> TrySaveResultAsync(MatchResult result, IReadOnlyList<PlayerStats> stats)
     {
-        if (Results.Any(r => r.Id == result.Id)) return Task.FromResult(false);
+        if (Results.Any(r => r.Id == result.Id)) return Task.FromResult(SaveOutcome.AlreadySaved);
+        if (FailNextResultWrites > 0)
+        {
+            FailNextResultWrites--;
+            return Task.FromResult(SaveOutcome.Conflict);
+        }
+        foreach (var s in stats)
+        {
+            long current = _stats.TryGetValue((s.UserId, s.Game), out var existing) ? existing.Version : 0;
+            if (current != s.Version) return Task.FromResult(SaveOutcome.Conflict);
+        }
         Results.Add(result);
-        return Task.FromResult(true);
+        foreach (var s in stats) _stats[(s.UserId, s.Game)] = s with { Version = s.Version + 1 };
+        return Task.FromResult(SaveOutcome.Saved);
     }
+
+    public Task PutAuthAsync(string connectionId, string userId, TimeSpan ttl)
+    {
+        _auth[connectionId] = userId;
+        return Task.CompletedTask;
+    }
+
+    public Task<string?> GetAuthAsync(string connectionId) => Task.FromResult(_auth.GetValueOrDefault(connectionId));
+
+    public Task<PlayerProfile> GetPlayerAsync(string userId) =>
+        Task.FromResult(new PlayerProfile(userId, _names.GetValueOrDefault(userId),
+            _stats.Where(kv => kv.Key.User == userId).ToDictionary(kv => kv.Key.Game, kv => kv.Value)));
 
     static MatchRecord Clone(MatchRecord m)
     {
@@ -123,9 +159,22 @@ sealed class InMemoryStore : IMatchStore
         for (int seat = 0; seat < 2; seat++)
         {
             copy.Tokens[seat] = m.Tokens[seat];
+            copy.Users[seat] = m.Users[seat];
             copy.AwaySince[seat] = m.AwaySince[seat];
         }
         return copy;
+    }
+}
+
+/// <summary>ID トークンの確認の代わり。"aaaa.bbbb.ユーザー名" の形のトークンを、そのユーザーとして受け付ける（"bad" で始まる部分は断る）。</summary>
+sealed class FakeVerifier : Auth.ITokenVerifier
+{
+    public static string TokenFor(string user) => "testheader.testpayload." + user;
+
+    public Task<string?> VerifyAsync(string idToken)
+    {
+        var user = idToken.Split('.')[^1];
+        return Task.FromResult<string?>(user.StartsWith("bad", StringComparison.Ordinal) ? null : user);
     }
 }
 

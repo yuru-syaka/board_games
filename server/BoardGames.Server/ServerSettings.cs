@@ -16,6 +16,15 @@ public sealed class ServerSettings
         ["centuryghost"] = TimeSpan.FromSeconds(180),
     };
 
+    /// <summary>レーティングの初期値（ステップ 5-2）。</summary>
+    public int InitialRating { get; init; } = 1500;
+
+    /// <summary>Elo の K（1 局で動く大きさの上限。同じレート同士なら ±K/2）。</summary>
+    public int RatingK { get; init; } = 32;
+
+    /// <summary>ログインした接続を覚えておく時間（WebSocket は最長 2 時間で切れるので、それより長く）。</summary>
+    public TimeSpan AuthTtl { get; init; } = TimeSpan.FromHours(3);
+
     public TimeSpan TurnLimitFor(string game) => TurnLimitByGame.TryGetValue(game, out var limit) ? limit : TurnLimit;
 
     public static ServerSettings Default { get; } = new();

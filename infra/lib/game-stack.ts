@@ -11,7 +11,9 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53targets from 'aws-cdk-lib/aws-route53-targets';
+import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
+import { AuthStack } from './auth-stack';
 
 export interface GameStackProps extends cdk.StackProps {
   domainName: string;
@@ -22,7 +24,8 @@ export interface GameStackProps extends cdk.StackProps {
  *   API Gateway（WebSocket）… ブラウザとつながり続ける。メッセージが届いたときだけ Lambda を呼ぶ
  *   Lambda（C#、.NET 10、arm64）… server/BoardGames.Server。ルールは shared/ の Unity と同じコード
  *   DynamoDB（オンデマンド）… 接続・待ち行列・ルームコード・対局（種 ＋ 手の一覧）。ttl で自動的に消える
- *                              対局結果は別のテーブル（期限なし）。ステップ 5 のレーティング・ランキングの元
+ *                              対局結果は別のテーブル（期限なし）。プレイヤーの戦績・レートも別のテーブル（期限なし）
+ *   ログイン（ステップ 5-2）: ブラウザが送る Cognito の ID トークンを Lambda が確かめる（AuthStack の値を SSM から読む）
  * 費用の安全装置: API Gateway のスロットリング（1 秒あたりの上限）、ログの保存は 1 週間。
  * ビルド: cdk deploy GameStack のときに、手元の dotnet publish で Lambda のコードを作る（Docker は使わない）。
  * GitHub Actions からはデプロイしない（PlayStack と同じく手元の PC から）。
@@ -48,6 +51,23 @@ export class GameStack extends cdk.Stack {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+    });
+
+    // プレイヤー（ステップ 5-2）。キー id = ユーザー ID、key = 行の種類（profile = 表示名、g#ゲーム = そのゲームの戦績）。
+    // 索引 ranking: ゲームごとにレートの高い順に読む（5-4 のランキングの API が使う）。期限なしで残す
+    const playersTable = new dynamodb.TableV2(this, 'PlayersTable', {
+      partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'key', type: dynamodb.AttributeType.STRING },
+      billing: dynamodb.Billing.onDemand(),
+      removalPolicy: cdk.RemovalPolicy.RETAIN,
+      globalSecondaryIndexes: [{
+        indexName: 'ranking',
+        partitionKey: { name: 'rankGame', type: dynamodb.AttributeType.STRING },
+        sortKey: { name: 'rating', type: dynamodb.AttributeType.NUMBER },
+        // ランキングの表に要る項目だけを索引に写す（読む量を減らす）
+        projectionType: dynamodb.ProjectionType.INCLUDE,
+        nonKeyAttributes: ['games', 'wins', 'losses', 'draws', 'rated'],
+      }],
     });
 
     // ---------- Lambda ----------
@@ -82,12 +102,18 @@ export class GameStack extends cdk.Stack {
       environment: {
         TABLE_NAME: table.tableName,
         RESULTS_TABLE_NAME: resultsTable.tableName,
+        PLAYERS_TABLE_NAME: playersTable.tableName,
+        // ログインの確認に使う（AuthStack が SSM に書いた値。デプロイのときに読む）
+        USER_POOL_ID: ssm.StringParameter.valueForStringParameter(this, AuthStack.userPoolIdParam),
+        USER_POOL_CLIENT_ID: ssm.StringParameter.valueForStringParameter(this, AuthStack.clientIdParam),
       },
       logGroup,
       description: 'BOARD PIA online game server (WebSocket)',
     });
     table.grantReadWriteData(fn);
     resultsTable.grant(fn, 'dynamodb:PutItem'); // 結果は書き足すだけ（読む・消す権限は渡さない）
+    // 戦績は読んで書き直す（結果と同時に TransactWriteItems で書く。中身は PutItem の権限で足りる）。消す権限は渡さない
+    playersTable.grant(fn, 'dynamodb:Query', 'dynamodb:PutItem');
 
     // ---------- API Gateway（WebSocket） ----------
     const integration = (name: string) => new WebSocketLambdaIntegration(name, fn);

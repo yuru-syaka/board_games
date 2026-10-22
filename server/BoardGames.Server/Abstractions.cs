@@ -32,8 +32,16 @@ public sealed class MatchRecord
     public long TurnStartedAt { get; set; }
     /// <summary>この部屋で何局目か（再戦するたびに 1 増える。最初の対局は 1）。結果の行の名前に使う。</summary>
     public int GameNo { get; set; }
+    /// <summary>席ごとのユーザー ID（ログインしていなければ null）。部屋に入ったときに決まり、戻ってきても変わらない。</summary>
+    public string?[] Users { get; init; } = new string?[2];
 
     public int OtherSeat(int seat) => 1 - seat;
+
+    /// <summary>
+    /// レートが動く対局か: ランダムマッチ（ルームコードなし）で、両方の席が別のアカウントでログインしている。
+    /// ルームコードは友達同士でわざと負けられるので、勝敗の数だけを残す。
+    /// </summary>
+    public bool IsRated => Code == null && Users[0] != null && Users[1] != null && Users[0] != Users[1];
 }
 
 /// <summary>対局結果の終わり方。</summary>
@@ -52,8 +60,9 @@ public static class ResultReasons
 }
 
 /// <summary>
-/// 1 局の結果（ステップ 4-4）。期限なしで残し、ステップ 5 のレーティング・ランキングの元にする。
-/// 「誰が」はまだ残さない（ログインはステップ 5）。棋譜（Moves）と乱数の種（Seed）から対局をそのまま再現できる。
+/// 1 局の結果（ステップ 4-4）。期限なしで残し、レーティング・ランキングの元にする。
+/// 棋譜（Moves）と乱数の種（Seed）から対局をそのまま再現できる。
+/// ステップ 5-2 から: 席ごとのユーザー ID（ログインしていなければ null）と、レートの増減（レートが動かなければ null）。
 /// </summary>
 public sealed record MatchResult(
     string MatchId,
@@ -65,7 +74,11 @@ public sealed record MatchResult(
     string Reason,
     int Plies,
     IReadOnlyList<string> Moves,
-    int Seed)
+    int Seed,
+    IReadOnlyList<string?>? Users = null,
+    // 席ごとの対局後のレートと増減（レートが動いた対局だけ）
+    IReadOnlyList<int>? RatingsAfter = null,
+    IReadOnlyList<int>? RatingDeltas = null)
 {
     /// <summary>結果の行の名前（同じ対局の結果を 2 回書かないため）。</summary>
     public string Id => MatchId + "#" + GameNo;
@@ -115,8 +128,21 @@ public interface IMatchStore
 
     Task DeleteTokenAsync(string token);
 
-    /// <summary>対局結果を残す。同じ結果（MatchResult.Id）がもう残っていれば何もしないで false。</summary>
-    Task<bool> TryPutResultAsync(MatchResult result);
+    /// <summary>
+    /// 対局結果と、ログインしていた人の戦績を、まとめて 1 回で書く（どれかだけが書かれることはない）。
+    /// 同じ結果（MatchResult.Id）がもう残っていれば AlreadySaved、戦績が読んだときから変わっていれば Conflict（どちらも何も書かない）。
+    /// 戦績は PlayerStats.Version が読んだときの版。書くときに 1 増やす。
+    /// </summary>
+    Task<SaveOutcome> TrySaveResultAsync(MatchResult result, IReadOnlyList<PlayerStats> stats);
+
+    /// <summary>接続がログインしている人のものだと覚える（期限付き）。</summary>
+    Task PutAuthAsync(string connectionId, string userId, TimeSpan ttl);
+
+    /// <summary>接続のユーザー ID（ログインしていなければ null）。</summary>
+    Task<string?> GetAuthAsync(string connectionId);
+
+    /// <summary>プレイヤーの表示名と、すべてのゲームの戦績（まだ何もなければ名前 null・戦績なし）。</summary>
+    Task<PlayerProfile> GetPlayerAsync(string userId);
 }
 
 /// <summary>接続にメッセージを送る（本番は API Gateway の管理 API）。</summary>

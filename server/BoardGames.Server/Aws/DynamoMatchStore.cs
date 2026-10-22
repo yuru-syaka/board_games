@@ -11,23 +11,32 @@ namespace BoardGames.Server.Aws;
 ///   q#ゲーム           ランダムマッチの待ち行列（待っている対局 1 つ）
 ///   r#ゲーム#コード    ルームコード → 対局
 ///   k#合言葉           合言葉 → 対局と席（通信が切れたあと、同じ席に戻るため）
+///   u#接続ID           ログインした接続 → ユーザー ID（ステップ 5-2）
 /// どの行にも ttl（期限）を付け、古いものは DynamoDB が自動で消す（消えるまで最大 2 日ほどかかる）。
-/// 対局結果だけは別のテーブル（期限なし）に、キー id = 対局ID#何局目 で残す。
+/// 対局結果は別のテーブル（期限なし）に、キー id = 対局ID#何局目 で残す。
+/// プレイヤーのテーブル（期限なし、ステップ 5-2）: キー id = ユーザー ID、key = 行の種類
+///   profile            表示名（name。5-4 のマイページで決める）
+///   g#ゲーム           そのゲームの戦績（rating・games・wins・losses・draws・rated・ver）。
+///                      rankGame（= ゲーム）と rating で、索引 ranking からレートの高い順に読める
 /// </summary>
 public sealed class DynamoMatchStore : IMatchStore
 {
     static readonly TimeSpan MatchTtl = TimeSpan.FromDays(1);
     static readonly TimeSpan QueueTtl = TimeSpan.FromHours(1);
+    const string ProfileKey = "profile";
+    const string GameKeyPrefix = "g#";
 
     readonly IAmazonDynamoDB _db;
     readonly string _table;
     readonly string _resultsTable;
+    readonly string _playersTable;
 
-    public DynamoMatchStore(IAmazonDynamoDB db, string table, string resultsTable)
+    public DynamoMatchStore(IAmazonDynamoDB db, string table, string resultsTable, string playersTable)
     {
         _db = db;
         _table = table;
         _resultsTable = resultsTable;
+        _playersTable = playersTable;
     }
 
     // ---------- 対局 ----------
@@ -56,6 +65,7 @@ public sealed class DynamoMatchStore : IMatchStore
         for (int seat = 0; seat < 2; seat++)
         {
             match.Tokens[seat] = OptionalString(item, "k" + seat);
+            match.Users[seat] = OptionalString(item, "u" + seat);
             if (item.TryGetValue("a" + seat, out var away)) match.AwaySince[seat] = long.Parse(away.N, CultureInfo.InvariantCulture);
         }
         return match;
@@ -82,6 +92,7 @@ public sealed class DynamoMatchStore : IMatchStore
         for (int seat = 0; seat < 2; seat++)
         {
             if (match.Tokens[seat] != null) item["k" + seat] = S(match.Tokens[seat]!);
+            if (match.Users[seat] != null) item["u" + seat] = S(match.Users[seat]!);
             if (match.AwaySince[seat] is long away) item["a" + seat] = N(away);
         }
 
@@ -177,25 +188,127 @@ public sealed class DynamoMatchStore : IMatchStore
 
     public Task DeleteTokenAsync(string token) => DeleteAsync("k#" + token);
 
-    // ---------- 対局結果 ----------
+    // ---------- 対局結果と戦績 ----------
 
-    public Task<bool> TryPutResultAsync(MatchResult result) =>
-        TryAsync(() => _db.PutItemAsync(new PutItemRequest
+    public async Task<SaveOutcome> TrySaveResultAsync(MatchResult result, IReadOnlyList<PlayerStats> stats)
+    {
+        var resultItem = new Dictionary<string, AttributeValue>
         {
-            TableName = _resultsTable,
+            ["id"] = S(result.Id),
+            ["game"] = S(result.Game),
+            ["endedAt"] = N(result.EndedAt),
+            ["winner"] = N(result.Winner),
+            ["reason"] = S(result.Reason),
+            ["plies"] = N(result.Plies),
+            ["moves"] = new AttributeValue { L = result.Moves.Select(S).ToList() },
+            ["seed"] = N(result.Seed),
+        };
+        for (int seat = 0; seat < 2; seat++)
+        {
+            if (result.Users?[seat] is { } user) resultItem["u" + seat] = S(user);
+            if (result.RatingsAfter != null) resultItem["ra" + seat] = N(result.RatingsAfter[seat]);
+            if (result.RatingDeltas != null) resultItem["rd" + seat] = N(result.RatingDeltas[seat]);
+        }
+
+        // 1 つ目は結果（同じ対局は 1 回だけ）、2 つ目からは戦績（読んだときの版のままなら書く）。全部書けるか、何も書かないか
+        var items = new List<TransactWriteItem>
+        {
+            new() { Put = new Put { TableName = _resultsTable, Item = resultItem, ConditionExpression = "attribute_not_exists(id)" } },
+        };
+        foreach (var s in stats)
+        {
+            var put = new Put
+            {
+                TableName = _playersTable,
+                Item = new Dictionary<string, AttributeValue>
+                {
+                    ["id"] = S(s.UserId),
+                    ["key"] = S(GameKeyPrefix + s.Game),
+                    ["game"] = S(s.Game),
+                    ["rankGame"] = S(s.Game),
+                    ["rating"] = N(s.Rating),
+                    ["games"] = N(s.Games),
+                    ["wins"] = N(s.Wins),
+                    ["losses"] = N(s.Losses),
+                    ["draws"] = N(s.Draws),
+                    ["rated"] = N(s.RatedGames),
+                    ["updatedAt"] = N(result.EndedAt),
+                    ["ver"] = N(s.Version + 1),
+                },
+            };
+            if (s.Version == 0)
+            {
+                put.ConditionExpression = "attribute_not_exists(id)";
+            }
+            else
+            {
+                put.ConditionExpression = "ver = :v";
+                put.ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":v"] = N(s.Version) };
+            }
+            items.Add(new TransactWriteItem { Put = put });
+        }
+
+        try
+        {
+            await _db.TransactWriteItemsAsync(new TransactWriteItemsRequest { TransactItems = items });
+            return SaveOutcome.Saved;
+        }
+        catch (TransactionCanceledException e)
+        {
+            // 理由は書き込みの順に並ぶ。結果の行がもうあれば「保存済み」、それ以外は戦績の競合としてやり直す
+            var reasons = e.CancellationReasons;
+            if (reasons is { Count: > 0 } && reasons[0].Code == "ConditionalCheckFailed") return SaveOutcome.AlreadySaved;
+            return SaveOutcome.Conflict;
+        }
+    }
+
+    // ---------- ログイン ----------
+
+    public Task PutAuthAsync(string connectionId, string userId, TimeSpan ttl) =>
+        _db.PutItemAsync(new PutItemRequest
+        {
+            TableName = _table,
             Item = new Dictionary<string, AttributeValue>
             {
-                ["id"] = S(result.Id),
-                ["game"] = S(result.Game),
-                ["endedAt"] = N(result.EndedAt),
-                ["winner"] = N(result.Winner),
-                ["reason"] = S(result.Reason),
-                ["plies"] = N(result.Plies),
-                ["moves"] = new AttributeValue { L = result.Moves.Select(S).ToList() },
-                ["seed"] = N(result.Seed),
+                ["pk"] = S("u#" + connectionId),
+                ["uid"] = S(userId),
+                ["ttl"] = Ttl(ttl),
             },
-            ConditionExpression = "attribute_not_exists(id)", // 同じ対局の結果は 1 回だけ
-        }));
+        });
+
+    public async Task<string?> GetAuthAsync(string connectionId) => OptionalString(await GetAsync("u#" + connectionId), "uid");
+
+    public async Task<PlayerProfile> GetPlayerAsync(string userId)
+    {
+        // 1 人の行は profile と、遊んだゲームの数（最大 6）だけなので、1 回の Query で全部読める
+        var response = await _db.QueryAsync(new QueryRequest
+        {
+            TableName = _playersTable,
+            KeyConditionExpression = "id = :u",
+            ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":u"] = S(userId) },
+            ConsistentRead = true,
+        });
+        string? name = null;
+        var stats = new Dictionary<string, PlayerStats>();
+        foreach (var item in response.Items ?? new List<Dictionary<string, AttributeValue>>())
+        {
+            var key = item["key"].S;
+            if (key == ProfileKey)
+            {
+                name = OptionalString(item, "name");
+            }
+            else if (key.StartsWith(GameKeyPrefix, StringComparison.Ordinal))
+            {
+                var game = key.Substring(GameKeyPrefix.Length);
+                stats[game] = new PlayerStats(userId, game, Int(item, "rating"), Int(item, "games"), Int(item, "wins"),
+                    Int(item, "losses"), Int(item, "draws"), Int(item, "rated"), Int(item, "ver"));
+            }
+        }
+        return new PlayerProfile(userId, name, stats);
+    }
+
+    static int Int(Dictionary<string, AttributeValue> item, string name) =>
+        item.TryGetValue(name, out var v) && v.N != null ? int.Parse(v.N, CultureInfo.InvariantCulture) : 0;
 
     // ---------- 内部 ----------
 
