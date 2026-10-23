@@ -55,6 +55,9 @@ export class GameStack extends cdk.Stack {
       partitionKey: { name: 'id', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      // 消えると戻せない記録（ステップ 6-1）: 過去 35 日の好きな時点に戻せるようにし（PITR）、誤って消せないようにする
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      deletionProtection: true,
     });
 
     // プレイヤー（ステップ 5-2）。キー id = ユーザー ID、key = 行の種類（profile = 表示名、g#ゲーム = そのゲームの戦績）。
@@ -64,6 +67,9 @@ export class GameStack extends cdk.Stack {
       sortKey: { name: 'key', type: dynamodb.AttributeType.STRING },
       billing: dynamodb.Billing.onDemand(),
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      // 消えると戻せない記録（ステップ 6-1）: 過去 35 日の好きな時点に戻せるようにし（PITR）、誤って消せないようにする
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+      deletionProtection: true,
       globalSecondaryIndexes: [{
         indexName: 'ranking',
         partitionKey: { name: 'rankGame', type: dynamodb.AttributeType.STRING },
