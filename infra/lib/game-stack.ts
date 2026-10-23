@@ -111,7 +111,7 @@ export class GameStack extends cdk.Stack {
     const fn = new lambda.Function(this, 'GameServer', {
       runtime: lambda.Runtime.DOTNET_10,
       architecture: lambda.Architecture.ARM_64, // x86 より安い
-      memorySize: 512,
+      memorySize: 1024, // 起動直後の準備を速くする（CPU はメモリに比例する。ステップ 6-2）
       timeout: cdk.Duration.seconds(10),
       handler: 'BoardGames.Server::BoardGames.Server.Function::HandleAsync',
       code,
@@ -139,7 +139,7 @@ export class GameStack extends cdk.Stack {
     const apiFn = new lambda.Function(this, 'PlayerApi', {
       runtime: lambda.Runtime.DOTNET_10,
       architecture: lambda.Architecture.ARM_64,
-      memorySize: 512,
+      memorySize: 1024, // 起動直後の準備を速くする（CPU はメモリに比例する。ステップ 6-2）
       timeout: cdk.Duration.seconds(10),
       handler: 'BoardGames.Server::BoardGames.Server.Api.ApiFunction::HandleAsync',
       code,
