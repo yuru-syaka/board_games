@@ -12,6 +12,12 @@
     <AWSProjectType>Lambda</AWSProjectType>
     <!-- Lambda の起動を少し速くする -->
     <TieredPGO>true</TieredPGO>
+    <!--
+      ReadyToRun（ステップ 6-2）: dotnet publish のときに機械語まで作っておき、起動直後の準備（JIT）を減らす。
+      負荷試験で、新しく起動した Lambda の最初の処理に 1.6〜2.3 秒かかり、同時実行数の上限に届いたため。
+      publish のときだけ効く（dotnet test などには関係しない）。
+    -->
+    <PublishReadyToRun>true</PublishReadyToRun>
     <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
   <ItemGroup>
