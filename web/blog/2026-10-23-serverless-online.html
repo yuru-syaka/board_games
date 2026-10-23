@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  開発日記の記事（https://boardgamepia.com/blog/2026-10-23-serverless-online.html）
+  - 記事: サーバーレスで対戦サーバーを作った話
+  - 6 本すべてに関わる話なので、ゲームの紹介ページからはリンクしていない（blog/index.html の一覧にだけ載せる）。
+  - アカウント番号や API の内部の URL、上限の正確な値など、公開しないほうがよい値は書かない。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: git push で GitHub Actions が WebStack をデプロイする。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>サーバーレスで対戦サーバーを作った話 - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="オンライン対戦を Photon から自前のサーバーに移しました。常に動くサーバーを持たない、API Gateway（WebSocket）・Lambda（C#）・DynamoDB の構成と、通信が切れたときの工夫、負荷試験で分かったことをまとめます。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="サーバーレスで対戦サーバーを作った話" />
+  <meta property="og:description" content="常に動くサーバーを持たない構成で、6 本のボードゲームのオンライン対戦サーバーを作った話です。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-10-23-serverless-online.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+  <!-- ログイン（ステップ 5）。auth-config.js はデプロイのときに書き出される。ヘッダーに「ログイン / マイページ」を出す -->
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <h1 class="page-title">サーバーレスで対戦サーバーを作った話</h1>
+    <div class="post-meta">
+      <time datetime="2026-10-23">2026.10.23</time>
+      <span class="tag">AWS</span>
+      <span class="tag">サーバーレス</span>
+      <span class="tag">オンライン対戦</span>
+    </div>
+
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。このサイトの 6 本のゲームは、オンライン対戦もできます。
+        これまでは Photon というオンライン対戦のサービスを使っていましたが、<strong>自分で用意した対戦サーバー</strong>に移しました。
+        しかも、ずっと動いているサーバーを持たない「サーバーレス」という作り方です。今回はその話です。
+      </p>
+
+      <h2>なぜ自分で作ったのか</h2>
+      <p>Photon はとても便利でしたが、やりたいことが増えてきました。</p>
+      <ul>
+        <li>ログインして、<strong>レートやランキング</strong>を残したい</li>
+        <li>手が正しいかを<strong>サーバーが判定</strong>して、ずるをしにくくしたい</li>
+        <li>通信が切れたときや、相手が放置したときの扱いを、自分で決めたい</li>
+      </ul>
+      <p>
+        ただ、個人で作っているサイトなので、毎月の費用はできるだけ小さくしたい。
+        そこで「人が遊んでいないときは、ほぼお金がかからない」作りを選びました。
+      </p>
+
+      <h2>ずっと動いているサーバーを持たない</h2>
+      <p>使っているのは、AWS の次の 3 つです。</p>
+      <ul>
+        <li><strong>API Gateway（WebSocket）</strong>：ブラウザとつながり続ける窓口</li>
+        <li><strong>Lambda（C#）</strong>：メッセージが届いたときだけ動くプログラム</li>
+        <li><strong>DynamoDB</strong>：対局の状態や結果を置いておくデータベース</li>
+      </ul>
+      <p>
+        ボードゲームは「数秒〜数十秒に 1 手」です。手が届いたときだけプログラムが動けば十分なので、この形と相性がよいのです。
+        遊んでいる人がいない時間は、プログラムは 1 回も動きません。
+      </p>
+      <div class="note">
+        1 局あたりの費用は、手の数にもよりますが<strong>約 0.02〜0.04 円</strong>の見込みです。
+        ほとんどは、ブラウザとサーバーのあいだのメッセージの料金です。
+      </div>
+
+      <h2>ルールはゲームとサーバーで同じコード</h2>
+      <p>
+        ゲームは Unity（C#）で作っています。サーバーも C# にして、<strong>ルールのコードをそのまま共有</strong>しました。
+        ゲームのフォルダの中にあったルールを共有の置き場所に移し、Unity からもサーバーからも同じファイルを読むようにしています。
+      </p>
+      <p>
+        こうすると、ルールを直すのは 1 か所だけで済み、ゲームとサーバーで判定がずれることもありません。
+        ルールのテスト（285 件）も、同じものを両方で動かしています。
+      </p>
+
+      <h2>局面は保存せず、「乱数の種と手の一覧」から作り直す</h2>
+      <p>
+        サーバーは、対局ごとに<strong>乱数の種と、これまでの手の一覧</strong>だけを保存しています。
+        手が届くたびに、最初から手を並べ直して今の局面を作り、新しい手がルール上正しいかを確かめます。
+      </p>
+      <ul>
+        <li>ゲームごとに「局面の保存のしかた」を作らなくてよい</li>
+        <li>対局の結果にも手の一覧を残しているので、あとから対局を再現できる</li>
+        <li>相手のおばけが見えないゲーム（ゴースト・ブラフなど）では、席ごとに隠した局面を送る</li>
+      </ul>
+      <p>
+        同じ対局に 2 つの手がほぼ同時に届いても壊れないよう、保存のときに「読んだときと同じ版のときだけ書く」という条件を付けています。
+      </p>
+
+      <h2>通信が切れても、対局は続く</h2>
+      <p>
+        スマホでほかのアプリに切り替えたり、電波が一瞬切れたりしても、対局が終わらないようにしました。
+      </p>
+      <ul>
+        <li>部屋に入るとき、席ごとに<strong>合言葉</strong>を渡す。切れたら、ブラウザが自動でつなぎ直して合言葉を送り、同じ席に戻る</li>
+        <li>相手には「通信が切れました。90 秒待っています」と出る</li>
+        <li>90 秒たっても戻らないときや、相手が 1 手の制限時間を過ぎたときは、待っている側が「勝ちを申請」できる</li>
+      </ul>
+      <p>
+        ここでのポイントは、<strong>時間を数えるサーバーを動かしていない</strong>ことです。
+        「通信が切れた時刻」や「手番が始まった時刻」だけを覚えておき、申請が届いたときに時刻を確かめます。
+        タイマーのために何かを動かし続けると、そのぶん費用がかかってしまうからです。
+      </p>
+
+      <h2>ログインとレーティング</h2>
+      <p>
+        ログインには Amazon Cognito を使っています。メールアドレスか Google のアカウントでログインでき、ログインしなくても今までどおり遊べます。
+      </p>
+      <p>
+        ログインした人どうしがランダムマッチで対戦すると、<strong>Elo レーティング</strong>（最初は 1500）が動き、<a href="/ranking/">ランキング</a>に載ります。
+        対局の結果と、両者の成績は 1 回の書き込みでまとめて保存しているので、片方だけ数えられたり、2 回数えられたりしません。
+      </p>
+
+      <h2>負荷試験で分かったこと</h2>
+      <p>
+        最後に、プログラムで作ったプレイヤーをたくさん動かして、同時にどれくらい遊べるかを試しました。
+        10 人では問題ありませんでしたが、<strong>50 人がいっせいに始めると、途中で止まる対局が出ました</strong>。
+      </p>
+      <ul>
+        <li>新しく作ったばかりの AWS アカウントは、Lambda を同時に動かせる数がとても小さく設定されていた</li>
+        <li>Lambda は、新しく起動した直後の 1 回目の処理が遅い（最初は 1.6〜2.3 秒かかっていた）。それが重なって、上限にすぐ届いた</li>
+      </ul>
+      <p>そこで、次のように直しました。</p>
+      <ul>
+        <li>プログラムを「前もって機械語まで作っておく」形（ReadyToRun）にする</li>
+        <li>Lambda のメモリを増やす（メモリに比例して CPU も増える）</li>
+        <li>同時に動かせる数を上げる申請をする</li>
+      </ul>
+      <p>
+        起動直後の処理は <strong>0.4〜0.85 秒</strong>まで縮みました。
+        起動したあとは、手を送ってから次の局面が届くまで、だいたい 0.1 秒です。
+      </p>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>ボードゲームのような「たまに 1 手」の通信は、サーバーレスととても相性がよい</li>
+        <li>タイマーを動かすかわりに「時刻を覚えておいて、あとで確かめる」と、動かし続けるものを減らせる</li>
+        <li>ルールをゲームとサーバーで共有すると、判定のずれを気にしなくてよい</li>
+        <li>負荷試験はやってみてよかった。数人では見えない上限が、人数を増やしたとたんに出てきた</li>
+      </ul>
+
+      <p><a href="../">▶ ゲームの一覧を見る</a>　<a href="/ranking/">▶ ランキングを見る</a></p>
+    </article>
+
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../">ゲームの一覧へ →</a>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="../terms.html">利用規約</a><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

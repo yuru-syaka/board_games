@@ -259,3 +259,30 @@ header { position: relative; }
   color: var(--cyan);
   text-shadow: 0 0 8px var(--cyan);
 }
+
+/* ===== オンライン対戦の案内（トップページ、ゲームの一覧の下。ステップ 6-4） ===== */
+.online-guide {
+  max-width: 1080px;
+  margin: 24px auto 0;
+  padding: 0 16px;
+}
+.online-guide h2 {
+  margin: 0 0 16px;
+  font-size: 1.3rem;
+  color: #fff;
+  text-shadow: 0 0 8px var(--cyan);
+}
+.guide-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+.guide-item {
+  background: var(--card);
+  border: 1px solid rgba(155, 92, 255, 0.5);
+  border-radius: 14px;
+  padding: 16px 18px;
+}
+.guide-item h3 { margin: 0 0 8px; font-size: 1rem; color: var(--cyan); }
+.guide-item p { margin: 0; line-height: 1.8; font-size: 0.92rem; color: var(--text); }
+.guide-item a { color: var(--cyan); }
