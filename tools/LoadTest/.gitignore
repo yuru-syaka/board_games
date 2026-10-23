@@ -1,0 +1,3 @@
+# dotnet build / run の出力（負荷試験のツール）
+bin/
+obj/
