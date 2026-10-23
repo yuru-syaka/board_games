@@ -170,7 +170,8 @@ export class GameStack extends cdk.Stack {
     });
     httpApi.addRoutes({
       path: '/api/{proxy+}',
-      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.PUT, apigwv2.HttpMethod.DELETE],
+      // POST は CSP の違反の報告（/api/csp-report。ステップ 6-3）
+      methods: [apigwv2.HttpMethod.GET, apigwv2.HttpMethod.PUT, apigwv2.HttpMethod.DELETE, apigwv2.HttpMethod.POST],
       integration: new HttpLambdaIntegration('PlayerApiIntegration', apiFn),
     });
     new apigwv2.HttpStage(this, 'PlayerApiStage', {

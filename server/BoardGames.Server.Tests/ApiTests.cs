@@ -200,6 +200,59 @@ public class ApiTests
         Assert.AreEqual(400, (await Call("GET", "/other")).Status);
     }
 
+    // ---------- CSP の違反の報告（ステップ 6-3） ----------
+
+    [Test]
+    public async Task CspReport_Classic_IsLoggedWithoutQueryStrings()
+    {
+        var lines = new List<string>();
+        var api = new PlayerApi(_store, new FakeVerifier(), _accounts, Games, log: lines.Add);
+        const string body = """
+            {"csp-report":{"document-uri":"https://boardgamepia.com/auth/callback.html?code=SECRET&state=x",
+              "blocked-uri":"https://evil.example/x.js?token=abc","effective-directive":"script-src-elem",
+              "source-file":"https://boardgamepia.com/js/auth.js","line-number":12,"disposition":"report"}}
+            """;
+        var response = await api.HandleAsync(new ApiRequest("POST", "/api/csp-report", null, body));
+        Assert.AreEqual(204, response.Status);
+        var line = lines.Single();
+        StringAssert.Contains("directive=script-src-elem", line);
+        StringAssert.Contains("blocked=https://evil.example/x.js ", line);
+        StringAssert.Contains("page=https://boardgamepia.com/auth/callback.html ", line);
+        StringAssert.Contains("source=https://boardgamepia.com/js/auth.js:12", line);
+        StringAssert.DoesNotContain("SECRET", line);
+        StringAssert.DoesNotContain("token", line);
+    }
+
+    [Test]
+    public async Task CspReport_ReportingApi_LogsEachViolationUpToTheLimit()
+    {
+        var lines = new List<string>();
+        var api = new PlayerApi(_store, new FakeVerifier(), _accounts, Games, log: lines.Add);
+        var reports = Enumerable.Range(0, 8).Select(i => new
+        {
+            type = "csp-violation",
+            url = "https://boardgamepia.com/ranking/",
+            body = new { documentURL = "https://boardgamepia.com/ranking/", blockedURL = $"https://ads{i}.example/a", effectiveDirective = "img-src", disposition = "report" },
+        }).Cast<object>().Append(new { type = "deprecation", url = "x", body = new { } });
+        var response = await api.HandleAsync(new ApiRequest("POST", "/api/csp-report", null, JsonSerializer.Serialize(reports)));
+        Assert.AreEqual(204, response.Status);
+        Assert.AreEqual(CspReports.MaxEntries, lines.Count);
+        StringAssert.Contains("blocked=https://ads0.example/a", lines[0]);
+        StringAssert.Contains("directive=img-src", lines[0]);
+    }
+
+    [TestCase("")]
+    [TestCase("not json")]
+    [TestCase("{\"other\":1}")]
+    public async Task CspReport_Garbage_IsIgnored(string body)
+    {
+        var lines = new List<string>();
+        var api = new PlayerApi(_store, new FakeVerifier(), _accounts, Games, log: lines.Add);
+        Assert.AreEqual(204, (await api.HandleAsync(new ApiRequest("POST", "/api/csp-report", null, body))).Status);
+        Assert.IsEmpty(lines);
+        Assert.IsEmpty(CspReports.Parse(new string('x', CspReports.MaxBodyLength + 1)));
+    }
+
     // ---------- 名前の決まり ----------
 
     [TestCase("アリス", "アリス")]

@@ -105,6 +105,10 @@ function handler(event) {
       "frame-ancestors 'self'",
       "object-src 'none'",
       "base-uri 'self'",
+      // 違反の報告の送り先（ステップ 6-3）。古いブラウザは report-uri、新しいブラウザは report-to（Reporting-Endpoints の csp）を使う。
+      // 報告は API がログ（CloudWatch Logs）に書く。広告が始まって 1〜2 週間、違反がないのを確かめてから「強制」に切り替える
+      `report-uri https://${domain}/api/csp-report`,
+      "report-to csp",
     ].join('; ');
 
     const securityHeaders = new cloudfront.ResponseHeadersPolicy(this, 'SecurityHeaders', {
@@ -119,6 +123,7 @@ function handler(event) {
         customHeaders: [
           // まずは「報告のみ」。ブラウザのコンソールに違反が出ないことを確かめてから強制に切り替える
           { header: 'Content-Security-Policy-Report-Only', value: csp, override: true },
+          { header: 'Reporting-Endpoints', value: `csp="https://${domain}/api/csp-report"`, override: true },
           { header: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=(), payment=()', override: true },
         ],
       },

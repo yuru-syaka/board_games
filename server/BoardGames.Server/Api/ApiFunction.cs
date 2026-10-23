@@ -26,7 +26,9 @@ public sealed class ApiFunction
             new HttpClient { Timeout = TimeSpan.FromSeconds(3) });
         var accounts = new CognitoAccountDirectory(new AmazonCognitoIdentityProviderClient(), userPoolId);
         var games = GameRegistry.Default().Ids;
-        return new PlayerApi(store, verifier, accounts, games, ApiSettings.Default, ServerSettings.Default.InitialRating);
+        // CSP の違反の報告などは、Lambda のログ（CloudWatch Logs、1 週間で消える）に書く
+        return new PlayerApi(store, verifier, accounts, games, ApiSettings.Default, ServerSettings.Default.InitialRating,
+            line => Console.WriteLine(line));
     });
 
     public async Task<APIGatewayHttpApiV2ProxyResponse> HandleAsync(APIGatewayHttpApiV2ProxyRequest request, ILambdaContext context)

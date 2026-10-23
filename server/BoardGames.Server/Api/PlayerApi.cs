@@ -51,6 +51,7 @@ public sealed class ApiSettings
 ///   GET    /api/me               自分（ログインが要る。Authorization: Bearer ID トークン）
 ///   PUT    /api/me/name          表示名を決める・変える（本文 {"name":"…"}）
 ///   DELETE /api/me               アカウントを削除する（戦績・名前を消し、結果の行から ID を取り除き、Cognito のユーザーも消す）
+///   POST   /api/csp-report       ブラウザからの CSP の違反の報告（ステップ 6-3）。ログに書くだけで、いつも 204
 /// 状態コードに 403・404 は使わない（CloudFront がサイトの 404 ページに差し替えてしまうため）。
 /// ログインが要るのにトークンが無い・確かめられないときは 401。入力がおかしいときは 400 と日本語の error。
 /// </summary>
@@ -65,9 +66,11 @@ public sealed class PlayerApi
     readonly HashSet<string> _games;
     readonly ApiSettings _settings;
     readonly int _initialRating;
+    readonly Action<string> _log;
 
+    /// <param name="log">ログに 1 行書く（CSP の違反の報告など）。本番は CloudWatch Logs</param>
     public PlayerApi(IPlayerStore store, ITokenVerifier? verifier, IAccountDirectory accounts, IEnumerable<string> games,
-        ApiSettings? settings = null, int initialRating = 1500)
+        ApiSettings? settings = null, int initialRating = 1500, Action<string>? log = null)
     {
         _store = store;
         _verifier = verifier;
@@ -75,6 +78,7 @@ public sealed class PlayerApi
         _games = new HashSet<string>(games);
         _settings = settings ?? ApiSettings.Default;
         _initialRating = initialRating;
+        _log = log ?? (_ => { });
     }
 
     string PublicCache => $"public, max-age={_settings.PublicCacheSeconds}";
@@ -91,6 +95,9 @@ public sealed class PlayerApi
                 return await RankingAsync(parts[2]);
             case "players" when parts.Length == 3 && method == "GET":
                 return await PlayerAsync(parts[2]);
+            case "csp-report" when parts.Length == 2 && method == "POST":
+                foreach (var line in CspReports.Parse(request.Body)) _log(line);
+                return new ApiResponse(204, "", NoStore);
             case "me":
             {
                 var user = await AuthenticateAsync(request.Authorization);
