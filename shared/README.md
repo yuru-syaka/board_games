@@ -1,6 +1,6 @@
 # shared/ — Unity とサーバーで共有するゲームのルール
 
-6 本のゲームのルール（Logic）と共通部品（Core）の **正本**。
+7 本のゲームのルール（Logic）と共通部品（Core）の **正本**。
 Unity のゲームと、オンライン対戦のサーバー（AWS Lambda、C#）の両方が、ここにある同じ `.cs` を使う。
 ルールを直すときは、ここだけを直す（各 Unity プロジェクトにはコピーを置かない）。
 
@@ -29,6 +29,7 @@ shared/
 | `com.boardpia.geister` | ゴースト・ブラフ | `Geister` |
 | `com.boardpia.battleline` | ゴースト・ライン | `ButtleLine` |
 | `com.boardpia.centuryghost` | センチュリー・ゴースト | `CenturyGolem` |
+| `com.boardpia.ghostreversa` | ゴースト・リバーサ | `Anomie` |
 
 Unity プロジェクトは `C:\Users\nullg\createGame\boardGames\<プロジェクト>`（このリポジトリの外）にある。
 
@@ -68,3 +69,4 @@ unity test C:/Users/nullg/createGame/boardGames/ghost_tic_tac_toe --mode EditMod
 
 2026-10-21 時点: 6 本で合計 283 件（Vanish 41、Gobblet 48、Quarto 43、Geister 43、BattleLine 69、CenturyGhost 39）。
 Unity と .NET のどちらでも、すべて通る。
+2026-10-24: ゴースト・リバーサ（GhostReversa）49 件を追加。Unity と .NET のどちらでも通る。

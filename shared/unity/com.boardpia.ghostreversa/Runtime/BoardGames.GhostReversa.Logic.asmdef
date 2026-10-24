@@ -1,0 +1,16 @@
+{
+    "name": "BoardGames.GhostReversa.Logic",
+    "rootNamespace": "BoardGames.GhostReversa",
+    "references": [
+        "BoardGames.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

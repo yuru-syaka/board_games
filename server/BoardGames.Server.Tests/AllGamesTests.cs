@@ -5,7 +5,7 @@ using NUnit.Framework;
 namespace BoardGames.Server.Tests;
 
 /// <summary>
-/// ゴースト・マルバツ以外の 5 本を、サーバー経由で最後まで遊ぶ。
+/// ゴースト・マルバツ以外の 6 本を、サーバー経由で最後まで遊ぶ。
 /// ブラウザ側は各ゲームの OnlineMatch（サーバーが決めた席のゲスト）で、打てる手からランダムに選ぶ。
 /// 確かめること: 両者が同じ対局を見ていること、席ごとの視点で届くこと、隠し情報が相手に漏れないこと、終局すること。
 /// </summary>
@@ -152,11 +152,38 @@ public class AllGamesTests
         Assert.AreEqual(ma.Snapshot.Result.Winner, mb.Snapshot.Result.Winner);
     }
 
+    [Test]
+    public void GhostReversa_PlaysToTheEnd_AndHidesTheOpponentsPieces()
+    {
+        var (a, b) = Pair("ghostreversa");
+        var ma = new GhostReversa.Online.OnlineMatch(a, 0);
+        var mb = new GhostReversa.Online.OnlineMatch(b, 1);
+        Replay(a);
+        Replay(b);
+        Assert.AreEqual(0, ma.Snapshot.Viewer);
+        Assert.AreEqual(1, mb.Snapshot.Viewer);
+        var rng = new Random(6);
+        for (int i = 0; i < Guard && !ma.Snapshot.Result.IsOver; i++)
+        {
+            var mover = ma.Snapshot.CurrentPlayer == 0 ? ma : mb;
+            var moves = mover.Snapshot.View.GetLegalMoves();
+            mover.SubmitLocalMove(moves[rng.Next(moves.Count)]);
+            Assert.AreEqual(ma.Snapshot.Ply, mb.Snapshot.Ply);
+            if (ma.Snapshot.Result.IsOver) break;
+            // 相手の捨てた色・手駒の内訳は届かない
+            Assert.AreEqual(GhostReversa.TileKind.Unknown, ma.Snapshot.View.DiscardOf(1));
+            Assert.AreEqual(GhostReversa.ReversaPlayerView.Hidden, mb.Snapshot.View.HandOf(0, GhostReversa.TileKind.Blue));
+        }
+        Assert.IsTrue(ma.Snapshot.Result.IsOver && mb.Snapshot.Result.IsOver);
+        Assert.AreEqual(ma.Snapshot.Result.Winner, mb.Snapshot.Result.Winner);
+    }
+
     [TestCase("gobblet")]
     [TestCase("quarto")]
     [TestCase("geister")]
     [TestCase("battleline")]
     [TestCase("centuryghost")]
+    [TestCase("ghostreversa")]
     public void SameSeed_GivesTheSameStart(string game)
     {
         var engine = GameRegistry.Default().Find(game)!;
@@ -170,6 +197,7 @@ public class AllGamesTests
     [TestCase("geister")]
     [TestCase("battleline")]
     [TestCase("centuryghost")]
+    [TestCase("ghostreversa")]
     public void GarbageMove_IsRejectedAndResyncsOnlyTheSender(string game)
     {
         var (a, b) = Pair(game);

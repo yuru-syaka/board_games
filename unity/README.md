@@ -18,6 +18,7 @@
 | `Quarto` | ゴースト・クアルト | `ghost-quarto` | `ghost-quarto.html` |
 | `ButtleLine` | ゴースト・ライン | `ghost-line` | `ghost-line.html` |
 | `CenturyGolem` | センチュリー・ゴースト | `century-ghost` | `century-ghost.html` |
+| `Anomie` | ゴースト・リバーサ | `ghost-reversa` | `ghost-reversa.html`（紹介ページはまだ無い） |
 
 ```json
 { "title": "ゴースト・マルバツゲーム", "page": "ghost-tic-tac-toe.html" }

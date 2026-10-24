@@ -215,7 +215,8 @@ sealed class FakePush : IConnectionPush
 /// </summary>
 sealed class FakeClient :
     Vanish.Online.IMatchTransport, Gobblet.Online.IMatchTransport, Quarto.Online.IMatchTransport,
-    Geister.Online.IMatchTransport, BattleLine.Online.IMatchTransport, CenturyGhost.Online.IMatchTransport
+    Geister.Online.IMatchTransport, BattleLine.Online.IMatchTransport, CenturyGhost.Online.IMatchTransport,
+    GhostReversa.Online.IMatchTransport
 {
     readonly GameServer _server;
     readonly FakePush _push;

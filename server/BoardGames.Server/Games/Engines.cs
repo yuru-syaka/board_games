@@ -1,4 +1,4 @@
-// ゴースト・マルバツ以外の 5 本。どれも「初期局面を作る ＋ ルールで判定 ＋ NetProtocol で文字列にする」だけで、
+// ゴースト・マルバツ以外の 6 本。どれも「初期局面を作る ＋ ルールで判定 ＋ NetProtocol で文字列にする」だけで、
 // ルールそのものは shared/ の Logic（Unity と同じコード）を呼ぶ。
 // 初期局面の乱数は種（seed）から作るので、同じ種なら必ず同じ局面になる（サーバーは毎回並べ直すため）。
 
@@ -7,6 +7,7 @@ using Quarto = BoardGames.Quarto;
 using Geister = BoardGames.Geister;
 using BattleLine = BoardGames.BattleLine;
 using Century = BoardGames.CenturyGhost;
+using Reversa = BoardGames.GhostReversa;
 
 namespace BoardGames.Server.Games;
 
@@ -78,4 +79,18 @@ public sealed class CenturyGhostEngine : IGameEngine
         Rules, Rules.IsLegal, s => s.CurrentPlayer,
         Century.Online.CenturyNetProtocol.TryDecodeMove, Century.Online.CenturyNetProtocol.EncodeMove,
         (s, seat) => Century.Online.CenturyNetProtocol.EncodeSnapshot(Century.MatchSnapshot.For(s, seat)));
+}
+
+/// <summary>ゴースト・リバーサ。相手の裏向きの駒の色・手駒の内訳・捨てた色は、席ごとに伏せて送る。</summary>
+public sealed class GhostReversaEngine : IGameEngine
+{
+    static readonly Reversa.ReversaRules Rules = new();
+
+    public string Id => "ghostreversa";
+
+    public IGameSession Start(int seed) => new RuleSession<Reversa.ReversaState, Reversa.ReversaMove>(
+        Reversa.ReversaSetup.CreateRandom(new Random(seed)),
+        Rules, Rules.IsLegal, s => s.CurrentPlayer,
+        Reversa.Online.ReversaNetProtocol.TryDecodeMove, Reversa.Online.ReversaNetProtocol.EncodeMove,
+        (s, seat) => Reversa.Online.ReversaNetProtocol.EncodeSnapshot(Reversa.MatchSnapshot.For(s, seat)));
 }
