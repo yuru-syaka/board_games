@@ -141,6 +141,28 @@ const centuryIcon = `
     <path d="M108 90 L114 85 M136 70 L142 66 M164 48 L170 44" stroke="#b6ff3b" stroke-width="3"/>
   </svg>`;
 
+// ネオン風の「青おばけ・裏向きのおばけ・赤おばけ」アイコン（ゴースト・リバーサ用）
+//   左：青（シアン）おばけ＋↔（横の列）、まん中：裏向きで眠っているおばけ（紫の点線）、
+//   右：赤（ピンク）おばけ＋↕（縦の列）、上：裏返しの矢印（黄緑）
+const reversaIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M66 24 q34 -18 68 0" stroke="#b6ff3b" stroke-width="3"/>
+    <path d="M134 24 l-8 -1 M134 24 l-3 -7" stroke="#b6ff3b" stroke-width="3"/>
+    <path d="M14 100 V58 a22 22 0 0 1 44 0 V100 l-7.3 -6 -7.4 6 -7.3 -6 -7.3 6 -7.4 -6 z"
+          stroke="#22f3ff" stroke-width="3.5"/>
+    <circle cx="28" cy="60" r="3.4" fill="#ffffff"/>
+    <circle cx="44" cy="60" r="3.4" fill="#ffffff"/>
+    <path d="M26 76 h20 M26 76 l4 -3 M26 76 l4 3 M46 76 l-4 -3 M46 76 l-4 3" stroke="#ffffff" stroke-width="2.5"/>
+    <path d="M78 104 V56 a22 22 0 0 1 44 0 V104 l-7.3 -6 -7.4 6 -7.3 -6 -7.3 6 -7.4 -6 z"
+          stroke="#9b5cff" stroke-width="3.5" stroke-dasharray="6 4"/>
+    <path d="M88 60 q5 4 10 0 M102 60 q5 4 10 0" stroke="#ffffff" stroke-width="2.5"/>
+    <path d="M142 100 V58 a22 22 0 0 1 44 0 V100 l-7.3 -6 -7.4 6 -7.3 -6 -7.3 6 -7.4 -6 z"
+          stroke="#ff2fd6" stroke-width="3.5"/>
+    <circle cx="157" cy="60" r="3.4" fill="#ffffff"/>
+    <circle cx="171" cy="60" r="3.4" fill="#ffffff"/>
+    <path d="M164 68 v18 M164 68 l-3 4 M164 68 l3 4 M164 86 l-3 -4 M164 86 l3 -4" stroke="#ffffff" stroke-width="2.5"/>
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -206,6 +228,14 @@ const games = [
     detail: "games/century-ghost.html",
     image: "",
     icon: centuryIcon
+  },
+  {
+    title: "ゴースト・リバーサ",
+    description: "3×3の盤におばけを表か裏で置き、横や縦の列をまとめて裏返す。自分の同じ色を3体表にしたら勝ち。相手の狙う色は最後まで分からない。",
+    url: "play/ghost-reversa/",
+    detail: "games/ghost-reversa.html",
+    image: "",
+    icon: reversaIcon
   }
 ];
 
