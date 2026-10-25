@@ -194,6 +194,8 @@ const trendIcon = `
 //   detail      … 「遊び方・ルールを見る」の移動先（紹介ページ）。"" ならリンクを出さない
 //   image       … "images/xxx.png" を指定すると、アイコンの代わりに画像を表示する
 //   icon        … 上で定義した SVG アイコン（image が空のときに使う）
+//   players     … 遊べる人数 [最小, 最大]。CPU の席も数える（例: 2 人用は [2, 2]、3〜5 人は [3, 5]）
+//                 トップの「遊ぶ人数」の絞り込みと、カードの人数の表示に使う
 //   comingSoon  … true にすると「Coming soon」のカードになる（url などは不要）
 //
 //   ※ <slug> はプレイページのフォルダ名（web/play/<slug>/）。Unity でビルドするときの
@@ -205,6 +207,7 @@ const games = [
     description: "自分の置いた駒が消えていくマルバツゲーム。",
     url: "play/ghost-tic-tac-toe/", // サイト内のプレイページ（外部サイトなら https:// から書く）
     detail: "games/ghost-tic-tac-toe.html", // 詳細ページ（なければ "" ）
+    players: [2, 2], // 遊べる人数 [最小, 最大]（CPU の席も数える。トップの人数の絞り込みとカードの表示に使う）
     image: "",
     icon: ghostIcon
   },
@@ -213,6 +216,7 @@ const games = [
     description: "大・中・小のコマを置いたり動かしたりして、小さいコマにかぶせて戦う三目並べ。動かしたコマの下から相手のコマが現れることも。",
     url: "play/ghost-gobble/",
     detail: "games/ghost-gobble.html",
+    players: [2, 2],
     image: "",
     icon: gobulIcon
   },
@@ -221,6 +225,7 @@ const games = [
     description: "6×6の盤で、良いゴーストと悪いゴーストを動かして戦う心理戦。相手のゴーストの正体は、取るまでわからない。",
     url: "play/ghost-bluff/",
     detail: "games/ghost-bluff.html",
+    players: [2, 2],
     image: "",
     icon: bluffIcon
   },
@@ -229,6 +234,7 @@ const games = [
     description: "相手が選んだゴーストを置き、自分も相手に置かせるゴーストを選んで渡す。4体そろえたら勝ち。相手を「渡せるゴーストがない」状況に追い込め。",
     url: "play/ghost-quarto/",
     detail: "games/ghost-quarto.html",
+    players: [2, 2],
     image: "",
     icon: quartIcon
   },
@@ -237,6 +243,7 @@ const games = [
     description: "並んだ9本の旗をめぐって戦う陣取りゲーム。どこでもいいから5本とるか、となり合った3本をまとめてとれば勝ち。",
     url: "play/ghost-line/",
     detail: "games/ghost-line.html",
+    players: [2, 2],
     image: "",
     icon: lineIcon
   },
@@ -245,6 +252,7 @@ const games = [
     description: "術カードで4色の魂を集め、交換し、強化して、おばけを呼び出すカードゲーム。術を覚えるほど魂の集まり方が強くなっていく。",
     url: "play/century-ghost/",
     detail: "games/century-ghost.html",
+    players: [2, 2],
     image: "",
     icon: centuryIcon
   },
@@ -253,6 +261,7 @@ const games = [
     description: "3×3の盤におばけを表か裏で置き、横や縦の列をまとめて裏返す。自分の同じ色を3体表にしたら勝ち。相手の狙う色は最後まで分からない。",
     url: "play/ghost-reversa/",
     detail: "games/ghost-reversa.html",
+    players: [2, 2],
     image: "",
     icon: reversaIcon
   },
@@ -261,6 +270,7 @@ const games = [
     description: "おばけ画家5人の絵を5種類の競りで売り買いし、流行を読んでお金を増やす3〜5人のゲーム。人気の画家の絵ほど高く売れる。",
     url: "play/ghost-trend/",
     detail: "games/ghost-trend.html",
+    players: [3, 5],
     image: "",
     icon: trendIcon
   }
@@ -273,8 +283,19 @@ const games = [
 //   .card:nth-child(...) で決まるので、ここでは指定しない。
 // ---------------------------------------------------------------------------
 const container = document.getElementById("games");
+
+// 人数の表示（[2, 2] →「2人」、[3, 5] →「3〜5人」）
+function playersText(p) {
+  return p[0] === p[1] ? `${p[0]}人` : `${p[0]}〜${p[1]}人`;
+}
+
 for (const g of games) {
   const card = document.createElement("article");
+  // 人数の絞り込みで使う（Coming soon のカードは人数がないので、絞り込むと隠れる）
+  if (g.players) {
+    card.dataset.minPlayers = g.players[0];
+    card.dataset.maxPlayers = g.players[1];
+  }
 
   if (g.comingSoon) {
     // 開発中のゲーム：「?」のサムネイルと、押せない「COMING SOON」ボタン
@@ -297,6 +318,7 @@ for (const g of games) {
       <div class="thumb">${thumb}</div>
       <div class="card-body">
         <h2>${g.title}</h2>
+        ${g.players ? `<span class="players-badge">${playersText(g.players)}</span>` : ""}
         <p>${g.description}</p>
         <a class="play" href="${g.url}"${external}>▶ PLAY</a>
         ${g.detail ? `<a class="detail" href="${g.detail}">遊び方・ルールを見る</a>` : ""}
@@ -305,3 +327,71 @@ for (const g of games) {
   // 作ったカードをページに追加する（games 配列の順番で並ぶ）
   container.appendChild(card);
 }
+
+// ---------------------------------------------------------------------------
+// 「遊ぶ人数」の絞り込み
+//   - ボタンは games 配列の players から作る（ゲームを足せば、人数のボタンも自動で増える）。
+//   - 選んだ人数で遊べるゲームだけを残し、ほかは hidden で隠す。カードは消さないので、
+//     カードの色（.card:nth-child）はゲームごとに変わらない。
+//   - 選んだ人数は URL の ?players=3 にも書く（そのまま共有・ブックマークできる）。
+//   - 一覧（<main id="games">）の直前に置く。index.html は書き換えない。
+// ---------------------------------------------------------------------------
+(function setUpPlayerFilter() {
+  const counts = new Set();
+  for (const g of games) {
+    if (!g.players) continue;
+    for (let n = g.players[0]; n <= g.players[1]; n++) counts.add(n);
+  }
+  const options = [...counts].sort((a, b) => a - b);
+  if (options.length < 2) return; // 人数が 1 種類しかなければ、絞り込む意味がない
+
+  const bar = document.createElement("nav");
+  bar.className = "player-filter";
+  bar.setAttribute("aria-label", "遊ぶ人数で絞り込む");
+  bar.innerHTML = `
+    <span class="player-filter-label">遊ぶ人数</span>
+    <div class="player-filter-buttons"></div>
+    <p class="player-filter-note">どのゲームも、足りない席は CPU が入るので 1 人でも遊べます。</p>`;
+  const buttons = bar.querySelector(".player-filter-buttons");
+  const empty = document.createElement("p");
+  empty.className = "player-filter-empty";
+  empty.hidden = true;
+
+  // 「すべて」（0）と、人数ごとのボタン
+  for (const n of [0, ...options]) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.dataset.players = n;
+    b.textContent = n === 0 ? "すべて" : `${n}人`;
+    b.addEventListener("click", () => apply(n, true));
+    buttons.appendChild(b);
+  }
+
+  container.parentNode.insertBefore(bar, container);
+  container.parentNode.insertBefore(empty, container.nextSibling);
+
+  function apply(n, fromClick) {
+    let shown = 0;
+    for (const card of container.children) {
+      const min = Number(card.dataset.minPlayers);
+      const max = Number(card.dataset.maxPlayers);
+      const ok = n === 0 || (card.dataset.minPlayers !== undefined && min <= n && n <= max);
+      card.hidden = !ok;
+      if (ok) shown++;
+    }
+    for (const b of buttons.children) b.setAttribute("aria-pressed", String(Number(b.dataset.players) === n));
+    empty.hidden = shown > 0;
+    empty.textContent = shown > 0 ? "" : `${n}人で遊べるゲームは、まだありません。`;
+    if (fromClick) {
+      // URL を書き換える（ページは読み込み直さない）
+      const url = new URL(location.href);
+      if (n === 0) url.searchParams.delete("players");
+      else url.searchParams.set("players", n);
+      history.replaceState(null, "", url);
+    }
+  }
+
+  // URL の ?players= を読んで、最初の表示を決める（知らない数なら「すべて」）
+  const fromUrl = Number(new URLSearchParams(location.search).get("players"));
+  apply(options.includes(fromUrl) ? fromUrl : 0, false);
+})();
