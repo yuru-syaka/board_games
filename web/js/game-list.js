@@ -1,10 +1,11 @@
 /* =========================================================================
-   game-list.js … 7 本のゲームの一覧（ランキング・プロフィール・マイページで使う。ステップ 5-4）
+   game-list.js … 8 本のゲームの一覧（ランキング・プロフィール・マイページで使う。ステップ 5-4）
    -------------------------------------------------------------------------
    - id   … 対戦サーバー・API でのゲームの ID（server/BoardGames.Server/Games と同じ）
    - name … 画面に出す名前
    - slug … 紹介ページ（/games/<slug>.html）とプレイページ（/play/<slug>/）の名前
    ゲームを足したら、ここにも足す。
+   ゴースト・トレンドは人数ごとにマッチング・レートが分かれる（ID も人数ごと）ので、3 件に分けて載せる。
    ========================================================================= */
 window.BOARDPIA_GAMES = [
   { id: 'vanish', name: 'ゴースト・マルバツゲーム', slug: 'ghost-tic-tac-toe' },
@@ -14,6 +15,9 @@ window.BOARDPIA_GAMES = [
   { id: 'battleline', name: 'ゴースト・ライン', slug: 'ghost-line' },
   { id: 'centuryghost', name: 'センチュリー・ゴースト', slug: 'century-ghost' },
   { id: 'ghostreversa', name: 'ゴースト・リバーサ', slug: 'ghost-reversa' },
+  { id: 'ghosttrendthree', name: 'ゴースト・トレンド（3人）', slug: 'ghost-trend' },
+  { id: 'ghosttrendfour', name: 'ゴースト・トレンド（4人）', slug: 'ghost-trend' },
+  { id: 'ghosttrendfive', name: 'ゴースト・トレンド（5人）', slug: 'ghost-trend' },
 ];
 
 /** ゲームの ID から一覧の 1 件を探す（無ければ null）。 */

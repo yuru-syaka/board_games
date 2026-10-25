@@ -163,6 +163,25 @@ const reversaIcon = `
     <path d="M164 68 v18 M164 68 l-3 4 M164 68 l3 4 M164 86 l-3 -4 M164 86 l3 -4" stroke="#ffffff" stroke-width="2.5"/>
   </svg>`;
 
+// ネオン風の「額縁の絵とおばけ画家・せり値」アイコン（ゴースト・トレンド用）
+//   左：額縁に入ったおばけの絵（シアン）、まん中：右上がりの流行の矢印（黄緑）、
+//   右：札を上げてせるおばけ（ピンク）と値札（紫）
+const trendIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="22" width="64" height="78" rx="4" stroke="#22f3ff" stroke-width="3.5"/>
+    <rect x="20" y="30" width="48" height="62" rx="2" stroke="#22f3ff" stroke-width="2" opacity="0.6"/>
+    <path d="M30 86 V60 a14 14 0 0 1 28 0 V86 l-4.7 -4 -4.6 4 -4.7 -4 -4.7 4 -4.6 -4 z" stroke="#ffffff" stroke-width="3"/>
+    <circle cx="39" cy="61" r="2.6" fill="#ffffff"/>
+    <circle cx="49" cy="61" r="2.6" fill="#ffffff"/>
+    <path d="M84 92 L100 74 L110 82 L128 56" stroke="#b6ff3b" stroke-width="3.5"/>
+    <path d="M128 56 l-9 1 M128 56 l-1 9" stroke="#b6ff3b" stroke-width="3.5"/>
+    <path d="M140 104 V64 a20 20 0 0 1 40 0 V104 l-6.7 -6 -6.6 6 -6.7 -6 -6.7 6 -6.6 -6 z" stroke="#ff2fd6" stroke-width="3.5"/>
+    <circle cx="153" cy="65" r="3.2" fill="#ffffff"/>
+    <circle cx="167" cy="65" r="3.2" fill="#ffffff"/>
+    <path d="M180 74 L190 40" stroke="#ff2fd6" stroke-width="3"/>
+    <rect x="178" y="18" width="20" height="22" rx="3" stroke="#9b5cff" stroke-width="3" fill="rgba(155, 92, 255, 0.35)"/>
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -236,6 +255,14 @@ const games = [
     detail: "games/ghost-reversa.html",
     image: "",
     icon: reversaIcon
+  },
+  {
+    title: "ゴースト・トレンド",
+    description: "おばけ画家5人の絵を5種類の競りで売り買いし、流行を読んでお金を増やす3〜5人のゲーム。人気の画家の絵ほど高く売れる。",
+    url: "play/ghost-trend/",
+    detail: "games/ghost-trend.html",
+    image: "",
+    icon: trendIcon
   }
 ];
 
