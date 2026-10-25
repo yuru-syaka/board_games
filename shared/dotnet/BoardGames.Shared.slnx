@@ -8,6 +8,8 @@
   <Project Path="BoardGames.Geister.Tests/BoardGames.Geister.Tests.csproj" />
   <Project Path="BoardGames.GhostReversa.Logic/BoardGames.GhostReversa.Logic.csproj" />
   <Project Path="BoardGames.GhostReversa.Tests/BoardGames.GhostReversa.Tests.csproj" />
+  <Project Path="BoardGames.GhostTrend.Logic/BoardGames.GhostTrend.Logic.csproj" />
+  <Project Path="BoardGames.GhostTrend.Tests/BoardGames.GhostTrend.Tests.csproj" />
   <Project Path="BoardGames.Gobblet.Logic/BoardGames.Gobblet.Logic.csproj" />
   <Project Path="BoardGames.Gobblet.Tests/BoardGames.Gobblet.Tests.csproj" />
   <Project Path="BoardGames.Net.Protocol/BoardGames.Net.Protocol.csproj" />

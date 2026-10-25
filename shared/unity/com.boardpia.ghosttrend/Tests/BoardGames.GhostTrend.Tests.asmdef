@@ -1,0 +1,25 @@
+{
+    "name": "BoardGames.GhostTrend.Tests",
+    "rootNamespace": "BoardGames.GhostTrend.Tests",
+    "references": [
+        "BoardGames.Core",
+        "BoardGames.GhostTrend.Logic",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS"
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
