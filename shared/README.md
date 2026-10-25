@@ -72,4 +72,5 @@ unity test C:/Users/nullg/createGame/boardGames/ghost_tic_tac_toe --mode EditMod
 Unity と .NET のどちらでも、すべて通る。
 2026-10-24: ゴースト・リバーサ（GhostReversa）49 件を追加。Unity と .NET のどちらでも通る。
 2026-10-25: ゴースト・トレンド（GhostTrend、3〜5 人の競り）51 件を追加。Unity と .NET のどちらでも通る。
-  オンラインは人間 2 人＋CPU（CPU はサーバーが動かす。`Online/TrendTable.cs`）。
+  オンラインは人間だけの 3〜5 人戦。途中で抜けた席だけ、サーバーの CPU が代わる（`Online/TrendTable.cs`）。
+  同日、オンラインを人間だけにしたときに 56 件に（CPU に代わる・時間切れの自動の手・順位のテスト）。

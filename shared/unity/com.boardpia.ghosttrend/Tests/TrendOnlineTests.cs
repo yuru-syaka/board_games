@@ -23,7 +23,7 @@ namespace BoardGames.GhostTrend.Tests
             public FakeServer(int players, int seed)
             {
                 Table = new TrendTable(players, seed);
-                Seats = new[] { new SeatTransport(this, 0), new SeatTransport(this, 1) };
+                Seats = Enumerable.Range(0, players).Select(s => new SeatTransport(this, s)).ToArray();
             }
 
             public void Broadcast()
@@ -135,66 +135,155 @@ namespace BoardGames.GhostTrend.Tests
             CollectionAssert.AreEqual(new[] { -1, 100, -1 }, back.View.Money);
         }
 
-        // ---------- サーバーの対局(人間 2 人 + CPU) ----------
+        // ---------- サーバーの対局(全席が人間。抜けた席だけ CPU) ----------
+
+        /// <summary>今の手番の人が、ランダムな手を指す(最後まで)。</summary>
+        void PlayOut(TrendTable t, Random rng, TrendTable twin = null)
+        {
+            for (int i = 0; i < 20000 && !t.IsOver; i++)
+            {
+                int seat = t.CurrentSeat;
+                Assert.IsFalse(t.IsCpu(seat), "CPU の席の番はサーバーが進めてしまう");
+                var move = PickRandom(_rules.GetLegalMoves(t.State).ToList(), rng);
+                Assert.IsTrue(t.TryApply(seat, move));
+                if (twin != null)
+                {
+                    Assert.IsTrue(twin.TryApply(seat, move));
+                    Assert.AreEqual(t.SnapshotFor(0), twin.SnapshotFor(0), "作り直しても同じ局面");
+                }
+            }
+            Assert.IsTrue(t.IsOver);
+        }
 
         [TestCase(3)]
         [TestCase(4)]
         [TestCase(5)]
-        public void Table_OnlyHumansAreAsked_AndSameSeedGivesSameGame(int players)
+        public void Table_AllSeatsAreHumans_AndSameSeedGivesSameGame(int players)
         {
             var a = new TrendTable(players, 77);
             var b = new TrendTable(players, 77);
+            Assert.AreEqual(players, a.HumanCount);
+            var asked = new HashSet<int>();
             var rng = new Random(players);
             for (int i = 0; i < 20000 && !a.IsOver; i++)
             {
-                Assert.That(a.CurrentSeat, Is.EqualTo(0).Or.EqualTo(1), "CPU の番はサーバーが進めてしまう");
-                var move = PickRandom(_rules.GetLegalMoves(a.State).ToList(), rng);
                 int seat = a.CurrentSeat;
+                asked.Add(seat);
+                var move = PickRandom(_rules.GetLegalMoves(a.State).ToList(), rng);
                 Assert.IsTrue(a.TryApply(seat, move));
                 Assert.IsTrue(b.TryApply(seat, move));
-                Assert.AreEqual(a.SnapshotFor(0), b.SnapshotFor(0), "作り直しても同じ局面");
             }
             Assert.IsTrue(a.IsOver);
             Assert.AreEqual(-1, a.CurrentSeat);
-            var expected = a.State.Money[0] == a.State.Money[1] ? GameStatus.Draw : GameStatus.Win;
-            Assert.AreEqual(expected, a.SeatResult.Status);
+            CollectionAssert.AreEquivalent(Enumerable.Range(0, players), asked, "全員に手番が回る");
+            Assert.AreEqual(a.SnapshotFor(1), b.SnapshotFor(1));
         }
 
         [Test]
-        public void Table_RejectsWrongSeatAndIllegalMoves()
+        public void Table_RanksByMoney_TiesShareARank_AndResultFollowsFirstPlace()
+        {
+            var t = new TrendTable(4, 3);
+            PlayOut(t, new Random(4));
+            var money = t.State.Money;
+            var ranks = t.Ranks;
+            for (int s = 0; s < 4; s++)
+                Assert.AreEqual(Enumerable.Range(0, 4).Count(o => money[o] > money[s]), ranks[s]);
+            var first = Enumerable.Range(0, 4).Where(s => ranks[s] == 0).ToList();
+            if (first.Count == 1) Assert.AreEqual(GameResult.WinFor(first[0]).Winner, t.SeatResult.Winner);
+            else Assert.AreEqual(GameStatus.Draw, t.SeatResult.Status);
+        }
+
+        [Test]
+        public void Table_RejectsWrongSeatIllegalMovesAndCpuSeats()
         {
             var t = new TrendTable(4, 5);
-            int other = 1 - t.CurrentSeat;
+            int other = (t.CurrentSeat + 1) % 4;
             Assert.IsFalse(t.TryApply(other, TrendMove.Pass()));
-            Assert.IsFalse(t.TryApply(2, TrendMove.Pass()), "CPU の席からは指せない");
+            Assert.IsFalse(t.TryApply(7, TrendMove.Pass()));
             Assert.IsFalse(t.TryApply(t.CurrentSeat, TrendMove.Play(-5)));
+            Assert.IsTrue(t.Takeover(other));
+            Assert.IsFalse(t.Takeover(other), "2 回は代われない");
+            Assert.IsTrue(t.IsCpu(other));
+            Assert.AreEqual(3, t.HumanCount);
         }
 
         [Test]
-        public void TwoOnlineMatches_PlayToTheEnd_ThroughTheServer()
+        public void Takeover_OfTheCurrentSeat_PlaysOnAtOnce_AndIsReproducible()
         {
-            var server = new FakeServer(4, 21);
-            var m0 = new OnlineMatch(server.Seats[0], 0);
-            var m1 = new OnlineMatch(server.Seats[1], 1);
-            server.Broadcast();
-            Assert.IsTrue(MatchSnapshot.StartsNewGame(null, m0.Snapshot));
-            var rng = new Random(8);
-            for (int i = 0; i < 20000 && !m0.Snapshot.Result.IsOver; i++)
+            var a = new TrendTable(3, 11);
+            var b = new TrendTable(3, 11);
+            int seat = a.CurrentSeat;
+            Assert.IsTrue(a.Takeover(seat));
+            Assert.IsTrue(b.Takeover(seat));
+            Assert.AreNotEqual(seat, a.CurrentSeat, "CPU がすぐに指して、次の人の番になる");
+            Assert.AreEqual(a.SnapshotFor(0), b.SnapshotFor(0), "同じ種・同じ時点で代われば同じ局面");
+            PlayOut(a, new Random(2), b);
+            Assert.AreEqual(2, a.Ranks[seat], "代わった席は最下位");
+        }
+
+        [Test]
+        public void Ranks_PutEarlierLeaversLower()
+        {
+            var t = new TrendTable(5, 9);
+            int first = (t.CurrentSeat + 1) % 5, second = (t.CurrentSeat + 2) % 5;
+            Assert.IsTrue(t.Takeover(first));
+            Assert.IsTrue(t.Takeover(second));
+            PlayOut(t, new Random(6));
+            Assert.AreEqual(4, t.Ranks[first], "先に抜けた人がいちばん下");
+            Assert.AreEqual(3, t.Ranks[second]);
+            Assert.IsTrue(Enumerable.Range(0, 5).Where(s => s != first && s != second).All(s => t.Ranks[s] <= 2));
+        }
+
+        [Test]
+        public void AutoMove_PassesInAuctions_AndPicksACardWhenItMustPlay()
+        {
+            var t = new TrendTable(3, 13);
+            int seat = t.CurrentSeat;
+            Assert.AreEqual(TrendPhase.Play, t.State.Phase);
+            Assert.IsFalse(t.TryGetAutoMove((seat + 1) % 3, out _), "手番でない席には出さない");
+            Assert.IsTrue(t.TryGetAutoMove(seat, out var play));
+            Assert.AreEqual(MoveKind.Play, play.Kind, "出品は降りられないので、カードを選ぶ");
+            Assert.IsTrue(t.TryApply(seat, play));
+
+            // その後の競りでは、降りる・見送る・誘いを断る
+            for (int i = 0; i < 200 && !t.IsOver; i++)
             {
-                var mover = m0.Snapshot.CurrentPlayer == 0 ? m0 : m1;
+                int s = t.CurrentSeat;
+                Assert.IsTrue(t.TryGetAutoMove(s, out var m));
+                if (t.State.Phase == TrendPhase.Auction || t.State.Phase == TrendPhase.DoubleOffer)
+                {
+                    bool canQuit = _rules.GetLegalMoves(t.State).Any(x => x.Kind == MoveKind.Pass || x.Kind == MoveKind.Decline);
+                    if (canQuit) Assert.That(m.Kind, Is.EqualTo(MoveKind.Pass).Or.EqualTo(MoveKind.Decline));
+                }
+                Assert.IsTrue(t.TryApply(s, m), "自動の手はいつも合法");
+            }
+        }
+
+        [TestCase(3)]
+        [TestCase(5)]
+        public void OnlineMatches_ForEverySeat_PlayToTheEnd_ThroughTheServer(int players)
+        {
+            var server = new FakeServer(players, 21);
+            var ms = Enumerable.Range(0, players).Select(s => new OnlineMatch(server.Seats[s], s)).ToArray();
+            server.Broadcast();
+            Assert.IsTrue(MatchSnapshot.StartsNewGame(null, ms[0].Snapshot));
+            var rng = new Random(8);
+            for (int i = 0; i < 20000 && !ms[0].Snapshot.Result.IsOver; i++)
+            {
+                var mover = ms[ms[0].Snapshot.CurrentPlayer];
                 Assert.IsTrue(mover.Snapshot.View.IsMyTurn);
                 mover.SubmitLocalMove(PickRandom(mover.Snapshot.View.GetLegalMoves(), rng));
-                Assert.AreEqual(m0.Snapshot.Ply, m1.Snapshot.Ply);
+                Assert.IsTrue(ms.All(m => m.Snapshot.Ply == ms[0].Snapshot.Ply));
             }
             Assert.AreEqual(0, server.Rejected);
-            Assert.IsTrue(m0.Snapshot.Result.IsOver && m1.Snapshot.Result.IsOver);
-            Assert.IsTrue(m0.Snapshot.View.Money.All(x => x >= 0), "終局後は全員の所持金が見える");
+            Assert.IsTrue(ms.All(m => m.Snapshot.Result.IsOver));
+            Assert.IsTrue(ms[0].Snapshot.View.Money.All(x => x >= 0), "終局後は全員の所持金が見える");
 
             // 再戦の合図
-            m0.RequestRematch();
-            Assert.IsTrue(m0.LocalWantsRematch);
+            ms[0].RequestRematch();
+            Assert.IsTrue(ms[0].LocalWantsRematch);
             server.Seats[1].Deliver(TrendNetProtocol.EncodeRematch());
-            Assert.IsTrue(m1.OpponentWantsRematch);
+            Assert.IsTrue(ms[1].OpponentWantsRematch);
         }
 
         [Test]

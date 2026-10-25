@@ -15,6 +15,36 @@ public static class Elo
     }
 }
 
+/// <summary>
+/// 多人数の Elo（多人数の部屋）。全員の組み合わせを 1 対 1 の対局とみなし、順位が上なら勝ち・同じなら引き分けとして
+/// 期待勝率との差を合計する。1 局で動く大きさが人数で変わらないよう、K を「人数 − 1」で割る。
+/// </summary>
+public static class MultiElo
+{
+    /// <summary>ratings と ranks（0 = 1 位、同じ順位は同点）から、席ごとの増減を求める。</summary>
+    public static int[] Deltas(IReadOnlyList<int> ratings, IReadOnlyList<int> ranks, int k)
+    {
+        int n = ratings.Count;
+        if (n != ranks.Count) throw new ArgumentException("ratings and ranks must have the same length");
+        var deltas = new int[n];
+        if (n < 2) return deltas;
+        double kEach = (double)k / (n - 1);
+        for (int i = 0; i < n; i++)
+        {
+            double sum = 0;
+            for (int j = 0; j < n; j++)
+            {
+                if (i == j) continue;
+                double expected = 1.0 / (1.0 + Math.Pow(10, (ratings[j] - ratings[i]) / 400.0));
+                double score = ranks[i] < ranks[j] ? 1 : ranks[i] == ranks[j] ? 0.5 : 0;
+                sum += score - expected;
+            }
+            deltas[i] = (int)Math.Round(kEach * sum, MidpointRounding.AwayFromZero);
+        }
+        return deltas;
+    }
+}
+
 /// <summary>1 人の 1 ゲームの戦績（プレイヤーのテーブルの 1 行）。まだ遊んでいなければ Version = 0。</summary>
 public sealed record PlayerStats(
     string UserId,

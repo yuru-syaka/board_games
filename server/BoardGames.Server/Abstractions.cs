@@ -35,6 +35,34 @@ public sealed class MatchRecord
     /// <summary>席ごとのユーザー ID（ログインしていなければ null）。部屋に入ったときに決まり、戻ってきても変わらない。</summary>
     public string?[] Users { get; init; } = new string?[2];
 
+    // ---------- 多人数の部屋（ゴースト・トレンド）。2 人用の部屋では使わない ----------
+
+    /// <summary>多人数の部屋の対局 ID の頭の文字（2 人用の部屋と見分けるため）。</summary>
+    public const string TablePrefix = "t";
+
+    /// <summary>多人数の部屋か。</summary>
+    public bool IsTable => Id.StartsWith(TablePrefix, StringComparison.Ordinal);
+
+    /// <summary>席の数（配列の長さ。2 人用は 2、多人数の部屋は最大人数）。</summary>
+    public int Capacity => Connections.Length;
+
+    /// <summary>ホスト（始まる前の部屋で「開始」を押せる人）の席。</summary>
+    public int HostSeat { get; set; }
+
+    /// <summary>始まった対局の人数（始めるときに席を 0 から詰め直す）。始まる前は 0。</summary>
+    public int PlayerCount { get; set; }
+
+    /// <summary>席ごとの、時間切れの自動の手が続いた回数（自分で指すと 0 に戻る）。</summary>
+    public int[] TimeoutStrikes { get; init; } = new int[2];
+
+    /// <summary>多人数の部屋を、席の数を決めて作る。</summary>
+    public static MatchRecord NewTable(string id, string game, string? code, int capacity) => new()
+    {
+        Id = id, Game = game, Code = code,
+        Connections = new string?[capacity], Rematch = new bool[capacity], Tokens = new string?[capacity],
+        AwaySince = new long?[capacity], Users = new string?[capacity], TimeoutStrikes = new int[capacity],
+    };
+
     public int OtherSeat(int seat) => 1 - seat;
 
     /// <summary>
@@ -78,7 +106,9 @@ public sealed record MatchResult(
     IReadOnlyList<string?>? Users = null,
     // 席ごとの対局後のレートと増減（レートが動いた対局だけ）
     IReadOnlyList<int>? RatingsAfter = null,
-    IReadOnlyList<int>? RatingDeltas = null)
+    IReadOnlyList<int>? RatingDeltas = null,
+    // 多人数の部屋だけ: 席ごとの順位（0 = 1 位）。レートが動かなかった席の RatingsAfter は -1
+    IReadOnlyList<int>? Ranks = null)
 {
     /// <summary>結果の行の名前（同じ対局の結果を 2 回書かないため）。</summary>
     public string Id => MatchId + "#" + GameNo;

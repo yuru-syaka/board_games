@@ -19,8 +19,10 @@ namespace BoardGames.Server;
 ///   部屋に入るときに席とユーザーを結びつけ、対局の始まりに両者の名前とレート（@players）を送る。
 ///   終局したら、ログインしていた人の勝敗の数を、レートが動く対局（MatchRecord.IsRated）ならレートも、結果と同時に書く。
 /// - メッセージ: ロビーは LobbyProtocol（"@…"）、対局中は各ゲームの NetProtocol（"S|1|…" など）。
+/// - 多人数の部屋（ゴースト・トレンド。IGameEngine.MaxSeats が 3 以上）は GameServer.Table.cs で動かす。
+///   対局 ID の頭が "t" の部屋は、各処理の最初でそちらに渡す（2 人用の処理はここから下のまま）。
 /// </summary>
-public sealed class GameServer
+public sealed partial class GameServer
 {
     const int MaxRetries = 5;
     const string RematchMessage = "R|1";
@@ -59,6 +61,11 @@ public sealed class GameServer
     {
         var connection = await _store.GetConnectionAsync(connectionId);
         if (connection == null) return;
+        if (IsTableId(connection.MatchId))
+        {
+            await TableDisconnectAsync(connection);
+            return;
+        }
 
         for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
@@ -99,6 +106,10 @@ public sealed class GameServer
             }
             switch (lobby.Kind)
             {
+                case LobbyMessageKind.Quick when IsTableGame(lobby.Game): await TableQuickAsync(connectionId, lobby.Game); break;
+                case LobbyMessageKind.Create when IsTableGame(lobby.Game): await TableCreateAsync(connectionId, lobby.Game); break;
+                case LobbyMessageKind.Join when IsTableGame(lobby.Game): await TableJoinAsync(connectionId, lobby.Game, lobby.Code); break;
+                case LobbyMessageKind.Start: await TableStartAsync(connectionId); break;
                 case LobbyMessageKind.Quick: await QuickAsync(connectionId, lobby.Game); break;
                 case LobbyMessageKind.Create: await CreateAsync(connectionId, lobby.Game); break;
                 case LobbyMessageKind.Join: await JoinAsync(connectionId, lobby.Game, lobby.Code); break;
@@ -247,6 +258,11 @@ public sealed class GameServer
     {
         var connection = await _store.GetConnectionAsync(connectionId);
         if (connection == null) return;
+        if (IsTableId(connection.MatchId))
+        {
+            await TableLeaveAsync(connection);
+            return;
+        }
         await _store.DeleteConnectionAsync(connectionId);
 
         var match = await _store.GetMatchAsync(connection.MatchId);
@@ -275,6 +291,11 @@ public sealed class GameServer
         for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
             var found = await _store.FindTokenAsync(token);
+            if (found != null && IsTableId(found.Value.MatchId))
+            {
+                await TableResumeAsync(connectionId, token, found.Value.MatchId, found.Value.Seat);
+                return;
+            }
             var match = found == null ? null : await _store.GetMatchAsync(found.Value.MatchId);
             if (found == null || match == null || match.Tokens[found.Value.Seat] != token)
             {
@@ -316,6 +337,11 @@ public sealed class GameServer
     {
         var connection = await _store.GetConnectionAsync(connectionId);
         if (connection == null) return;
+        if (IsTableId(connection.MatchId))
+        {
+            await TableClaimAsync(connection);
+            return;
+        }
         var match = await _store.GetMatchAsync(connection.MatchId);
         if (match == null || !match.Started) return;
 
@@ -357,6 +383,11 @@ public sealed class GameServer
     {
         var connection = await _store.GetConnectionAsync(connectionId);
         if (connection == null) return; // 対局に入っていない
+        if (IsTableId(connection.MatchId))
+        {
+            await TableMoveAsync(connection, message);
+            return;
+        }
 
         for (int attempt = 0; attempt < MaxRetries; attempt++)
         {
@@ -393,6 +424,11 @@ public sealed class GameServer
     {
         var connection = await _store.GetConnectionAsync(connectionId);
         if (connection == null) return;
+        if (IsTableId(connection.MatchId))
+        {
+            await TableRematchAsync(connection);
+            return;
+        }
 
         for (int attempt = 0; attempt < MaxRetries; attempt++)
         {

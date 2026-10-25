@@ -14,6 +14,15 @@ public interface IGameEngine
 
     /// <summary>乱数の種から新しい対局を始める。同じ種なら必ず同じ初期局面になる。</summary>
     IGameSession Start(int seed);
+
+    /// <summary>対局を始められる最少の人数。2 人用のゲームは 2。</summary>
+    int MinSeats => 2;
+
+    /// <summary>1 つの部屋に入れる最大の人数。2 人用のゲームは 2。3 以上なら「多人数の部屋」（GameServer.Table.cs）で動かす。</summary>
+    int MaxSeats => 2;
+
+    /// <summary>多人数の部屋だけ: seats 人で新しい対局を始める。</summary>
+    ITableSession StartTable(int seed, int seats) => throw new NotSupportedException(Id + " is a two-seat game");
 }
 
 /// <summary>対局中の局面。サーバーは「種 ＋ 手の一覧」から毎回作り直す。</summary>
@@ -24,7 +33,7 @@ public interface IGameSession
     /// <summary>勝敗（終局していなければ Ongoing）。</summary>
     GameResult Result { get; }
 
-    /// <summary>今の手番の席（0 か 1）。</summary>
+    /// <summary>今の手番の席（0 か 1。多人数の部屋は 0〜4）。</summary>
     int CurrentPlayer { get; }
 
     /// <summary>
@@ -35,4 +44,23 @@ public interface IGameSession
 
     /// <summary>seat の席に送る局面（NetProtocol の "S|…"。隠し情報は伏せる）。</summary>
     string SnapshotFor(int seat);
+}
+
+/// <summary>多人数の部屋の対局。全席が人間で始まり、抜けた席だけ CPU が代わる。</summary>
+public interface ITableSession : IGameSession
+{
+    /// <summary>この対局の人数。</summary>
+    int Seats { get; }
+
+    /// <summary>その席を CPU が代わっているか。</summary>
+    bool IsCpu(int seat);
+
+    /// <summary>以後その席を CPU が代わる（その席の番なら、すぐに進める）。もう代わっていれば false。</summary>
+    bool Takeover(int seat);
+
+    /// <summary>時間切れの席の代わりに指す手（NetProtocol の "M|…"。適用はしない）。その席の番でなければ false。</summary>
+    bool TryGetAutoMove(int seat, [NotNullWhen(true)] out string? moveMessage);
+
+    /// <summary>席ごとの順位（0 = 1 位。同点は同じ順位。CPU に代わった席は人間より下）。</summary>
+    IReadOnlyList<int> Ranks { get; }
 }

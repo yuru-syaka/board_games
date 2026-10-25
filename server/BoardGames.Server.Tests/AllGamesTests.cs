@@ -178,40 +178,7 @@ public class AllGamesTests
         Assert.AreEqual(ma.Snapshot.Result.Winner, mb.Snapshot.Result.Winner);
     }
 
-    [TestCase(3)]
-    [TestCase(4)]
-    [TestCase(5)]
-    public void GhostTrend_PlaysToTheEnd_WithCpuSeats_AndHidesHands(int players)
-    {
-        var (a, b) = Pair(GhostTrendEngine.IdFor(players));
-        var ma = new GhostTrend.Online.OnlineMatch(a, 0);
-        var mb = new GhostTrend.Online.OnlineMatch(b, 1);
-        Replay(a);
-        Replay(b);
-        Assert.AreEqual(players, ma.Snapshot.PlayerCount);
-        Assert.AreEqual(0, ma.Snapshot.Viewer);
-        Assert.AreEqual(1, mb.Snapshot.Viewer);
-        var rng = new Random(7);
-        for (int i = 0; i < Guard * 10 && !ma.Snapshot.Result.IsOver; i++)
-        {
-            Assert.That(ma.Snapshot.CurrentPlayer, Is.EqualTo(0).Or.EqualTo(1), "CPU の席はサーバーが進める");
-            var mover = ma.Snapshot.CurrentPlayer == 0 ? ma : mb;
-            var moves = mover.Snapshot.View.GetLegalMoves();
-            var quit = moves.Where(m => m.Kind is GhostTrend.MoveKind.Pass or GhostTrend.MoveKind.Decline).ToList();
-            var move = quit.Count > 0 && rng.Next(2) == 0 ? quit[0] : moves[rng.Next(Math.Min(moves.Count, 12))];
-            mover.SubmitLocalMove(move);
-            Assert.AreEqual(ma.Snapshot.Ply, mb.Snapshot.Ply);
-            if (ma.Snapshot.Result.IsOver) break;
-            // 相手の所持金は届かない
-            Assert.AreEqual(GhostTrend.TrendPlayerView.HiddenMoney, ma.Snapshot.View.Money[1]);
-            Assert.AreEqual(GhostTrend.TrendPlayerView.HiddenMoney, mb.Snapshot.View.Money[0]);
-        }
-        Assert.IsTrue(ma.Snapshot.Result.IsOver && mb.Snapshot.Result.IsOver);
-        var result = _store.Results.Last();
-        Assert.AreEqual(GhostTrendEngine.IdFor(players), result.Game);
-        var money = ma.Snapshot.View.Money;
-        Assert.AreEqual(money[0] == money[1] ? -1 : money[0] > money[1] ? 0 : 1, result.Winner, "人間 2 人の所持金で勝敗");
-    }
+    // ゴースト・トレンド（多人数の部屋）は TableTests で確かめる
 
     [TestCase("gobblet")]
     [TestCase("quarto")]
@@ -219,8 +186,7 @@ public class AllGamesTests
     [TestCase("battleline")]
     [TestCase("centuryghost")]
     [TestCase("ghostreversa")]
-    [TestCase("ghosttrendthree")]
-    [TestCase("ghosttrendfive")]
+    [TestCase("ghosttrend")]
     public void SameSeed_GivesTheSameStart(string game)
     {
         var engine = GameRegistry.Default().Find(game)!;

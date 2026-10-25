@@ -1,29 +1,31 @@
 using System.Diagnostics.CodeAnalysis;
 using BoardGames.Core;
+using BoardGames.GhostTrend;
 using BoardGames.GhostTrend.Online;
 
 namespace BoardGames.Server.Games;
 
 /// <summary>
-/// ゴースト・トレンド。人間 2 人（席 0 / 1）＋ 残りの席は CPU。人数ごとに別のゲーム ID（ghosttrendthree / four / five）にする
-/// （ロビーのメッセージにはゲーム ID しか無いので、人数でマッチングを分けるため）。
-/// CPU の手は TrendTable が人間の手の直後にまとめて進める（種と手数から決まるので、作り直しても同じ局面になる）。
-/// 勝敗は人間 2 人の所持金を比べる。局面は席ごとに伏せて送る（相手の手札・所持金・伏せた入札額）。
+/// ゴースト・トレンド。全席が人間（3〜5 人）の多人数の部屋で遊ぶ（GameServer.Table.cs）。
+/// 途中で抜けた・戻らなかった・時間切れが続いた席だけ、CPU が代わる（TrendTable）。
+/// 局面は席ごとに伏せて送る（相手の手札・所持金・伏せた入札額）。勝敗は最後の所持金の順位。
 /// </summary>
 public sealed class GhostTrendEngine : IGameEngine
 {
-    readonly int _players;
+    public const string GameId = "ghosttrend";
 
-    public GhostTrendEngine(int players) => _players = players;
+    public string Id => GameId;
 
-    public string Id => IdFor(_players);
+    public int MinSeats => TrendLogic.MinPlayers;
 
-    /// <summary>人数ごとのゲーム ID（ID は英小文字だけなので、数は英語で書く）。Unity 側の AwsOnlineService と同じ。</summary>
-    public static string IdFor(int players) => "ghosttrend" + players switch { 3 => "three", 4 => "four", _ => "five" };
+    public int MaxSeats => TrendLogic.MaxPlayers;
 
-    public IGameSession Start(int seed) => new Session(new TrendTable(_players, seed));
+    /// <summary>人数の指定がないとき（テストなど）は 4 人。</summary>
+    public IGameSession Start(int seed) => StartTable(seed, 4);
 
-    sealed class Session : IGameSession
+    public ITableSession StartTable(int seed, int seats) => new Session(new TrendTable(seats, seed));
+
+    sealed class Session : ITableSession
     {
         readonly TrendTable _table;
 
@@ -34,6 +36,22 @@ public sealed class GhostTrendEngine : IGameEngine
         public GameResult Result => _table.SeatResult;
 
         public int CurrentPlayer => _table.CurrentSeat;
+
+        public int Seats => _table.PlayerCount;
+
+        public IReadOnlyList<int> Ranks => _table.Ranks;
+
+        public bool IsCpu(int seat) => _table.IsCpu(seat);
+
+        public bool Takeover(int seat) => _table.Takeover(seat);
+
+        public bool TryGetAutoMove(int seat, [NotNullWhen(true)] out string? moveMessage)
+        {
+            moveMessage = null;
+            if (!_table.TryGetAutoMove(seat, out var move)) return false;
+            moveMessage = TrendNetProtocol.EncodeMove(move);
+            return true;
+        }
 
         public bool TryApply(int seat, string moveMessage, [NotNullWhen(true)] out string? normalizedMove)
         {

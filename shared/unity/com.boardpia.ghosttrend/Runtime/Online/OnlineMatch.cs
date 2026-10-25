@@ -3,8 +3,8 @@ using System;
 namespace BoardGames.GhostTrend.Online
 {
     /// <summary>
-    /// オンライン対局(サーバー権威型)。サーバーが局面を持ち、CPU の席もサーバーが動かす。
-    /// この画面はサーバーが決めた席(0 か 1)のゲストとして、手と再戦の希望を送り、届いた局面を表示するだけ。
+    /// オンライン対局(サーバー権威型)。全席が人間(3〜5 人)で、途中で抜けた席だけサーバーの CPU が代わる。
+    /// この画面はサーバーが決めた席(0〜4)のゲストとして、手と再戦の希望を送り、届いた局面を表示するだけ。
     /// </summary>
     public sealed class OnlineMatch : ITrendMatch, IDisposable
     {
@@ -24,7 +24,7 @@ namespace BoardGames.GhostTrend.Online
         public OnlineMatch(IMatchTransport transport, int localPlayer)
         {
             _transport = transport ?? throw new ArgumentNullException(nameof(transport));
-            if (localPlayer != 0 && localPlayer != 1) throw new ArgumentOutOfRangeException(nameof(localPlayer));
+            if (localPlayer < 0 || localPlayer >= TrendLogic.MaxPlayers) throw new ArgumentOutOfRangeException(nameof(localPlayer));
             LocalPlayer = localPlayer;
             _transport.MessageReceived += OnMessage;
         }
@@ -37,7 +37,7 @@ namespace BoardGames.GhostTrend.Online
             _transport.Send(TrendNetProtocol.EncodeMove(move));
         }
 
-        /// <summary>再戦を希望する。2 人が希望したらサーバーが新しい対局を始める。</summary>
+        /// <summary>再戦を希望する。つながっている全員が希望したらサーバーが新しい対局を始める。</summary>
         public void RequestRematch()
         {
             if (Snapshot == null || !Snapshot.Result.IsOver || LocalWantsRematch) return;

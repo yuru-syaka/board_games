@@ -16,9 +16,7 @@ public sealed class GameRegistry
         new BattleLineEngine(),
         new CenturyGhostEngine(),
         new GhostReversaEngine(),
-        new GhostTrendEngine(3),
-        new GhostTrendEngine(4),
-        new GhostTrendEngine(5),
+        new GhostTrendEngine(),
     });
 
     public IGameEngine? Find(string id) => _engines.GetValueOrDefault(id);

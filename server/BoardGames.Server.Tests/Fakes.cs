@@ -149,19 +149,11 @@ sealed class InMemoryStore : IMatchStore
         var copy = new MatchRecord
         {
             Id = m.Id, Game = m.Game, Code = m.Code, Started = m.Started, Seed = m.Seed, Version = m.Version,
-            TurnStartedAt = m.TurnStartedAt, GameNo = m.GameNo,
+            TurnStartedAt = m.TurnStartedAt, GameNo = m.GameNo, HostSeat = m.HostSeat, PlayerCount = m.PlayerCount,
+            Connections = (string?[])m.Connections.Clone(), Rematch = (bool[])m.Rematch.Clone(), Tokens = (string?[])m.Tokens.Clone(),
+            AwaySince = (long?[])m.AwaySince.Clone(), Users = (string?[])m.Users.Clone(), TimeoutStrikes = (int[])m.TimeoutStrikes.Clone(),
         };
-        copy.Connections[0] = m.Connections[0];
-        copy.Connections[1] = m.Connections[1];
         copy.Moves.AddRange(m.Moves);
-        copy.Rematch[0] = m.Rematch[0];
-        copy.Rematch[1] = m.Rematch[1];
-        for (int seat = 0; seat < 2; seat++)
-        {
-            copy.Tokens[seat] = m.Tokens[seat];
-            copy.Users[seat] = m.Users[seat];
-            copy.AwaySince[seat] = m.AwaySince[seat];
-        }
         return copy;
     }
 }

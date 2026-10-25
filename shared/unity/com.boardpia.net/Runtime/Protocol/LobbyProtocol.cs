@@ -56,6 +56,14 @@ namespace BoardGames.Net
         Players,
         /// <summary>レートが動いた(Rating: 新しいレート、Delta: 増減)。終局のあと、レートのある対局でだけ届く。</summary>
         Rated,
+
+        // ---------- 多人数の部屋(ゴースト・トレンド) ----------
+        /// <summary>ブラウザ → サーバー: ホストが対局を始める(最少人数がそろっているとき)。</summary>
+        Start,
+        /// <summary>サーバー → ブラウザ: 始まる前の部屋の様子(Count 人いる・最大 Capacity 人・ホストは席 Host)。</summary>
+        Table,
+        /// <summary>サーバー → ブラウザ: 席 Seat を CPU が代わった(抜けた・戻らなかった・時間切れが続いた)。</summary>
+        CpuSeat,
     }
 
     /// <summary>ロビーのメッセージを読み取った結果。</summary>
@@ -66,8 +74,17 @@ namespace BoardGames.Net
         public string Game { get; }
         /// <summary>ルームコード(Join、Joined、Resumed。無ければ null)。</summary>
         public string Code { get; }
-        /// <summary>割り当てられた席(Joined、Resumed。0 か 1)。</summary>
+        /// <summary>
+        /// 割り当てられた席(Joined、Resumed。2 人用は 0 か 1、多人数の部屋は 0〜4)、手番の席(Turn)、
+        /// 通信が切れた席(OpponentAway。席の無い 2 人用の形なら -1)、CPU が代わった席(CpuSeat)。
+        /// </summary>
         public int Seat { get; }
+        /// <summary>部屋にいる人数(Table)。</summary>
+        public int Count { get; }
+        /// <summary>部屋の最大人数(Table)。</summary>
+        public int Capacity { get; }
+        /// <summary>ホストの席(Table)。</summary>
+        public int Host { get; }
         /// <summary>入った時点で相手がいるか(Joined、Resumed)。</summary>
         public bool OpponentPresent { get; }
         /// <summary>エラーの理由(Error)。LobbyErrors の値。</summary>
@@ -82,9 +99,9 @@ namespace BoardGames.Net
         public string IdToken { get; }
         /// <summary>自分の表示名(Authed。決めていなければ null)。</summary>
         public string Name { get; }
-        /// <summary>席 0 / 1 の表示名(Players。ログインしていない・決めていなければ null)。</summary>
+        /// <summary>席ごとの表示名(Players。2 人用は 2 つ、多人数の部屋は人数分。ログインしていない・決めていなければ null)。</summary>
         public string[] Names { get; }
-        /// <summary>席 0 / 1 のレート(Players。ログインしていなければ -1)。</summary>
+        /// <summary>席ごとのレート(Players。ログインしていなければ -1)。</summary>
         public int[] Ratings { get; }
         /// <summary>新しいレート(Rated)。</summary>
         public int Rating { get; }
@@ -93,8 +110,12 @@ namespace BoardGames.Net
 
         public LobbyMessage(LobbyMessageKind kind, string game = null, string code = null, int seat = 0, bool opponentPresent = false,
             string errorCode = null, string token = null, int seconds = 0, string reason = null, string idToken = null,
-            string name = null, string[] names = null, int[] ratings = null, int rating = 0, int delta = 0)
+            string name = null, string[] names = null, int[] ratings = null, int rating = 0, int delta = 0,
+            int count = 0, int capacity = 0, int host = 0)
         {
+            Count = count;
+            Capacity = capacity;
+            Host = host;
             IdToken = idToken;
             Name = name;
             Names = names;
@@ -127,6 +148,10 @@ namespace BoardGames.Net
         public const string TooEarly = "too_early";
         /// <summary>Auth の ID トークンを確かめられなかった(期限切れ・別のサイトのもの)。ログインしていない扱いで続けられる。</summary>
         public const string AuthFailed = "auth_failed";
+        /// <summary>Start を送ったが、ホストではない(多人数の部屋)。</summary>
+        public const string NotHost = "not_host";
+        /// <summary>Start を送ったが、まだ最少人数がそろっていない(多人数の部屋)。</summary>
+        public const string NotEnoughPlayers = "not_enough_players";
     }
 
     /// <summary>Won / Lost の理由。</summary>
@@ -151,6 +176,11 @@ namespace BoardGames.Net
     ///                        @authed|name  @players|name0|rating0|name1|rating1  @rated|rating|delta
     ///                        (name は URL エンコード、無ければ空。rating はログインしていなければ -)
     ///   ログインしているとき: ブラウザ → サーバー @auth|IDトークン(部屋に入る前に送り、@authed か @error|auth_failed を待つ)
+    ///   多人数の部屋(ゴースト・トレンド)だけ:
+    ///     ブラウザ → サーバー: @start(ホストが開始)
+    ///     サーバー → ブラウザ: @table|人数|最大|ホストの席  @cpu|seat  @away|seconds|seat
+    ///                          @players|name0|rating0|…|nameN|ratingN(人数分)  席は 0〜4
+    ///     2 人用のゲームには、これらは送らない(古いブラウザ側の形は変えない)。
     /// 知らない種類のメッセージは読み飛ばす(古いブラウザ側が新しいサーバーにつないでも壊れないように)。
     /// Unity とサーバー(AWS Lambda)の両方がこのファイルを使う。
     /// </summary>
@@ -165,6 +195,8 @@ namespace BoardGames.Net
         public const int MaxMessageLength = 4096;
         /// <summary>表示名の長さの上限(文字数)。</summary>
         public const int MaxNameLength = 12;
+        /// <summary>1 つの部屋の席の数の上限(多人数の部屋。2 人用は 2)。</summary>
+        public const int MaxSeats = 5;
 
         public static bool IsLobbyMessage(string message) => !string.IsNullOrEmpty(message) && message[0] == Prefix;
 
@@ -192,10 +224,36 @@ namespace BoardGames.Net
         public static string Won(string reason) => "@won|" + RequireReason(reason);
         public static string Lost(string reason) => "@lost|" + RequireReason(reason);
 
-        public static string Turn(int seat, int seconds)
+        public static string Turn(int seat, int seconds) =>
+            "@turn|" + RequireSeat(seat).ToString(CultureInfo.InvariantCulture) + "|" + Math.Max(0, seconds).ToString(CultureInfo.InvariantCulture);
+
+        // ---------- 多人数の部屋 ----------
+
+        public static string Start() => "@start";
+
+        /// <summary>始まる前の部屋の様子(count 人・最大 capacity 人・ホストは席 host)。</summary>
+        public static string Table(int count, int capacity, int host)
         {
-            if (seat != 0 && seat != 1) throw new ArgumentOutOfRangeException(nameof(seat));
-            return "@turn|" + seat.ToString(CultureInfo.InvariantCulture) + "|" + Math.Max(0, seconds).ToString(CultureInfo.InvariantCulture);
+            if (capacity < 2 || capacity > MaxSeats || count < 0 || count > capacity) throw new ArgumentOutOfRangeException(nameof(count));
+            return "@table|" + count.ToString(CultureInfo.InvariantCulture) + "|" + capacity.ToString(CultureInfo.InvariantCulture) + "|" +
+                   RequireSeat(host).ToString(CultureInfo.InvariantCulture);
+        }
+
+        /// <summary>席 seat を CPU が代わった。</summary>
+        public static string CpuSeat(int seat) => "@cpu|" + RequireSeat(seat).ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>席 seat の通信が切れた。seconds 秒は戻るのを待つ(多人数の部屋。2 人用は OpponentAway)。</summary>
+        public static string SeatAway(int seconds, int seat) =>
+            OpponentAway(seconds) + "|" + RequireSeat(seat).ToString(CultureInfo.InvariantCulture);
+
+        /// <summary>席ごとの名前とレート(人数分。rating が負ならログインしていない席)。</summary>
+        public static string Players(string[] names, int[] ratings)
+        {
+            if (names == null || ratings == null || names.Length != ratings.Length || names.Length < 2 || names.Length > MaxSeats)
+                throw new ArgumentException("names and ratings must have 2-5 entries");
+            var sb = new System.Text.StringBuilder("@players");
+            for (int i = 0; i < names.Length; i++) sb.Append('|').Append(EncodeName(names[i])).Append('|').Append(EncodeRating(ratings[i]));
+            return sb.ToString();
         }
 
         /// <summary>時間の計測なし(終局後など)。</summary>
@@ -262,7 +320,22 @@ namespace BoardGames.Net
                     result = new LobbyMessage(LobbyMessageKind.Token, token: p[1]);
                     return true;
                 case "away" when p.Length == 2 && int.TryParse(p[1], NumberStyles.None, CultureInfo.InvariantCulture, out int seconds):
-                    result = new LobbyMessage(LobbyMessageKind.OpponentAway, seconds: seconds);
+                    result = new LobbyMessage(LobbyMessageKind.OpponentAway, seconds: seconds, seat: -1);
+                    return true;
+                case "away" when p.Length == 3 && int.TryParse(p[1], NumberStyles.None, CultureInfo.InvariantCulture, out int awaySeconds) &&
+                                 TryParseSeatNumber(p[2], out int awaySeat):
+                    result = new LobbyMessage(LobbyMessageKind.OpponentAway, seconds: awaySeconds, seat: awaySeat);
+                    return true;
+                case "start" when p.Length == 1:
+                    result = new LobbyMessage(LobbyMessageKind.Start);
+                    return true;
+                case "table" when p.Length == 4 && int.TryParse(p[1], NumberStyles.None, CultureInfo.InvariantCulture, out int count) &&
+                                  int.TryParse(p[2], NumberStyles.None, CultureInfo.InvariantCulture, out int capacity) &&
+                                  capacity >= 2 && capacity <= MaxSeats && count <= capacity && TryParseSeatNumber(p[3], out int host):
+                    result = new LobbyMessage(LobbyMessageKind.Table, count: count, capacity: capacity, host: host);
+                    return true;
+                case "cpu" when p.Length == 2 && TryParseSeatNumber(p[1], out int cpuSeat):
+                    result = new LobbyMessage(LobbyMessageKind.CpuSeat, seat: cpuSeat);
                     return true;
                 case "back" when p.Length == 1:
                     result = new LobbyMessage(LobbyMessageKind.OpponentBack);
@@ -273,9 +346,9 @@ namespace BoardGames.Net
                 case "lost" when p.Length == 2 && LobbyEndReasons.IsValid(p[1]):
                     result = new LobbyMessage(LobbyMessageKind.Lost, reason: p[1]);
                     return true;
-                case "turn" when p.Length == 3 && (p[1] == "0" || p[1] == "1" || p[1] == "-") &&
+                case "turn" when p.Length == 3 && (p[1] == "-" || TryParseSeatNumber(p[1], out _)) &&
                                  int.TryParse(p[2], NumberStyles.None, CultureInfo.InvariantCulture, out int turnSeconds):
-                    result = new LobbyMessage(LobbyMessageKind.Turn, seat: p[1] == "-" ? -1 : p[1] == "1" ? 1 : 0, seconds: turnSeconds);
+                    result = new LobbyMessage(LobbyMessageKind.Turn, seat: p[1] == "-" ? -1 : p[1][0] - '0', seconds: turnSeconds);
                     return true;
                 case "auth" when p.Length == 2 && IsIdToken(p[1]):
                     result = new LobbyMessage(LobbyMessageKind.Auth, idToken: p[1]);
@@ -283,9 +356,9 @@ namespace BoardGames.Net
                 case "authed" when p.Length == 2 && TryDecodeName(p[1], out string authedName):
                     result = new LobbyMessage(LobbyMessageKind.Authed, name: authedName);
                     return true;
-                case "players" when p.Length == 5 && TryDecodeName(p[1], out string n0) && TryParseRating(p[2], out int r0) &&
-                                    TryDecodeName(p[3], out string n1) && TryParseRating(p[4], out int r1):
-                    result = new LobbyMessage(LobbyMessageKind.Players, names: new[] { n0, n1 }, ratings: new[] { r0, r1 });
+                case "players" when p.Length % 2 == 1 && p.Length >= 5 && p.Length <= 1 + MaxSeats * 2 &&
+                                    TryParsePlayers(p, out string[] playerNames, out int[] playerRatings):
+                    result = new LobbyMessage(LobbyMessageKind.Players, names: playerNames, ratings: playerRatings);
                     return true;
                 case "rated" when p.Length == 3 && int.TryParse(p[1], NumberStyles.None, CultureInfo.InvariantCulture, out int rating) &&
                                   int.TryParse(p[2], NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out int delta):
@@ -358,25 +431,44 @@ namespace BoardGames.Net
             return true;
         }
 
-        static string SeatMessage(string head, int seat, string code, bool opponentPresent)
-        {
-            if (seat != 0 && seat != 1) throw new ArgumentOutOfRangeException(nameof(seat));
-            return head + seat.ToString(CultureInfo.InvariantCulture) + "|" + (code == null ? "-" : RequireCode(code)) + "|" +
-                   (opponentPresent ? "1" : "0");
-        }
+        static string SeatMessage(string head, int seat, string code, bool opponentPresent) =>
+            head + RequireSeat(seat).ToString(CultureInfo.InvariantCulture) + "|" + (code == null ? "-" : RequireCode(code)) + "|" +
+            (opponentPresent ? "1" : "0");
 
         static bool TryParseSeat(string[] p, out int seat, out string code, out bool opponentPresent)
         {
             seat = 0;
             code = null;
             opponentPresent = false;
-            if (p.Length != 4 || (p[1] != "0" && p[1] != "1") || (p[2] != "-" && !IsRoomCode(p[2])) || (p[3] != "0" && p[3] != "1"))
+            if (p.Length != 4 || !TryParseSeatNumber(p[1], out seat) || (p[2] != "-" && !IsRoomCode(p[2])) || (p[3] != "0" && p[3] != "1"))
                 return false;
-            seat = p[1] == "1" ? 1 : 0;
             code = p[2] == "-" ? null : p[2];
             opponentPresent = p[3] == "1";
             return true;
         }
+
+        /// <summary>席の番号(0〜4 の 1 文字)か。</summary>
+        static bool TryParseSeatNumber(string s, out int seat)
+        {
+            seat = 0;
+            if (s == null || s.Length != 1 || s[0] < '0' || s[0] >= '0' + MaxSeats) return false;
+            seat = s[0] - '0';
+            return true;
+        }
+
+        static bool TryParsePlayers(string[] p, out string[] names, out int[] ratings)
+        {
+            int n = (p.Length - 1) / 2;
+            names = new string[n];
+            ratings = new int[n];
+            for (int i = 0; i < n; i++)
+                if (!TryDecodeName(p[1 + i * 2], out names[i]) || !TryParseRating(p[2 + i * 2], out ratings[i]))
+                    return false;
+            return true;
+        }
+
+        static int RequireSeat(int seat) =>
+            seat >= 0 && seat < MaxSeats ? seat : throw new ArgumentOutOfRangeException(nameof(seat));
 
         static string RequireGame(string game) =>
             IsGameId(game) ? game : throw new ArgumentException("game id must be 1-20 lowercase letters", nameof(game));

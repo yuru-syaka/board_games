@@ -17,6 +17,8 @@ public sealed class DynamoPlayerStore : IPlayerStore
     public const string ProfileKey = "profile";
     public const string GameKeyPrefix = "g#";
     public const string ResultKeyPrefix = "r#";
+    /// <summary>対局結果の席の数の上限（多人数の部屋は 5 席。アカウントを消すとき、全部の席から ID を取り除く）。</summary>
+    const int MaxResultSeats = Net.LobbyProtocol.MaxSeats;
     const string RankingIndex = "ranking";
 
     readonly IAmazonDynamoDB _db;
@@ -167,21 +169,27 @@ public sealed class DynamoPlayerStore : IPlayerStore
         foreach (var link in items.Where(i => i["key"].S.StartsWith(ResultKeyPrefix, StringComparison.Ordinal)))
         {
             if (!link.TryGetValue("rid", out var rid) || !link.TryGetValue("seat", out var seatValue)) continue;
-            var attr = "u" + seatValue.N;
-            try
+            // つながりの行は 1 人 1 行なので、同じアカウントが複数の席にいた対局（多人数の部屋）にも備えて、全部の席を確かめる
+            var seats = new[] { seatValue.N }.Concat(Enumerable.Range(0, MaxResultSeats).Select(s => s.ToString(CultureInfo.InvariantCulture)))
+                .Distinct();
+            foreach (var seat in seats)
             {
-                await _db.UpdateItemAsync(new UpdateItemRequest
+                var attr = "u" + seat;
+                try
                 {
-                    TableName = _resultsTable,
-                    Key = new Dictionary<string, AttributeValue> { ["id"] = rid },
-                    UpdateExpression = "REMOVE " + attr,
-                    ConditionExpression = attr + " = :u",
-                    ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":u"] = S(userId) },
-                });
-            }
-            catch (ConditionalCheckFailedException)
-            {
-                // もう取り除かれている
+                    await _db.UpdateItemAsync(new UpdateItemRequest
+                    {
+                        TableName = _resultsTable,
+                        Key = new Dictionary<string, AttributeValue> { ["id"] = rid },
+                        UpdateExpression = "REMOVE " + attr,
+                        ConditionExpression = attr + " = :u",
+                        ExpressionAttributeValues = new Dictionary<string, AttributeValue> { [":u"] = S(userId) },
+                    });
+                }
+                catch (ConditionalCheckFailedException)
+                {
+                    // その席にはいない・もう取り除かれている
+                }
             }
         }
 

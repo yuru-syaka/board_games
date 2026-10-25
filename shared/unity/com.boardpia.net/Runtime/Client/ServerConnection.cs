@@ -67,7 +67,10 @@ namespace BoardGames.Net
         bool _resumingSaved;
 
         public ServerState State { get; private set; } = ServerState.Offline;
-        /// <summary>サーバーが割り当てた席(0 か 1)。0 = 部屋を作った・先に待っていた側。</summary>
+        /// <summary>
+        /// サーバーが割り当てた席。2 人用は 0 か 1(0 = 部屋を作った・先に待っていた側)。
+        /// 多人数の部屋は 0〜4 で、対局が始まるときに 0 から詰め直される(JoinedRoom がもう一度起きる)。
+        /// </summary>
         public int LocalSeat { get; private set; }
         public bool OpponentPresent { get; private set; }
         /// <summary>ルームコード(ランダムマッチのときは null)。</summary>
@@ -105,6 +108,23 @@ namespace BoardGames.Net
         public event Action<string[], int[]> PlayersUpdated;
         /// <summary>レートが動いた(新しいレート, 増減)。終局のあと、レートのある対局でだけ届く。</summary>
         public event Action<int, int> RatingChanged;
+
+        // ---------- 多人数の部屋(ゴースト・トレンド) ----------
+        /// <summary>始まる前の部屋の様子(いる人数, 最大人数, ホストの席)。人が出入りするたびに届く。</summary>
+        public event Action<int, int, int> TableUpdated;
+        /// <summary>席の通信が切れた(席, 戻るのを待つ秒数。過ぎたら Claim で CPU に代わってもらえる)。</summary>
+        public event Action<int, int> SeatAway;
+        /// <summary>その席を CPU が代わった(抜けた・戻らなかった・時間切れが続いた)。</summary>
+        public event Action<int> SeatTakenOver;
+
+        /// <summary>始まる前の部屋の人数(多人数の部屋。届くまでは 0)。</summary>
+        public int TableCount { get; private set; }
+        /// <summary>部屋の最大人数(多人数の部屋)。</summary>
+        public int TableCapacity { get; private set; }
+        /// <summary>ホストの席(多人数の部屋)。</summary>
+        public int TableHost { get; private set; }
+        /// <summary>自分がホスト(始まる前の部屋で「開始」を押せる人)か。</summary>
+        public bool IsTableHost => TableCapacity > 0 && TableHost == LocalSeat;
 
         public ServerConnection(string gameId, string url = DefaultUrl, ITextSocket socket = null, ISessionStore sessions = null,
             IIdTokenSource tokens = null)
@@ -195,10 +215,19 @@ namespace BoardGames.Net
             if (State == ServerState.InRoom) SendRaw(message);
         }
 
-        /// <summary>勝ちを申請する(相手が戻らない)。サーバーが時刻を確かめ、認めれば Error で結果を知らせる。</summary>
+        /// <summary>
+        /// 勝ちを申請する(相手が戻らない・相手の時間切れ)。サーバーが時刻を確かめ、認めれば Error で結果を知らせる。
+        /// 多人数の部屋では「戻らない席を CPU に代わってもらう」「時間切れの人の手を進めてもらう」になる。
+        /// </summary>
         public void Claim()
         {
             if (State == ServerState.InRoom) SendRaw(LobbyProtocol.Claim());
+        }
+
+        /// <summary>始まる前の部屋で、ホストが対局を始める(多人数の部屋)。</summary>
+        public void StartTable()
+        {
+            if (State == ServerState.InRoom) SendRaw(LobbyProtocol.Start());
         }
 
         // ---------- サーバーから ----------
@@ -306,7 +335,18 @@ namespace BoardGames.Net
                     OpponentLeft?.Invoke();
                     break;
                 case LobbyMessageKind.OpponentAway:
-                    OpponentAway?.Invoke(lobby.Seconds);
+                    if (lobby.Seat >= 0) SeatAway?.Invoke(lobby.Seat, lobby.Seconds);
+                    else OpponentAway?.Invoke(lobby.Seconds);
+                    break;
+                case LobbyMessageKind.Table:
+                    TableCount = lobby.Count;
+                    TableCapacity = lobby.Capacity;
+                    TableHost = lobby.Host;
+                    OpponentPresent = lobby.Count > 1;
+                    TableUpdated?.Invoke(lobby.Count, lobby.Capacity, lobby.Host);
+                    break;
+                case LobbyMessageKind.CpuSeat:
+                    SeatTakenOver?.Invoke(lobby.Seat);
                     break;
                 case LobbyMessageKind.OpponentBack:
                     OpponentBack?.Invoke();
@@ -498,6 +538,8 @@ namespace BoardGames.Net
                 case LobbyErrors.RoomFull: return "そのルームは満員です。";
                 case LobbyErrors.ServerBusy: return "サーバーが混み合っています。少し待ってからもう一度お試しください。";
                 case LobbyErrors.SessionExpired: return "対局は終了しました。";
+                case LobbyErrors.NotHost: return "対局を始められるのは、ルームを作った人だけです。";
+                case LobbyErrors.NotEnoughPlayers: return "まだ人数が足りません。";
                 default: return "サーバーとの通信でエラーが起きました。";
             }
         }

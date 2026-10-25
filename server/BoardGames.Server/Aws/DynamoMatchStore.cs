@@ -43,6 +43,8 @@ public sealed class DynamoMatchStore : IMatchStore
     {
         var item = await GetAsync("m#" + matchId);
         if (item == null) return null;
+        // 席の数（多人数の部屋だけ n を書く。無ければ 2 人用）
+        int seats = item.TryGetValue("n", out var n) ? int.Parse(n.N, CultureInfo.InvariantCulture) : 2;
         var match = new MatchRecord
         {
             Id = matchId,
@@ -53,18 +55,21 @@ public sealed class DynamoMatchStore : IMatchStore
             Version = long.Parse(item["ver"].N, CultureInfo.InvariantCulture),
             TurnStartedAt = item.TryGetValue("ts", out var ts) ? long.Parse(ts.N, CultureInfo.InvariantCulture) : 0,
             GameNo = item.TryGetValue("gn", out var gn) ? int.Parse(gn.N, CultureInfo.InvariantCulture) : 0,
+            HostSeat = item.TryGetValue("hs", out var hs) ? int.Parse(hs.N, CultureInfo.InvariantCulture) : 0,
+            PlayerCount = item.TryGetValue("pc", out var pc) ? int.Parse(pc.N, CultureInfo.InvariantCulture) : 0,
+            Connections = new string?[seats], Rematch = new bool[seats], Tokens = new string?[seats],
+            AwaySince = new long?[seats], Users = new string?[seats], TimeoutStrikes = new int[seats],
         };
-        match.Connections[0] = OptionalString(item, "c0");
-        match.Connections[1] = OptionalString(item, "c1");
         if (item.TryGetValue("moves", out var moves) && moves.L != null) match.Moves.AddRange(moves.L.Select(m => m.S));
-        var rematch = OptionalString(item, "rm") ?? "00";
-        match.Rematch[0] = rematch[0] == '1';
-        match.Rematch[1] = rematch[1] == '1';
-        for (int seat = 0; seat < 2; seat++)
+        var rematch = OptionalString(item, "rm") ?? "";
+        for (int seat = 0; seat < seats; seat++)
         {
+            match.Connections[seat] = OptionalString(item, "c" + seat);
+            match.Rematch[seat] = seat < rematch.Length && rematch[seat] == '1';
             match.Tokens[seat] = OptionalString(item, "k" + seat);
             match.Users[seat] = OptionalString(item, "u" + seat);
             if (item.TryGetValue("a" + seat, out var away)) match.AwaySince[seat] = long.Parse(away.N, CultureInfo.InvariantCulture);
+            if (item.TryGetValue("to" + seat, out var strikes)) match.TimeoutStrikes[seat] = int.Parse(strikes.N, CultureInfo.InvariantCulture);
         }
         return match;
     }
@@ -78,20 +83,27 @@ public sealed class DynamoMatchStore : IMatchStore
             ["started"] = new AttributeValue { BOOL = match.Started },
             ["seed"] = N(match.Seed),
             ["moves"] = new AttributeValue { L = match.Moves.Select(S).ToList() },
-            ["rm"] = S((match.Rematch[0] ? "1" : "0") + (match.Rematch[1] ? "1" : "0")),
+            ["rm"] = S(string.Concat(match.Rematch.Select(r => r ? "1" : "0"))),
             ["ver"] = N(match.Version + 1),
             ["ts"] = N(match.TurnStartedAt),
             ["gn"] = N(match.GameNo),
             ["ttl"] = Ttl(MatchTtl),
         };
-        if (match.Connections[0] != null) item["c0"] = S(match.Connections[0]!);
-        if (match.Connections[1] != null) item["c1"] = S(match.Connections[1]!);
         if (match.Code != null) item["code"] = S(match.Code);
-        for (int seat = 0; seat < 2; seat++)
+        if (match.Capacity != 2)
         {
+            // 多人数の部屋だけ（2 人用の行の形は変えない）
+            item["n"] = N(match.Capacity);
+            item["hs"] = N(match.HostSeat);
+            item["pc"] = N(match.PlayerCount);
+        }
+        for (int seat = 0; seat < match.Capacity; seat++)
+        {
+            if (match.Connections[seat] != null) item["c" + seat] = S(match.Connections[seat]!);
             if (match.Tokens[seat] != null) item["k" + seat] = S(match.Tokens[seat]!);
             if (match.Users[seat] != null) item["u" + seat] = S(match.Users[seat]!);
             if (match.AwaySince[seat] is long away) item["a" + seat] = N(away);
+            if (match.TimeoutStrikes[seat] > 0) item["to" + seat] = N(match.TimeoutStrikes[seat]);
         }
 
         var request = new PutItemRequest { TableName = _table, Item = item };
@@ -201,11 +213,17 @@ public sealed class DynamoMatchStore : IMatchStore
             ["moves"] = new AttributeValue { L = result.Moves.Select(S).ToList() },
             ["seed"] = N(result.Seed),
         };
-        for (int seat = 0; seat < 2; seat++)
+        int seats = result.Users?.Count ?? 2;
+        for (int seat = 0; seat < seats; seat++)
         {
             if (result.Users?[seat] is { } user) resultItem["u" + seat] = S(user);
-            if (result.RatingsAfter != null) resultItem["ra" + seat] = N(result.RatingsAfter[seat]);
-            if (result.RatingDeltas != null) resultItem["rd" + seat] = N(result.RatingDeltas[seat]);
+            // 多人数の部屋では、レートが動かなかった席（ゲスト・同じアカウント）は -1: 書かない
+            if (result.RatingsAfter != null && result.RatingsAfter[seat] >= 0)
+            {
+                resultItem["ra" + seat] = N(result.RatingsAfter[seat]);
+                if (result.RatingDeltas != null) resultItem["rd" + seat] = N(result.RatingDeltas[seat]);
+            }
+            if (result.Ranks != null) resultItem["rk" + seat] = N(result.Ranks[seat]);
         }
 
         // 1 つ目は結果（同じ対局は 1 回だけ）、2 つ目からは戦績（読んだときの版のままなら書く）。全部書けるか、何も書かないか
@@ -247,10 +265,11 @@ public sealed class DynamoMatchStore : IMatchStore
         }
 
         // ログインしていた席ごとに「この人のこの結果」の行（アカウントを消すとき、結果の行からその人の ID を取り除くため）
-        for (int seat = 0; seat < 2; seat++)
+        var linked = new HashSet<string>();
+        for (int seat = 0; seat < seats; seat++)
         {
             if (result.Users?[seat] is not { } user) continue;
-            if (seat == 1 && result.Users[0] == user) continue; // 同じアカウントが両方の席: 1 行だけ（同じキーを 2 回は書けない）
+            if (!linked.Add(user)) continue; // 同じアカウントが複数の席: 1 行だけ（同じキーを 2 回は書けない）
             items.Add(new TransactWriteItem
             {
                 Put = new Put
