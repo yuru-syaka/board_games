@@ -46,6 +46,10 @@ body {
   border-bottom: 1px solid rgba(155, 92, 255, 0.35);
   background: rgba(7, 6, 15, 0.85);
 }
+
+/* プレイページでは「遊び方」と「ログイン」を出さない（全画面のボタンだけ残す） */
+.play-bar .actions a.btn { display: none; }
+
 .brand {
   font-family: "Orbitron", sans-serif;
   font-weight: 800;
