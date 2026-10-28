@@ -341,3 +341,18 @@ header { position: relative; }
 .guide-item h3 { margin: 0 0 8px; font-size: 1rem; color: var(--cyan); }
 .guide-item p { margin: 0; line-height: 1.8; font-size: 0.92rem; color: var(--text); }
 .guide-item a { color: var(--cyan); }
+
+/* ===== サイトの紹介（トップページ、ゲームの一覧の上） ===== */
+.site-intro {
+  max-width: 760px;
+  margin: 0 auto 8px;
+  padding: 0 16px;
+  text-align: center;
+}
+.site-intro p { margin: 0; line-height: 1.9; font-size: 0.95rem; color: var(--text); }
+
+/* ===== 新しい開発日記（トップページ。カードの見た目は page.css の .post-card） ===== */
+.latest-posts .post-list { gap: 12px; }
+.latest-posts .post-card h3 { margin: 6px 0 8px; font-size: 1.05rem; color: #fff; }
+.latest-more { margin: 16px 0 0; text-align: right; }
+.latest-more a { color: var(--cyan); font-weight: 700; }

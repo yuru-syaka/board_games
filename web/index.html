@@ -62,9 +62,18 @@
   <header>
     <h1 class="logo">BOARD PIA</h1>
     <p class="subtitle">ブラウザですぐ遊べる ボードゲーム作品集</p>
-    <!-- 右上のリンク（ランキング。ログイン / マイページは js/auth.js が右に足す） -->
-    <div class="header-auth"><a href="ranking/">ランキング</a></div>
+    <!-- 右上のリンク（ランキング・開発日記。ログイン / マイページは js/auth.js が右に足す） -->
+    <div class="header-auth"><a href="ranking/">ランキング</a><a href="blog/">開発日記</a></div>
   </header>
+
+  <!-- サイトの紹介（ゲームの一覧の上。どんなサイトかを最初に伝える） -->
+  <section class="site-intro" aria-label="BOARD PIA の紹介">
+    <p>
+      BOARD PIA は、おばけたちが主役のボードゲームを、ブラウザですぐに遊べるサイトです。
+      今は 2 人で遊ぶゲームが 7 つ、3〜5 人で遊ぶゲームが 1 つ。すべて無料で、インストールも会員登録もいりません。
+      ひとりでじっくり遊ぶなら CPU と、だれかと遊ぶならオンライン対戦で。
+    </p>
+  </section>
 
   <!-- ゲーム一覧。中身は js/script.js が games 配列から作るので、ここには何も書かない -->
   <main id="games"></main>
@@ -88,9 +97,69 @@
     </div>
   </section>
 
-  <!-- フッター：プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
+  <!-- サイトの特徴（どんな考えで作っているか）。ゲームを足したときは、数も直す -->
+  <section class="online-guide" aria-labelledby="about-site-title">
+    <h2 id="about-site-title">BOARD PIA の特徴</h2>
+    <div class="guide-grid">
+      <div class="guide-item">
+        <h3>短い時間で、深く遊べる</h3>
+        <p>
+          どのゲームも、ルールは数分で覚えられ、1 局は短いもので 1〜3 分、長いものでも 20 分ほどで終わります。
+          それでいて、相手の手を読む、正体を隠す、競りで駆け引きする、といったボードゲームならではの考えどころを残しました。
+          各ゲームの「遊び方・ルールを見る」では、ルールと遊び方、勝つためのコツ、よくある質問を載せています。
+        </p>
+      </div>
+      <div class="guide-item">
+        <h3>考える CPU を相手に練習</h3>
+        <p>
+          CPU は、ただ合法な手を選ぶだけではありません。
+          ゲームに合わせて、先の局面を読んだり、相手のおばけの正体を推理したりして手を選びます。
+          まずは CPU を相手にルールとコツをつかみ、慣れたらオンライン対戦で人と腕を比べてみてください。
+        </p>
+      </div>
+      <div class="guide-item">
+        <h3>個人で作って、続けて育てる</h3>
+        <p>
+          ゲームの画面もルールの仕組みも対戦サーバーも、すべて個人で一から作っています。
+          作る中で考えたことや工夫は<a href="blog/">開発日記</a>に書いています。
+          不具合やご要望は<a href="contact.html">お問い合わせ</a>からお送りください。新しいゲームも順に増やしていきます。
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 新しい開発日記（新しい順に 3 本。blog/index.html に記事を足したら、ここも差し替える） -->
+  <section class="online-guide latest-posts" aria-labelledby="latest-posts-title">
+    <h2 id="latest-posts-title">新しい開発日記</h2>
+    <ul class="post-list">
+      <li>
+        <a class="post-card" href="blog/2026-10-23-serverless-online.html">
+          <time datetime="2026-10-23">2026.10.23</time>
+          <h3>サーバーレスで対戦サーバーを作った話</h3>
+          <p>常に動くサーバーを持たないオンライン対戦の作りと、通信が切れたときの工夫、負荷試験で分かったこと。</p>
+        </a>
+      </li>
+      <li>
+        <a class="post-card" href="blog/2026-10-21-brotli.html">
+          <time datetime="2026-10-21">2026.10.21</time>
+          <h3>ゲームのダウンロードを約3割軽くした話（Brotli 圧縮）</h3>
+          <p>ゲームのファイルを小さくして、遊び始めるまでの待ち時間を短くした方法。</p>
+        </a>
+      </li>
+      <li>
+        <a class="post-card" href="blog/2026-10-20-century-ghost.html">
+          <time datetime="2026-10-20">2026.10.20</time>
+          <h3>魂を集めておばけを呼ぶ「拡大再生産」の作り方</h3>
+          <p>集めた魂で術を覚え、だんだん強くなっていくカードゲームの仕組みと、1 手先を読む CPU。</p>
+        </a>
+      </li>
+    </ul>
+    <p class="latest-more"><a href="blog/">開発日記をすべて見る</a></p>
+  </section>
+
+  <!-- フッター：運営者情報・利用規約・プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
   <footer>
-    <nav class="footer-links"><a href="./terms.html">利用規約</a><a href="./privacy.html">プライバシーポリシー</a><a href="./contact.html">お問い合わせ</a></nav>
+    <nav class="footer-links"><a href="./about.html">運営者情報</a><a href="./terms.html">利用規約</a><a href="./privacy.html">プライバシーポリシー</a><a href="./contact.html">お問い合わせ</a></nav>
     &copy; 2026 ゆるめの社会人
   </footer>
 </body>
