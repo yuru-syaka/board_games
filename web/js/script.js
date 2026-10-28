@@ -182,6 +182,22 @@ const trendIcon = `
     <rect x="178" y="18" width="20" height="22" rx="3" stroke="#9b5cff" stroke-width="3" fill="rgba(155, 92, 255, 0.35)"/>
   </svg>`;
 
+// ネオン風の「宝石と、宝石を抱えたおばけ・宝石の粒・館の主の星」アイコン（ゴースト・ジュエル用）
+//   左：大きな宝石（シアン）、まん中：宝石を抱えたおばけ（ピンク）、右：積んだ宝石の粒（橙・紫・緑）と星（白）
+const jewelIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 46 L28 28 H58 L72 46 L43 96 Z" stroke="#22f3ff" stroke-width="3.5"/>
+    <path d="M14 46 H72 M28 28 L36 46 L43 96 M58 28 L50 46 L43 96 M36 46 L43 28 L50 46" stroke="#22f3ff" stroke-width="2" opacity="0.7"/>
+    <path d="M84 102 V58 a22 22 0 0 1 44 0 V102 l-7.3 -6 -7.3 6 -7.4 -6 -7.3 6 -7.4 -6 z" stroke="#ff2fd6" stroke-width="3.5"/>
+    <circle cx="99" cy="60" r="3.2" fill="#ffffff"/>
+    <circle cx="113" cy="60" r="3.2" fill="#ffffff"/>
+    <path d="M98 74 L106 68 L114 74 L106 86 Z" stroke="#ffd23f" stroke-width="2.5" fill="rgba(255, 210, 63, 0.25)"/>
+    <circle cx="152" cy="96" r="9" stroke="#ff8c2e" stroke-width="3"/>
+    <circle cx="172" cy="96" r="9" stroke="#9b5cff" stroke-width="3"/>
+    <circle cx="162" cy="78" r="9" stroke="#59ff80" stroke-width="3"/>
+    <path d="M168 22 l4.5 9 10 1.5 -7.2 7 1.7 10 -9 -4.7 -9 4.7 1.7 -10 -7.2 -7 10 -1.5 z" stroke="#ffffff" stroke-width="2.5"/>
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -273,6 +289,15 @@ const games = [
     players: [3, 5],
     image: "",
     icon: trendIcon
+  },
+  {
+    title: "ゴースト・ジュエル",
+    description: "宝石を集めてカードを買い、割引をためて高いカードと館の主をねらう2〜4人のゲーム。先に15点に届いた周で終わり。",
+    url: "play/ghost-jewel/",
+    detail: "games/ghost-jewel.html",
+    players: [2, 4],
+    image: "",
+    icon: jewelIcon
   }
 ];
 

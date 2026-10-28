@@ -1,5 +1,5 @@
 /* =========================================================================
-   game-list.js … 8 本のゲームの一覧（ランキング・プロフィール・マイページで使う。ステップ 5-4）
+   game-list.js … 9 本のゲームの一覧（ランキング・プロフィール・マイページで使う。ステップ 5-4）
    -------------------------------------------------------------------------
    - id   … 対戦サーバー・API でのゲームの ID（server/BoardGames.Server/Games と同じ）
    - name … 画面に出す名前
@@ -16,6 +16,7 @@ window.BOARDPIA_GAMES = [
   { id: 'centuryghost', name: 'センチュリー・ゴースト', slug: 'century-ghost' },
   { id: 'ghostreversa', name: 'ゴースト・リバーサ', slug: 'ghost-reversa' },
   { id: 'ghosttrend', name: 'ゴースト・トレンド', slug: 'ghost-trend' },
+  { id: 'ghostjewel', name: 'ゴースト・ジュエル', slug: 'ghost-jewel' },
 ];
 
 /** ゲームの ID から一覧の 1 件を探す（無ければ null）。 */
