@@ -1,0 +1,16 @@
+{
+    "name": "BoardGames.GhostJewel.Logic",
+    "rootNamespace": "BoardGames.GhostJewel",
+    "references": [
+        "BoardGames.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

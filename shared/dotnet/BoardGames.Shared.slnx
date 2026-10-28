@@ -6,6 +6,8 @@
   <Project Path="BoardGames.Core/BoardGames.Core.csproj" />
   <Project Path="BoardGames.Geister.Logic/BoardGames.Geister.Logic.csproj" />
   <Project Path="BoardGames.Geister.Tests/BoardGames.Geister.Tests.csproj" />
+  <Project Path="BoardGames.GhostJewel.Logic/BoardGames.GhostJewel.Logic.csproj" />
+  <Project Path="BoardGames.GhostJewel.Tests/BoardGames.GhostJewel.Tests.csproj" />
   <Project Path="BoardGames.GhostReversa.Logic/BoardGames.GhostReversa.Logic.csproj" />
   <Project Path="BoardGames.GhostReversa.Tests/BoardGames.GhostReversa.Tests.csproj" />
   <Project Path="BoardGames.GhostTrend.Logic/BoardGames.GhostTrend.Logic.csproj" />

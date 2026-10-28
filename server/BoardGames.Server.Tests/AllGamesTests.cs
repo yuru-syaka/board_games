@@ -187,6 +187,7 @@ public class AllGamesTests
     [TestCase("centuryghost")]
     [TestCase("ghostreversa")]
     [TestCase("ghosttrend")]
+    [TestCase("ghostjewel")]
     public void SameSeed_GivesTheSameStart(string game)
     {
         var engine = GameRegistry.Default().Find(game)!;
