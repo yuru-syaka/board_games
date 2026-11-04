@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  記事（https://boardgamepia.com/blog/2026-11-04-beginner-order.html）
+  - 記事: ボードゲーム初心者におすすめの遊ぶ順番（遊ぶ人向けの読みもの）
+  - 9 本を、ルールがかんたんな順に 5 段階に分け、それぞれの最初の 1 局で意識することを書く。
+  - ルールの説明は、各ゲームの紹介ページ（games/*.html）とそろえる。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: main に push すると GitHub Actions が WebStack をデプロイする。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ボードゲーム初心者におすすめの遊ぶ順番｜かんたんなゲームから少しずつ - BOARD PIA</title>
+  <meta name="description" content="ボードゲームを初めて遊ぶ人向けに、BOARD PIA の 9 本を、ルールがかんたんな順に 5 段階で紹介します。それぞれのゲームで最初の 1 局に意識すること、つまずきやすいところもまとめました。" />
+
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="ボードゲーム初心者におすすめの遊ぶ順番" />
+  <meta property="og:description" content="9 本のボードゲームを、ルールがかんたんな順に 5 段階で紹介します。最初の 1 局で意識することもまとめました。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-11-04-beginner-order.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense（プレイページには入れていない） -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+</head>
+<body>
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <h1 class="page-title">ボードゲーム初心者におすすめの遊ぶ順番</h1>
+    <div class="post-meta">
+      <time datetime="2026-11-04">2026.11.04</time>
+      <span class="tag">遊び方</span>
+      <span class="tag">初心者向け</span>
+    </div>
+
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。ボードゲームは、ルールを覚えるところがいちばんの壁だと思います。
+        いきなりルールの多いゲームから始めると、「何をすればいいのか分からないまま終わった」となりがちです。
+      </p>
+      <p>
+        この記事では、BOARD PIA の 9 本を、<strong>ルールがかんたんな順に 5 段階</strong>に分けて紹介します。
+        前の段階で覚えたことが、次の段階で役に立つように並べました。それぞれのゲームで、最初の 1 局に意識することも書いています。
+      </p>
+
+      <h2>始める前に：3 つのコツ</h2>
+      <ul>
+        <li><strong>最初は CPU と遊ぶ</strong>：どのゲームにも CPU がいます。待たせる相手がいないので、ゆっくり考えながらルールを覚えられます。</li>
+        <li><strong>紹介ページの「1 ゲームの流れ」を読む</strong>：各ゲームの紹介ページに、実際の手順を追った例を載せています。ルールの文章だけより、ずっと分かりやすいです。</li>
+        <li><strong>最初の数局は負けてもいい</strong>：負けた理由が分かると、次の 1 局がぐっと面白くなります。</li>
+      </ul>
+
+      <h2>ステップ 1：まずは操作に慣れる</h2>
+      <h3>ゴースト・マルバツ（1〜3 分）</h3>
+      <p>
+        最初の 1 本は<a href="../games/ghost-tic-tac-toe.html">ゴースト・マルバツ</a>です。
+        おなじみの三目並べに、「自分の駒は 3 個まで。4 個目を置くと、いちばん古い駒が消える」というルールを 1 つ足しただけです。
+        マスを押すだけで遊べるので、このサイトの操作に慣れるのにちょうどいいです。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：次に消える駒は、少し薄く表示されます。
+        自分の薄い駒と、相手の薄い駒の両方を見るようにしましょう。「次に消える駒を使った 2 つ並び」は、3 つ目を置いた瞬間に古い駒が消えるので、勝ちにはつながりません。
+        これに気づくと、急に強くなります。
+      </p>
+
+      <h2>ステップ 2：駒を「動かす」ゲームへ</h2>
+      <h3>ゴースト・ゴブル（3〜5 分）</h3>
+      <p>
+        次は<a href="../games/ghost-gobble.html">ゴースト・ゴブル</a>です。これも 3 つ並べたら勝ちのゲームですが、駒に大・中・小の大きさがあります。
+        大きい駒は、小さい駒に<strong>かぶせて、のみこめます</strong>。さらに、盤の上の駒を別のマスへ動かすこともできます。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：「大」は 2 体しかない切り札です。早く 2 体とも置いてしまうと、相手のリーチを止められなくなります。
+        また、駒を動かすと、その下にかくれていた駒が現れます。それが相手の駒で、相手の列ができてしまったら相手の勝ちです。動かす前に、下に何があるかを思い出しましょう。
+      </p>
+
+      <h2>ステップ 3：先を読むゲーム</h2>
+      <p>ここからは、「自分の手」だけでなく「相手の次の手」まで考えるゲームです。どちらから遊んでもかまいません。</p>
+      <h3>ゴースト・リバーサ（3〜5 分）</h3>
+      <p>
+        <a href="../games/ghost-reversa.html">ゴースト・リバーサ</a>は、3×3 の小さな盤におばけを表か裏で置くゲームです。
+        表で置くと、同じ列のおばけがまとめて裏返ります（青は横の列、赤は縦の列）。自分の同じ色のおばけが 3 体表になったら勝ちです。
+        最初に 1 体を伏せて捨てるので、相手がどちらの色で勝とうとしているかは分かりません。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：表で置く前に、どのおばけが裏返るかを数えましょう。
+        自分の手で<strong>相手の同じ色を 3 体表にしてしまうと、相手の勝ち</strong>になります。パソコンでは、マスにカーソルを乗せると裏返るおばけが浮き上がって見えます。
+      </p>
+      <h3>ゴースト・クアルト（5〜10 分）</h3>
+      <p>
+        <a href="../games/ghost-quarto.html">ゴースト・クアルト</a>は、4×4 の盤に 16 体のおばけを並べます。おばけはどちらの物でもなく、
+        <strong>相手が置くおばけを、自分が選んで渡す</strong>のが特徴です。縦・横・斜めに 4 体並び、色・大きさ・頭の形・中身のどれか 1 つでも共通していれば、最後に置いた人の勝ちです。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：3 体並んだラインができたら、その 3 体に共通する特徴を持つおばけは「危ないおばけ」です。渡す前に、必ずすべてのラインを確かめましょう。
+      </p>
+
+      <h2>ステップ 4：見えない情報を読むゲーム</h2>
+      <h3>ゴースト・ブラフ（5〜10 分）</h3>
+      <p>
+        <a href="../games/ghost-bluff.html">ゴースト・ブラフ</a>は、6×6 の盤で、善玉 4 体・悪玉 4 体のおばけを動かす心理戦です。
+        自分のおばけの正体は見えますが、相手のおばけの正体は「？」で隠れています。
+        相手の善玉を 4 体取る、自分の悪玉を 4 体取らせる、善玉を相手側の角から脱出させる、のどれかで勝ちです。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：相手のおばけを取るのは、いつも得とは限りません。<strong>悪玉を 4 体取ってしまうと負け</strong>だからです。
+        取った悪玉の数を数えながら、「このおばけは本当に善玉か」を相手の動きから推理しましょう。
+        また、脱出は角に着いた次の自分の番に行うので、角に着いたおばけには、相手に 1 回取られるチャンスがあります。
+      </p>
+
+      <h2>ステップ 5：カードで作戦を組み立てるゲーム</h2>
+      <p>最後は、カードを使う、ルールが多めのゲームです。ここまで来れば、もう初心者ではありません。</p>
+      <h3>ゴースト・ライン（10〜20 分）</h3>
+      <p>
+        <a href="../games/ghost-line.html">ゴースト・ライン</a>は、9 本の旗をめぐって、カード 3 枚の「隊列」で戦います。
+        役の強さは、同色連番・同数字・同色・連番・バラの順です。旗を 5 本、またはとなり合う 3 本取れば勝ちです。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：9 本すべてで勝つ必要はありません。相手が強い役を作っている旗は、いらないカードを置いてあきらめ、強いカードは勝てる旗に集めましょう。
+      </p>
+      <h3>センチュリー・ゴースト（10〜20 分）</h3>
+      <p>
+        <a href="../games/century-ghost.html">センチュリー・ゴースト</a>は、4 色の魂を集めて、おばけを呼び出すカードゲームです。
+        術カードで魂を増やしたり、交換したり、価値の高い色に変えたりします。新しい術を覚えるほど、魂を集める力が強くなっていきます。
+      </p>
+      <p>
+        <strong>最初の 1 局で意識すること</strong>：最初の数手は、おばけを呼ぶより、場の術カードを覚えることを優先しましょう。序盤に覚えた術は、ゲームの最後まで役に立ちます。
+      </p>
+      <h3>ゴースト・ジュエル・ゴースト・トレンド（多人数）</h3>
+      <p>
+        慣れてきたら、多人数で遊べる 2 本にも挑戦してみてください。
+        宝石を集めてカードを買う<a href="../games/ghost-jewel.html">ゴースト・ジュエル</a>（2〜4 人）と、絵を競りにかける<a href="../games/ghost-trend.html">ゴースト・トレンド</a>（3〜5 人）です。
+        くわしくは<a href="2026-11-04-party-games.html">大人数で遊ぶ記事</a>で紹介しています。
+      </p>
+
+      <h2>順番のまとめ</h2>
+      <ol>
+        <li><strong>ゴースト・マルバツ</strong>：操作に慣れる。「消える順番」を数える</li>
+        <li><strong>ゴースト・ゴブル</strong>：駒を動かす・のみこむ。下にかくれた駒を覚える</li>
+        <li><strong>ゴースト・リバーサ／ゴースト・クアルト</strong>：相手の次の手まで読む</li>
+        <li><strong>ゴースト・ブラフ</strong>：見えない正体を推理する</li>
+        <li><strong>ゴースト・ライン／センチュリー・ゴースト</strong>：カードで作戦を組み立てる</li>
+      </ol>
+
+      <div class="note">
+        どのゲームも、紹介ページに「はじめての人がまちがえやすいところ」をまとめています。
+        CPU に何回か負けたら、そこを読んでからもう一度遊んでみてください。理由が分かると、次の 1 局がぐっと面白くなります。
+        どれから遊ぶか迷うときは、<a href="2026-11-04-two-player-guide.html">2人で遊べるゲームの選び方</a>の比較表も参考にしてください。
+      </div>
+    </article>
+
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../games/ghost-tic-tac-toe.html">ゴースト・マルバツから遊ぶ →</a>
+    </div>
+  </main>
+
+  <footer>
+    <nav class="footer-links"><a href="../about.html">運営者情報</a><a href="../terms.html">利用規約</a><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>
