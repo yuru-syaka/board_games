@@ -18,6 +18,7 @@ public sealed class GameRegistry
         new GhostReversaEngine(),
         new GhostTrendEngine(),
         new GhostJewelEngine(),
+        new GhostSecretEngine(),
     });
 
     public IGameEngine? Find(string id) => _engines.GetValueOrDefault(id);

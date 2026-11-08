@@ -32,6 +32,7 @@
     <ProjectReference Include="..\..\shared\dotnet\BoardGames.GhostReversa.Logic\BoardGames.GhostReversa.Logic.csproj" />
     <ProjectReference Include="..\..\shared\dotnet\BoardGames.GhostTrend.Logic\BoardGames.GhostTrend.Logic.csproj" />
     <ProjectReference Include="..\..\shared\dotnet\BoardGames.GhostJewel.Logic\BoardGames.GhostJewel.Logic.csproj" />
+    <ProjectReference Include="..\..\shared\dotnet\BoardGames.GhostSecret.Logic\BoardGames.GhostSecret.Logic.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Amazon.Lambda.APIGatewayEvents" Version="3.0.1" />
