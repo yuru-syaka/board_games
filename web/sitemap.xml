@@ -3,7 +3,7 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://boardgamepia.com/</loc>
-    <lastmod>2026-11-04</lastmod>
+    <lastmod>2026-11-08</lastmod>
   </url>
   <url>
     <loc>https://boardgamepia.com/games/century-ghost.html</loc>
@@ -32,6 +32,10 @@
   <url>
     <loc>https://boardgamepia.com/games/ghost-reversa.html</loc>
     <lastmod>2026-10-28</lastmod>
+  </url>
+  <url>
+    <loc>https://boardgamepia.com/games/ghost-secret.html</loc>
+    <lastmod>2026-11-08</lastmod>
   </url>
   <url>
     <loc>https://boardgamepia.com/games/ghost-tic-tac-toe.html</loc>
@@ -91,7 +95,7 @@
   </url>
   <url>
     <loc>https://boardgamepia.com/about.html</loc>
-    <lastmod>2026-10-28</lastmod>
+    <lastmod>2026-11-08</lastmod>
   </url>
   <url>
     <loc>https://boardgamepia.com/contact.html</loc>

@@ -198,6 +198,23 @@ const jewelIcon = `
     <path d="M168 22 l4.5 9 10 1.5 -7.2 7 1.7 10 -9 -4.7 -9 4.7 1.7 -10 -7.2 -7 10 -1.5 z" stroke="#ffffff" stroke-width="2.5"/>
   </svg>`;
 
+// ネオン風の「伏せたカード・口に指を当てたおばけ・ヒミツのカード」アイコン（ゴースト・シークレット用）
+//   左：伏せたカードと「？」（紫・シアン）、まん中：しーっとするおばけ（ピンク）、右：鍵の描かれたヒミツのカード（金）
+const secretIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="26" width="46" height="68" rx="6" stroke="#9b5cff" stroke-width="3.5" fill="rgba(155, 92, 255, 0.18)"/>
+    <path d="M28 50 a7 7 0 1 1 9 6.7 v5" stroke="#22f3ff" stroke-width="3.5"/>
+    <circle cx="37" cy="72" r="2.4" fill="#22f3ff"/>
+    <path d="M78 102 V58 a22 22 0 0 1 44 0 V102 l-7.3 -6 -7.3 6 -7.4 -6 -7.3 6 -7.4 -6 z" stroke="#ff2fd6" stroke-width="3.5"/>
+    <circle cx="93" cy="60" r="3.2" fill="#ffffff"/>
+    <circle cx="107" cy="60" r="3.2" fill="#ffffff"/>
+    <path d="M94 76 H106" stroke="#ffffff" stroke-width="2.5"/>
+    <path d="M100 66 V84" stroke="#ffd23f" stroke-width="3"/>
+    <rect x="142" y="26" width="46" height="68" rx="6" stroke="#ffd23f" stroke-width="3.5"/>
+    <circle cx="165" cy="48" r="8" stroke="#ffd23f" stroke-width="3"/>
+    <path d="M165 56 V80 M165 70 H172 M165 77 H170" stroke="#ffd23f" stroke-width="3"/>
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -298,6 +315,15 @@ const games = [
     players: [2, 4],
     image: "",
     icon: jewelIcon
+  },
+  {
+    title: "ゴースト・シークレット",
+    description: "手札は1枚だけ。引いて1枚出し、相手のおばけを推理して脱落させる2〜4人のカードゲーム。ラウンドに勝ってかけらを集めよう。",
+    url: "play/ghost-secret/",
+    detail: "games/ghost-secret.html",
+    players: [2, 4],
+    image: "",
+    icon: secretIcon
   }
 ];
 

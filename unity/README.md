@@ -21,6 +21,7 @@
 | `Anomie` | ゴースト・リバーサ | `ghost-reversa` | `ghost-reversa.html` |
 | `MODEAN ART` | ゴースト・トレンド | `ghost-trend` | `ghost-trend.html` |
 | `Ghost Juwel` | ゴースト・ジュエル | `ghost-jewel` | `ghost-jewel.html` |
+| `GhostSecret` | ゴースト・シークレット | `ghost-secret` | `ghost-secret.html` |
 
 ```json
 { "title": "ゴースト・マルバツゲーム", "page": "ghost-tic-tac-toe.html" }
