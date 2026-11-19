@@ -1,0 +1,16 @@
+{
+    "name": "BoardGames.GhostGold.Logic",
+    "rootNamespace": "BoardGames.GhostGold",
+    "references": [
+        "BoardGames.Core"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}
