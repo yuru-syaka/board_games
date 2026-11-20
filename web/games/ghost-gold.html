@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  ゲーム「ゴースト・ゴールド」の紹介ページ（https://boardgamepia.com/games/ghost-gold.html）
+  - メインビジュアル、遊ぶボタン、基本情報、ルール、遊び方、コツ、よくある質問を載せる。
+  - 「▶ PLAY」は サイト内のプレイページ ../play/ghost-gold/（Unity WebGL）へ移動する。
+    プレイページは Unity のビルドで作られる（unity/README.md を参照。Unity プロジェクトは GhostGold）。
+  - ルールは、ゲーム内の「あそびかた」と同じ内容にそろえる
+    （ルールの正本は shared/unity/com.boardpia.ghostgold）。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: infra フォルダで cdk deploy WebStack を実行すると S3 にアップロードされ、
+    CloudFront のキャッシュも消えて boardgamepia.com に反映される。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
+  <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
+  <title>ゴースト・ゴールド｜遊び方とルール - BOARD PIA</title>
+  <meta name="description" content="夜の館を探検して金貨を集める2〜5人の押し引きカードゲーム「ゴースト・ゴールド」。進むか帰るかを全員で同時に決める遊び方・ルール・カード・勝つためのコツを紹介します。" />
+
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="ゴースト・ゴールド｜遊び方とルール" />
+  <meta property="og:description" content="進むか、帰るか。金貨は館の奥に。全員で同時に決める、2〜5人の押し引きカードゲーム。" />
+  <meta property="og:url" content="https://boardgamepia.com/games/ghost-gold.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+  <!-- ログイン（ステップ 5）。auth-config.js はデプロイのときに書き出される。ヘッダーに「ログイン / マイページ」を出す -->
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+</head>
+<body>
+  <!-- 上部のナビゲーション（左：トップへ戻るロゴ、右：メニュー。aria-current="page" が今いる場所） -->
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../" aria-current="page">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="../blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <!-- ページ本体 -->
+  <main class="page">
+    <!-- パンくずリスト（今いる場所） -->
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ ゴースト・ゴールド</p>
+
+    <!-- ページの大見出し（ゲーム名）とキャッチコピー -->
+    <h1 class="page-title">ゴースト・ゴールド</h1>
+    <p class="lead">進むか、帰るか。金貨は館の奥に。<br />全員で同時に決める、2〜5人の押し引きカードゲーム。</p>
+
+    <!-- メインビジュアル（トップページのカードと同じ SVG アイコン）
+         左：積んだ金貨、まん中：館を進むおばけ、右：館の扉と「！」（怪異） -->
+    <div class="hero-visual">
+      <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="積んだ金貨と、館を進むおばけと、怪異のひそむ扉のアイコン">
+        <ellipse cx="36" cy="96" rx="22" ry="7" stroke="#ffd23f" stroke-width="3" />
+        <ellipse cx="36" cy="84" rx="22" ry="7" stroke="#ffd23f" stroke-width="3" />
+        <ellipse cx="36" cy="72" rx="22" ry="7" stroke="#ffd23f" stroke-width="3" fill="rgba(255, 210, 63, 0.25)" />
+        <circle cx="44" cy="44" r="12" stroke="#ffd23f" stroke-width="3" />
+        <path d="M44 38 V50" stroke="#ffd23f" stroke-width="2.5" />
+        <path d="M78 102 V58 a22 22 0 0 1 44 0 V102 l-7.3 -6 -7.3 6 -7.4 -6 -7.3 6 -7.4 -6 z" stroke="#ff2fd6" stroke-width="3.5" />
+        <circle cx="93" cy="60" r="3.2" fill="#ffffff" />
+        <circle cx="107" cy="60" r="3.2" fill="#ffffff" />
+        <path d="M144 102 V44 a22 22 0 0 1 44 0 V102" stroke="#9b5cff" stroke-width="3.5" fill="rgba(155, 92, 255, 0.15)" />
+        <path d="M166 50 V74" stroke="#22f3ff" stroke-width="4" />
+        <circle cx="166" cy="86" r="2.8" fill="#22f3ff" />
+      </svg>
+    </div>
+
+    <!-- 遊ぶボタン：サイト内のプレイページ（../play/ghost-gold/、Unity WebGL）へ移動する。ページの最後にも同じボタンがある -->
+    <a class="play-big" href="../play/ghost-gold/">▶ PLAY</a>
+
+    <!-- 基本情報（ジャンル・人数・時間など）。dl / dt / dd の表 -->
+    <section class="panel">
+      <dl class="spec">
+        <dt>ジャンル</dt><dd>カードゲーム／押し引き・同時に決める</dd>
+        <dt>プレイ人数</dt><dd>2〜5人（CPU対戦はあなた＋CPU／オンラインは人間だけで2〜5人）</dd>
+        <dt>プレイ時間</dt><dd>1ゲーム 約10〜15分（全5夜）</dd>
+        <dt>カード</dt><dd>館の部屋 全31枚（金貨14枚・怪異4種類×3枚・秘宝5枚）</dd>
+        <dt>操作</dt><dd>マウスクリック／タップ（「進む」か「帰る」を押すだけ）</dd>
+        <dt>対応環境</dt><dd>PC・スマートフォンのブラウザ（このサイトでそのまま遊べます）</dd>
+      </dl>
+    </section>
+
+    <!-- 本文：どんなゲーム？ ／ ルール ／ カード ／ 遊び方 ／ 勝つためのコツ ／ よくある質問 -->
+    <article class="prose">
+      <h2>どんなゲーム？</h2>
+      <p>
+        おばけたちが、夜の館を探検して<strong>金貨</strong>を集めるゲームです。
+        館の部屋を1枚ずつめくり、出てきた金貨は探検中のみんなで山分け。奥へ進むほど金貨は増えますが、
+        同じ<strong>怪異</strong>に2度出会うと、おどかされて<strong>その夜の金貨をすべて失います</strong>。
+      </p>
+      <p>
+        めくるたびに、全員が「<strong>進む</strong>」か「<strong>帰る</strong>」かを決めます。決めた中身は全員がそろってから一斉に公開されるので、
+        ほかの人がどうするかを読み合うのがポイントです。5夜のあと、金庫の金貨がいちばん多い人の勝ちです。
+      </p>
+      <p>
+        どこでやめるかを決める「押し引き」の探検ゲーム「インカの黄金」と同じ種類のゲームですが、
+        カードの枚数・数字・名前、お守りや秘宝の決まりは、このゲームのために作ったものです。
+      </p>
+
+      <h2>ルール</h2>
+      <ol>
+        <li>全部で<strong>5夜</strong>遊びます。夜のはじめに、館の部屋の山札を混ぜ、全員が館に入ります（探検中）。</li>
+        <li>山札を<strong>1枚めくって</strong>、通路に置きます。
+          <ul>
+            <li><strong>金貨</strong>：探検中の人数で等分して、それぞれの手持ちにします。割り切れない余りは<strong>通路に残ります</strong>。</li>
+            <li><strong>秘宝</strong>：通路に置かれます（まだだれのものでもありません）。</li>
+            <li><strong>怪異</strong>：通路に<strong>同じ種類の怪異がもうあれば</strong>、探検中の人はおどかされて、その夜の手持ちを失い、夜が終わります。</li>
+          </ul>
+        </li>
+        <li>探検中の人は全員、「<strong>進む</strong>」か「<strong>帰る</strong>」かを決めます。全員が決めたら、一斉に公開します。</li>
+        <li>帰る人は、<strong>通路の余り</strong>を帰る人の数で山分けし、手持ちと一緒に<strong>金庫</strong>に入れます。金庫の金貨は、もう失いません。帰る人が<strong>ちょうど1人</strong>なら、通路の<strong>秘宝</strong>ももらえます。</li>
+        <li>探検中の人が残っていれば、2に戻ります。全員が帰るか、おどかされたら、その夜はおしまいです。</li>
+      </ol>
+
+      <div class="note">
+        5夜のあと、<strong>金庫の金貨＋秘宝の値打ち</strong>がいちばん多い人の勝ち。同じなら、秘宝が多い人が上です。それも同じなら引き分けです。
+      </div>
+
+      <h2>カードと決まりの一覧</h2>
+      <div class="table-wrap">
+        <table>
+          <!-- 名前が折り返さないよう、左の 2 列の幅を決めておく -->
+          <colgroup><col style="width: 10em" /><col style="width: 6em" /><col /></colgroup>
+          <thead>
+            <tr><th>カード</th><th>枚数</th><th>中身</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>金貨</td><td>14枚</td><td>金貨1〜14枚の部屋が1枚ずつ。探検中の人で山分けし、余りは通路に残ります。</td></tr>
+            <tr><td>ポルターガイスト</td><td>3枚</td><td rowspan="4">怪異。同じ種類が通路に2枚そろうと、探検中の人はおどかされます。おどかされた怪異は1枚、次の夜から館から消えます。</td></tr>
+            <tr><td>鬼火</td><td>3枚</td></tr>
+            <tr><td>呪いの鏡</td><td>3枚</td></tr>
+            <tr><td>底なし井戸</td><td>3枚</td></tr>
+            <tr><td>秘宝</td><td>5枚</td><td>1夜ごとに1枚、山札に入ります。値打ちは1夜目から順に6・8・10・12・14枚ぶん。1人だけで帰った人がもらえます。</td></tr>
+            <tr><td>お守り</td><td>1人1回</td><td>おどかされたとき、手持ちが2枚以上なら、半分（切り捨て）を金庫に守れます。自動で使います。</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul>
+        <li>めくられずに山札に残った秘宝は、次の夜も館の中にあります。通路に出たまま夜が終わった秘宝は、なくなります。</li>
+        <li>山札がなくなったら、探検中の人は全員帰ります（通路の余りを山分けして、金庫に入れます）。</li>
+        <li>通路の余りは、だれも持ち帰らないまま夜が終わると、なくなります。</li>
+      </ul>
+
+      <h2>遊び方</h2>
+      <h3>1. 人数と対戦方法を選ぶ</h3>
+      <p>CPU対戦は、タイトル画面で人数（2〜5人）を選んで「CPUと対戦」を押します。オンライン対戦は、そろった人数で遊びます。</p>
+
+      <h3>2. 「進む」か「帰る」を押す</h3>
+      <p>
+        カードがめくられると、画面の下に「進む」「帰る」のボタンが出ます。画面には、自分の手持ち、通路の余り、
+        そして<strong>次の1枚でおどかされる確率</strong>が表示されるので、それを見て決めましょう。
+      </p>
+
+      <h3>3. 一斉に公開</h3>
+      <p>全員が決めると「せーの！」で公開され、帰った人は金庫に金貨を入れます。上のパネルで、ほかの人の手持ち・金庫・お守りの有無も見られます。</p>
+
+      <h2>1夜の流れ（例・3人）</h2>
+      <ol>
+        <li>1枚目は「金貨 10」。3人で3枚ずつ分けて、余り1枚が通路に残ります。</li>
+        <li>全員「進む」。2枚目は「鬼火」。画面下の怪異の欄に「1枚出た（あぶない）」と出ます。</li>
+        <li>全員「進む」。3枚目は「金貨 8」。2枚ずつ分けて、余り2枚。通路の余りは3枚になり、手持ちは1人5枚です。</li>
+        <li>ここで、あなただけが「帰る」。通路の余り3枚を1人でもらい、手持ちとあわせて<strong>8枚</strong>を金庫に入れます。</li>
+        <li>残った2人は「進む」。4枚目に「鬼火」がもう1枚出て、2人ともおどかされ、手持ちの5枚を失いました（お守りがあれば、半分の2枚は守れます）。</li>
+      </ol>
+
+      <h2>勝つためのコツ</h2>
+      <ul>
+        <li><strong>おどかされる確率を見る</strong>：通路に出ている怪異の種類が増えるほど、次の1枚が危なくなります。画面の確率が上がってきたら、帰りどきです。</li>
+        <li><strong>1人で帰るとお得</strong>：通路の余りを1人じめでき、秘宝ももらえます。ほかの人が「まだ進みそう」なときに帰るのがねらい目です。</li>
+        <li><strong>みんなが帰りそうなら進む</strong>：帰る人が多いと分け前は少なくなります。逆に残った人は、次の金貨を少ない人数で分けられます。</li>
+        <li><strong>お守りがあるうちは少し強気に</strong>：お守りが残っていれば、おどかされても半分は守れます。使ったあとは慎重に。</li>
+      </ul>
+
+      <h2>強くなるための考え方</h2>
+      <h3>確率は「出た怪異の種類」で決まる</h3>
+      <p>
+        おどかされるのは、通路に<strong>すでに出ている種類</strong>の怪異がもう1枚出たときだけです。
+        怪異が1種類しか出ていなければまだ安全寄り、3〜4種類出ていたら危険です。
+        おどかされた怪異は1枚ずつ館から消えるので、夜が進むほど、その種類は出にくくなります。
+      </p>
+      <h3>手持ちの量で決める</h3>
+      <p>
+        手持ちが少ないうちは、失っても痛くないので進む方が得です。手持ちが増えるほど、同じ確率でも失うものが大きくなります。
+        「この量なら帰る」という目安を決めておくと、迷いにくくなります。
+      </p>
+      <h3>最後の夜は点差を見る</h3>
+      <p>
+        5夜目は、もう次がありません。トップの人は早めに帰って逃げ切り、追いかける人は大きく稼ぐために進む、という読み合いになります。
+        秘宝は夜が進むほど値打ちが上がる（最後は14枚ぶん）ので、逆転のきっかけにもなります。
+      </p>
+
+      <h2>はじめての人がまちがえやすいところ</h2>
+      <ul>
+        <li><strong>怪異は1枚目なら大丈夫</strong>：おどかされるのは、同じ種類の2枚目が出たときです。</li>
+        <li><strong>おどかされて失うのは手持ちだけ</strong>：前の夜までに金庫に入れた金貨は、失いません。</li>
+        <li><strong>秘宝は1人で帰ったときだけ</strong>：2人以上で同時に帰ると、だれも秘宝をもらえません。</li>
+        <li><strong>決めた中身は、全員がそろうまで見えない</strong>：「決めた」と出ていても、進むか帰るかはまだ分かりません。</li>
+      </ul>
+
+      <h2>こんな人におすすめ</h2>
+      <p>
+        ボタンは「進む」と「帰る」の2つだけなので、ボードゲームが初めての人でもすぐに遊べます。
+        それでいて、確率・手持ちの量・ほかの人の動きを読む駆け引きがあり、5人まで一緒に遊べるので、みんなでわいわい遊ぶのにも向いています。
+      </p>
+
+      <h2>よくある質問</h2>
+      <h3>スマートフォンでも遊べますか？</h3>
+      <p>はい。スマートフォンのブラウザでこのページの「PLAY」を押せば、そのまま遊べます。</p>
+      <h3>オンライン対戦はどうやって始めますか？</h3>
+      <p>オンラインは<strong>人間だけの2〜5人戦</strong>です。「ランダムマッチ」を押すと、ほかのプレイヤーを待っている部屋に入ります（なければ自分の部屋ができます）。最初に部屋に入った人がホストで、2人そろうと「開始する」を押せます。5人そろうと自動で始まります。友だちと遊ぶときは、ホストが「ルームを作る」で表示された4桁のコードを伝え、ほかの人が「ルームに入る」で入力します。</p>
+      <h3>ほかの人の「進む・帰る」は先に見えますか？</h3>
+      <p>見えません。オンライン対戦でも、全員が決め終わるまで、ほかの人の決定はサーバーから届かないようになっています。見えるのは「決めた」かどうかだけです。山札の順番も届きません。</p>
+      <h3>途中で抜けた人がいたらどうなりますか？</h3>
+      <p>対局の途中で抜けた人や、通信が切れて90秒戻らない人の席は、CPUが代わって最後まで続けます。1手の制限時間（90秒）を過ぎた人の手は、ほかの人が「手を進める」を押すと自動で進み、3回続くとCPUが代わります。抜けた人は最下位として記録されます。</p>
+      <h3>オンラインの勝敗はどう決まりますか？</h3>
+      <p>最後の点数（金庫の金貨＋秘宝の値打ち）の<strong>順位</strong>で決まります。1位がひとりなら勝ち、1位が並んだら引き分け、2位以下は負けとして戦績に記録されます。ログインした人どうしのランダムマッチでは、順位に応じてレートが動きます。</p>
+    </article>
+
+    <!-- ページの最後の遊ぶボタン（ルールを読み終えた人向け） -->
+    <a class="play-big" href="../play/ghost-gold/">▶ PLAY</a>
+
+    <!-- ページ下部の戻るリンク -->
+    <div class="pager">
+      <a href="../">← ゲーム一覧に戻る</a>
+    </div>
+  </main>
+
+  <!-- フッター：運営者情報・利用規約・プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
+  <footer>
+    <nav class="footer-links"><a href="../about.html">運営者情報</a><a href="../terms.html">利用規約</a><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

@@ -22,6 +22,7 @@
 | `MODEAN ART` | ゴースト・トレンド | `ghost-trend` | `ghost-trend.html` |
 | `Ghost Juwel` | ゴースト・ジュエル | `ghost-jewel` | `ghost-jewel.html` |
 | `GhostSecret` | ゴースト・シークレット | `ghost-secret` | `ghost-secret.html` |
+| `GhostGold` | ゴースト・ゴールド | `ghost-gold` | `ghost-gold.html` |
 
 ```json
 { "title": "ゴースト・マルバツゲーム", "page": "ghost-tic-tac-toe.html" }

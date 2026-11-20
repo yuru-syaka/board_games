@@ -215,6 +215,23 @@ const secretIcon = `
     <path d="M165 56 V80 M165 70 H172 M165 77 H170" stroke="#ffd23f" stroke-width="3"/>
   </svg>`;
 
+// ネオン風の「積んだ金貨・館を進むおばけ・怪異のひそむ扉」アイコン（ゴースト・ゴールド用）
+//   左：積んだ金貨（金）、まん中：館を進むおばけ（ピンク）、右：館の扉（紫）と「！」（シアン）
+const goldIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="36" cy="96" rx="22" ry="7" stroke="#ffd23f" stroke-width="3"/>
+    <ellipse cx="36" cy="84" rx="22" ry="7" stroke="#ffd23f" stroke-width="3"/>
+    <ellipse cx="36" cy="72" rx="22" ry="7" stroke="#ffd23f" stroke-width="3" fill="rgba(255, 210, 63, 0.25)"/>
+    <circle cx="44" cy="44" r="12" stroke="#ffd23f" stroke-width="3"/>
+    <path d="M44 38 V50" stroke="#ffd23f" stroke-width="2.5"/>
+    <path d="M78 102 V58 a22 22 0 0 1 44 0 V102 l-7.3 -6 -7.3 6 -7.4 -6 -7.3 6 -7.4 -6 z" stroke="#ff2fd6" stroke-width="3.5"/>
+    <circle cx="93" cy="60" r="3.2" fill="#ffffff"/>
+    <circle cx="107" cy="60" r="3.2" fill="#ffffff"/>
+    <path d="M144 102 V44 a22 22 0 0 1 44 0 V102" stroke="#9b5cff" stroke-width="3.5" fill="rgba(155, 92, 255, 0.15)"/>
+    <path d="M166 50 V74" stroke="#22f3ff" stroke-width="4"/>
+    <circle cx="166" cy="86" r="2.8" fill="#22f3ff"/>
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -324,6 +341,15 @@ const games = [
     players: [2, 4],
     image: "",
     icon: secretIcon
+  },
+  {
+    title: "ゴースト・ゴールド",
+    description: "夜の館を探検し、全員が同時に「進む」か「帰る」を決める2〜5人のゲーム。同じ怪異に2度出会うと、その夜の金貨を失う。",
+    url: "play/ghost-gold/",
+    detail: "games/ghost-gold.html",
+    players: [2, 5],
+    image: "",
+    icon: goldIcon
   }
 ];
 
