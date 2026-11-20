@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  開発日記の記事（https://boardgamepia.com/blog/2026-11-20-ghost-gold.html）
+  - 記事: 同時に決める押し引きゲームを、1人ずつの手番にのせる
+  - 新しい記事を作るときは、この形をコピーして、title / description / og:* / 日付 / 本文を書き換え、
+    blog/index.html の一覧と、対応するゲームの紹介ページからのリンクも追加する。
+  - 本文のコードは、shared/unity/com.boardpia.ghostgold の実装を短くしたもの。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: infra フォルダで cdk deploy WebStack を実行すると S3 にアップロードされ、
+    CloudFront のキャッシュも消えて boardgamepia.com に反映される。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
+  <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
+  <title>同時に決める押し引きゲームを、1人ずつの手番にのせる - 開発日記 - BOARD PIA</title>
+  <meta name="description" content="夜の館を探検する押し引きゲーム「ゴースト・ゴールド」。全員が同時に「進む・帰る」を決める仕組みを1人ずつの手番にのせる方法、決定を公開まで隠す工夫、引き分けを減らすために CPU に性格をつけた話をまとめます。" />
+
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="同時に決める押し引きゲームを、1人ずつの手番にのせる" />
+  <meta property="og:description" content="同時に決める仕組みを1人ずつの手番にのせる方法、決定を公開まで隠す工夫、CPU に性格をつけて引き分けを減らした話をまとめます。" />
+  <meta property="og:url" content="https://boardgamepia.com/blog/2026-11-20-ghost-gold.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+  <!-- ログイン（ステップ 5）。auth-config.js はデプロイのときに書き出される。ヘッダーに「ログイン / マイページ」を出す -->
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+</head>
+<body>
+  <!-- 上部のナビゲーション（左：トップへ戻るロゴ、右：メニュー。aria-current="page" が今いる場所） -->
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="./" aria-current="page">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <!-- ページ本体 -->
+  <main class="page">
+    <!-- パンくずリスト（今いる場所） -->
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ <a href="./">開発日記</a> ＞ 記事</p>
+
+    <!-- 記事のタイトル -->
+    <h1 class="page-title">同時に決める押し引きゲームを、1人ずつの手番にのせる</h1>
+    <!-- 記事の日付とタグ -->
+    <div class="post-meta">
+      <time datetime="2026-11-20">2026.11.20</time>
+      <span class="tag">Unity</span>
+      <span class="tag">オンライン対戦</span>
+      <span class="tag">ゴースト・ゴールド</span>
+    </div>
+
+    <!-- 記事の本文（h2 / h3 の見出し、段落、リスト、<pre><code> のコード、<div class="note"> の POINT の囲み） -->
+    <article class="prose">
+      <p>
+        こんにちは、ゆるめの社会人です。11本目のゲームとして、
+        <a href="../games/ghost-gold.html">ゴースト・ゴールド</a>を追加しました。
+        おばけたちが夜の館を探検して金貨を集める、2〜5人の押し引き（どこまで粘るかを決める）カードゲームです。
+        今回は、このゲームの中心にある「<strong>全員が同時に決める</strong>」をどう作ったかを中心に書きます。
+      </p>
+
+      <h2>どんなゲームか</h2>
+      <p>
+        館の部屋のカードを1枚ずつめくり、金貨が出たら探検中の人で山分けします。
+        カードがめくられるたびに、全員が「<strong>進む</strong>」か「<strong>帰る</strong>」かを伏せて決め、一斉に公開します。
+        帰った人は手持ちを金庫に入れて安全にできますが、その夜はもう稼げません。
+        進んだ人は、同じ種類の怪異に2度出会うと、おどかされてその夜の手持ちをすべて失います。
+        これを5夜くり返し、金庫の金貨と秘宝の値打ちの合計で順位を決めます。
+      </p>
+
+      <h2>カードと決まりは自分で考えた</h2>
+      <p>
+        進むか帰るかを同時に決める押し引きという種類は「インカの黄金」と同じですが、
+        カードの枚数・数字・名前、お守りや秘宝の決まりは、このゲームのために考えました。
+      </p>
+      <ul>
+        <li><strong>カードは31枚</strong>：金貨の部屋14枚（1〜14枚）、怪異4種類×3枚、秘宝5枚。</li>
+        <li><strong>秘宝は夜ごとに値打ちが上がる</strong>：1夜目の6枚ぶんから、5夜目は14枚ぶんまで。1人だけで帰った人がもらえます。後半ほど逆転のきっかけになります。</li>
+        <li><strong>お守りは1人1回</strong>：おどかされたとき、手持ちが2枚以上なら半分を守れます。大きく負けている人が、もうひと粘りできるようにしました。</li>
+      </ul>
+
+      <h2>「同時に決める」を、1人ずつの手番にのせる</h2>
+      <p>
+        これまでの10本は、どれも「手番の人が1人ずつ手を打つ」ゲームでした。
+        オンライン対戦のサーバーも、時間切れの処理も、抜けた人の席を CPU が代わる仕組みも、
+        「今はだれの番か」が1人に決まっていることを前提にしています。
+        全員が同時に決めるゲームのために、これを作り直すのは大がかりです。
+      </p>
+      <p>
+        そこで、ルールの中では<strong>席の順に1人ずつ決める</strong>ことにしました。
+        ただし、決めた中身はほかの人に見せず、探検中の<strong>最後の1人が決めた時点で、全員分を一斉に公開</strong>します。
+        先に決めた人の答えが見えないなら、順番に決めても、同時に決めるのと同じ遊び心地になります。
+      </p>
+<pre><code>// 決定を受け取ったら、次に決める人を探す。もういなければ公開する
+s.Players[p].Choice = move.Choice;
+s.Players[p].Decided = true;
+s.CurrentPlayer = NextToDecide(s);   // 探検中で、まだ決めていない一番若い席
+if (s.CurrentPlayer &lt; 0) Resolve(s); // 全員決めた → 公開して、帰る人の処理と次の1枚</code></pre>
+      <p>
+        こうすると、サーバー側はほとんどそのまま使えました。
+        90秒の時間切れも、抜けた人の席を CPU が代わるのも、「今決める番の人」に対して、ほかのゲームと同じ決まりで動きます。
+      </p>
+      <p>
+        画面では、まだ決めていない人も「進む・帰る」をすぐ押せるようにしたい、という課題が残ります。
+        CPU 対戦では、自分の番が来るまで CPU の決定を先に進めておき、自分が押したら残りの CPU が決めて公開する、という流れにしました。
+        画面に出すのは「決めた」かどうかだけなので、遊んでいる側には同時に決めているように見えます。
+      </p>
+
+      <h2>ほかの人の決定は、公開まで届けない</h2>
+      <p>
+        順番に決める作りにした以上、先に決めた人の答えが後の人に漏れると、ゲームが成り立ちません。
+        そこで、画面や CPU に渡す局面を作るときに、<strong>自分以外の決定を「まだ決めていない」に書き換え</strong>、
+        山札の並びも全部伏せるようにしました。
+      </p>
+<pre><code>// あるプレイヤーの目線の局面を作る
+var s = state.Clone();
+for (int i = 0; i &lt; s.Deck.Count; i++) s.Deck[i] = -1;          // 山札の順番は伏せる
+for (int i = 0; i &lt; s.PlayerCount; i++)
+    if (i != viewer) s.Players[i].Choice = Choice.None;          // ほかの人の決定は伏せる</code></pre>
+      <p>
+        山札の「並び」は伏せますが、「内訳」はそのまま数えられるようにしています。
+        通路に出たカードと館から消えた怪異は全員に見えているので、残りの金貨や怪異の枚数は、人間でも数えれば分かるからです。
+        画面にはこの内訳から計算した「<strong>次の1枚でおどかされる確率</strong>」を出していて、帰りどきの目安になります。
+      </p>
+
+      <div class="note">
+        オンライン対戦では、サーバーが席ごとにこの目線の局面を作ってから送ります。
+        さらに受け取る側でも、自分以外の決定に中身が入っている局面は<strong>読み込まずに捨てる</strong>ようにしました。
+        送る側にまちがいがあっても、画面に答えが出てしまわないようにするためです。
+      </div>
+
+      <h2>CPU：似た CPU ばかりだと引き分けが増えた</h2>
+      <p>
+        CPU は、見えている情報から「進んだときの見込み」と「帰ったときの見込み」を比べて決めます。
+      </p>
+      <ul>
+        <li>進んだとき：次の1枚が金貨である確率 × 金貨の平均 ÷ 残りそうな人数、に「まだ先へ進めることの値打ち」を足す</li>
+        <li>帰ったとき：通路の余りの分け前と、1人だけで帰れそうなら秘宝の値打ち</li>
+        <li>危険：おどかされる確率 × 失う手持ち（お守りで守れる分は引く）</li>
+      </ul>
+      <p>
+        最初はすべての CPU が同じ考え方でした。すると CPU どうしの対局を1,000局回したところ、
+        2人戦の<strong>45%が引き分け</strong>になりました。
+        同じ局面で同じ答えを出すので、2人がいつも同じときに帰り、金貨をぴったり同じだけ分け合ってしまうのです。
+      </p>
+      <p>
+        そこで CPU ごとに<strong>性格</strong>をつけました。危険をどれだけ重く見るか（慎重さ 0.4〜1.3）、
+        ほかの人がどれくらい帰ると読むか、どこまで粘るかを対局の最初にばらばらに決め、毎回の判断にも少し迷いを入れています。
+        これで引き分けは、2人戦で16%、3人以上では3〜6%まで減りました。
+        遊んでいても「この CPU は強気だな」「この CPU はすぐ帰るな」と分かるので、読み合いの相手としても面白くなったと思います。
+      </p>
+      <p>
+        テストでは、人数ごとに300局ずつ CPU どうしで最後まで遊ばせて、
+        途中で止まらないこと、5夜で必ず終わること、カードが31枚のまま増えも減りもしないことを確かめています。
+      </p>
+
+      <h2>見た目はゴースト・ジュエルの部品を使った</h2>
+      <p>
+        タイトル画面・ボタン・人数の選び方・結果の画面は、
+        <a href="../games/ghost-jewel.html">ゴースト・ジュエル</a>と同じネオンの部品を使い、同じ並びにしました。
+        新しく作ったのは、金貨・怪異・秘宝のカードの部品と、通路にカードを並べる部分です。
+        5人で遊ぶと通路のカードが多くなるので、18枚を超えたら1列に並べる数を増やして、画面に収まるようにしています。
+      </p>
+      <p>
+        オンライン対戦は、<a href="../games/ghost-secret.html">ゴースト・シークレット</a>などと同じ部屋の仕組みにのせ、
+        部屋の定員だけ5人に広げました。シャッフルは対局ごとの種（シード）と夜の番号から乱数を作るので、
+        同じ種なら同じ山札になり、あとから対局を再現して確かめられます。
+      </p>
+
+      <h2>作ってみて分かったこと</h2>
+      <ul>
+        <li>同時に決めるゲームでも、<strong>答えを公開まで隠せば</strong>、1人ずつの手番の仕組みのまま作れる</li>
+        <li>隠す処理は送る側だけでなく、<strong>受け取る側でも確かめる</strong>と安心できる</li>
+        <li>同じ考え方の CPU どうしは、同じ答えを出して引き分けになりやすい。<strong>性格の違い</strong>をつけると、勝負がつきやすくなり、相手としても読みがいが出る</li>
+      </ul>
+
+      <p><a href="../play/ghost-gold/">▶ ゴースト・ゴールドを遊ぶ</a></p>
+    </article>
+
+    <!-- ページ下部の戻るリンク -->
+    <div class="pager">
+      <a href="./">← 開発日記一覧</a>
+      <a href="../games/ghost-gold.html">ゲームの詳細を見る →</a>
+    </div>
+  </main>
+
+  <!-- フッター：プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
+  <footer>
+    <nav class="footer-links"><a href="../about.html">運営者情報</a><a href="../terms.html">利用規約</a><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>
