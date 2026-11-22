@@ -27,7 +27,7 @@ function collect(dir, rel = '') {
     if (entry.isDirectory()) {
       if (['play', 'auth', 'player', 'mypage'].includes(relPath)) continue; // ログインの戻り先・人ごとのページ・マイページは noindex
       out.push(...collect(path.join(dir, entry.name), relPath));
-    } else if (entry.name.endsWith('.html') && relPath !== '404.html') { // 404 ページは noindex なので載せない
+    } else if (entry.name.endsWith('.html') && relPath !== '404.html' && relPath !== 'offline.html') { // 404 とオフラインのページは noindex なので載せない
       out.push(relPath);
     }
   }

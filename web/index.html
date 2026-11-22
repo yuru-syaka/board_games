@@ -27,6 +27,10 @@
   <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
   <link rel="icon" href="images/favicon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="images/apple-touch-icon.png" />
+  <!-- PWA：ホーム画面に追加したときの名前・アイコン（manifest）と、通信できないときの案内（js/pwa.js が sw.js を登録） -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#07060f" />
+  <script src="/js/pwa.js" defer></script>
 
   <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
   <meta property="og:type" content="website" />

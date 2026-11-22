@@ -23,6 +23,7 @@ const types = {
   '.css': 'text/css; charset=utf-8',
   '.js': 'application/javascript',
   '.json': 'application/json',
+  '.webmanifest': 'application/manifest+json',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
