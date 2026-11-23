@@ -12,6 +12,8 @@
   <Project Path="BoardGames.GhostSecret.Tests/BoardGames.GhostSecret.Tests.csproj" />
   <Project Path="BoardGames.GhostGold.Logic/BoardGames.GhostGold.Logic.csproj" />
   <Project Path="BoardGames.GhostGold.Tests/BoardGames.GhostGold.Tests.csproj" />
+  <Project Path="BoardGames.GhostDerby.Logic/BoardGames.GhostDerby.Logic.csproj" />
+  <Project Path="BoardGames.GhostDerby.Tests/BoardGames.GhostDerby.Tests.csproj" />
   <Project Path="BoardGames.GhostReversa.Logic/BoardGames.GhostReversa.Logic.csproj" />
   <Project Path="BoardGames.GhostReversa.Tests/BoardGames.GhostReversa.Tests.csproj" />
   <Project Path="BoardGames.GhostTrend.Logic/BoardGames.GhostTrend.Logic.csproj" />

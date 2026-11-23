@@ -20,6 +20,7 @@ public sealed class GameRegistry
         new GhostJewelEngine(),
         new GhostSecretEngine(),
         new GhostGoldEngine(),
+        new GhostDerbyEngine(),
     });
 
     public IGameEngine? Find(string id) => _engines.GetValueOrDefault(id);

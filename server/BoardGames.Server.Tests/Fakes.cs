@@ -209,7 +209,7 @@ sealed class FakeClient :
     Vanish.Online.IMatchTransport, Gobblet.Online.IMatchTransport, Quarto.Online.IMatchTransport,
     Geister.Online.IMatchTransport, BattleLine.Online.IMatchTransport, CenturyGhost.Online.IMatchTransport,
     GhostReversa.Online.IMatchTransport, GhostTrend.Online.IMatchTransport, GhostJewel.Online.IMatchTransport,
-    GhostSecret.Online.IMatchTransport, GhostGold.Online.IMatchTransport
+    GhostSecret.Online.IMatchTransport, GhostGold.Online.IMatchTransport, GhostDerby.Online.IMatchTransport
 {
     readonly GameServer _server;
     readonly FakePush _push;
