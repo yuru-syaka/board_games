@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<!--
+  =======================================================================
+  このファイルの説明
+  -----------------------------------------------------------------------
+  ゲーム「ゴースト・ダービー」の紹介ページ（https://boardgamepia.com/games/ghost-derby.html）
+  - メインビジュアル、遊ぶボタン、基本情報、ルール、遊び方、コツ、よくある質問を載せる。
+  - 「▶ PLAY」は サイト内のプレイページ ../play/ghost-derby/（Unity WebGL）へ移動する。
+    プレイページは Unity のビルドで作られる（unity/README.md を参照。Unity プロジェクトは GhostDerby）。
+  - ルールは、ゲーム内の「あそびかた」と同じ内容にそろえる
+    （ルールの正本は shared/unity/com.boardpia.ghostderby）。
+
+  共通の決まりごと:
+  - 見た目は css/style.css（共通）と css/page.css（サブページ）で決める。
+  - 公開: infra フォルダで cdk deploy WebStack を実行すると S3 にアップロードされ、
+    CloudFront のキャッシュも消えて boardgamepia.com に反映される。
+  =======================================================================
+-->
+<html lang="ja">
+<head>
+  <!-- 文字コード（日本語を正しく表示するため UTF-8） -->
+  <meta charset="UTF-8" />
+  <!-- スマートフォンでは画面の幅に合わせて表示する -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- ページのタイトル（ブラウザのタブと検索結果に出る）と、説明文（検索結果の説明に使われる） -->
+  <title>ゴースト・ダービー｜遊び方とルール - BOARD PIA</title>
+  <meta name="description" content="6体のおばけのレースに魂コインを賭ける2〜5人のゲーム「ゴースト・ダービー」。賭け方、倍率、走る札、いたずら札、追い賭け、勝つためのコツを紹介します。" />
+
+  <!-- ファビコン（タブのアイコン）と、iPhone でホーム画面に追加したときのアイコン -->
+  <link rel="icon" href="../images/favicon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="../images/apple-touch-icon.png" />
+
+  <!-- OGP：SNS で URL がシェアされたときのカード（タイトル・説明・画像）。画像は images/ogp.png（1200×630） -->
+  <meta property="og:type" content="article" />
+  <meta property="og:site_name" content="BOARD PIA" />
+  <meta property="og:title" content="ゴースト・ダービー｜遊び方とルール" />
+  <meta property="og:description" content="どのおばけに賭ける？ 真夜中の墓場を走る6体のレースに賭ける、2〜5人のゲーム。" />
+  <meta property="og:url" content="https://boardgamepia.com/games/ghost-derby.html" />
+  <meta property="og:image" content="https://boardgamepia.com/images/ogp.png" />
+  <meta property="og:locale" content="ja_JP" />
+  <meta name="twitter:card" content="summary_large_image" />
+
+  <!-- Google Fonts（英字ロゴの Orbitron と、日本語の M PLUS Rounded 1c）。preconnect で先に接続して表示を速くする -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800&amp;family=M+PLUS+Rounded+1c:wght@400;700&amp;display=swap" rel="stylesheet" />
+  <!-- サイト共通のスタイル（style.css）と、サブページ用のスタイル（page.css） -->
+  <link href="../css/style.css" rel="stylesheet" />
+  <link href="../css/page.css" rel="stylesheet" />
+  <!-- Google AdSense：広告を表示するためのコード（ca-pub-… はサイト運営者 ID）。審査とサイトの確認にも使う。
+       ゲームの邪魔にならないよう、プレイページ（play/）には入れていない -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9604866179636920"
+       crossorigin="anonymous"></script>
+  <!-- ログイン（ステップ 5）。auth-config.js はデプロイのときに書き出される。ヘッダーに「ログイン / マイページ」を出す -->
+  <script src="/js/auth-config.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+</head>
+<body>
+  <!-- 上部のナビゲーション（左：トップへ戻るロゴ、右：メニュー。aria-current="page" が今いる場所） -->
+  <nav class="site-nav">
+    <a class="brand" href="../">BOARD PIA</a>
+    <ul>
+      <li><a href="../" aria-current="page">ゲーム</a></li>
+      <li><a href="/ranking/">ランキング</a></li>
+      <li><a href="../blog/">開発日記</a></li>
+    </ul>
+  </nav>
+
+  <!-- ページ本体 -->
+  <main class="page">
+    <!-- パンくずリスト（今いる場所） -->
+    <p class="breadcrumb"><a href="../">ホーム</a> ＞ ゴースト・ダービー</p>
+
+    <!-- ページの大見出し（ゲーム名）とキャッチコピー -->
+    <h1 class="page-title">ゴースト・ダービー</h1>
+    <p class="lead">どのおばけに賭ける？<br />真夜中の墓場を走る6体のレースに賭ける、2〜5人のゲーム。</p>
+
+    <!-- メインビジュアル（トップページのカードと同じ SVG アイコン）
+         左：走るおばけ 2 体、右：魂コインとゴールの旗 -->
+    <div class="hero-visual">
+      <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="走るおばけ2体と、魂コインと、ゴールの旗のアイコン">
+        <path d="M18 102 H182" stroke="#9b5cff" stroke-width="3" />
+        <path d="M30 96 V62 a18 18 0 0 1 36 0 V96 l-6 -5 -6 5 -6 -5 -6 5 -6 -5 z" stroke="#22f3ff" stroke-width="3.5" />
+        <circle cx="42" cy="63" r="2.8" fill="#ffffff" />
+        <circle cx="54" cy="63" r="2.8" fill="#ffffff" />
+        <path d="M84 96 V52 a18 18 0 0 1 36 0 V96 l-6 -5 -6 5 -6 -5 -6 5 -6 -5 z" stroke="#ff2fd6" stroke-width="3.5" />
+        <circle cx="96" cy="53" r="2.8" fill="#ffffff" />
+        <circle cx="108" cy="53" r="2.8" fill="#ffffff" />
+        <path d="M8 58 H22 M4 72 H20" stroke="#b6ff3b" stroke-width="3" />
+        <path d="M150 102 V22" stroke="#ffffff" stroke-width="3" />
+        <path d="M150 24 H184 V48 H150 z" stroke="#ffd23f" stroke-width="3" />
+        <path d="M150 36 H184 M162 24 V48 M173 24 V48" stroke="#ffd23f" stroke-width="2" />
+        <circle cx="134" cy="84" r="10" stroke="#ffd23f" stroke-width="3" fill="rgba(255, 210, 63, 0.25)" />
+      </svg>
+    </div>
+
+    <!-- 遊ぶボタン：サイト内のプレイページ（../play/ghost-derby/、Unity WebGL）へ移動する。ページの最後にも同じボタンがある -->
+    <a class="play-big" href="../play/ghost-derby/">▶ PLAY</a>
+
+    <!-- 基本情報（ジャンル・人数・時間など）。dl / dt / dd の表 -->
+    <section class="panel">
+      <dl class="spec">
+        <dt>ジャンル</dt><dd>レースに賭けるゲーム／読み合い・カード</dd>
+        <dt>プレイ人数</dt><dd>2〜5人（CPU対戦はあなた＋CPU／オンラインは人間だけで2〜5人）</dd>
+        <dt>プレイ時間</dt><dd>1ゲーム 約5〜8分（全3レース）</dd>
+        <dt>カード</dt><dd>走る札 30枚（おばけ6体×5枚）・いたずら札 30枚（5種類×6枚）</dd>
+        <dt>操作</dt><dd>マウスクリック／タップ（おばけ・枚数・札を選ぶだけ）</dd>
+        <dt>対応環境</dt><dd>PC・スマートフォンのブラウザ（このサイトでそのまま遊べます）</dd>
+      </dl>
+    </section>
+
+    <!-- 本文：どんなゲーム？ ／ ルール ／ カード ／ 遊び方 ／ 勝つためのコツ ／ よくある質問 -->
+    <article class="prose">
+      <h2>どんなゲーム？</h2>
+      <p>
+        真夜中の墓場を走る<strong>6体のおばけのレース</strong>に、魂コインを賭けるゲームです。
+        おばけにはレースごとに<strong>2倍・3倍・5倍・8倍</strong>の倍率がつきます。倍率が低いおばけは勝ちやすく、高いおばけはめったに勝てませんが、当たると大きく増えます。
+      </p>
+      <p>
+        賭けたあとは、手札の<strong>いたずら札</strong>を伏せてレースの山札に混ぜ、自分の賭けたおばけを後押ししたり、ライバルの足を引っぱったりします。
+        全3レースのあと、コインがいちばん多い人の勝ちです。
+      </p>
+      <p>
+        レースに賭けて盛り上がるボードゲーム「Hot Streak」と同じ種類のゲームですが、
+        倍率、走る札、追い賭け、いたずら札の内容は、このゲームのために作ったものです。
+      </p>
+
+      <h2>ルール</h2>
+      <p>全員 <strong>コイン10枚</strong>と<strong>いたずら札3枚</strong>で始めます。1レースは次の順に進みます。</p>
+      <ol>
+        <li><strong>倍率の公開</strong>：2倍・2倍・3倍・3倍・5倍・8倍を、6体のおばけにランダムに配ります。</li>
+        <li><strong>先賭け</strong>：全員が1体を選び、<strong>1〜5枚</strong>を伏せて賭けます。全員が決めたら一斉に公開します。</li>
+        <li><strong>いたずら</strong>：手札から1枚を選び（相手が必要な札はおばけも選び）、伏せたままレースの山札に混ぜます。</li>
+        <li><strong>レース</strong>：山札を1枚ずつめくり、おばけを進めます。ゴールは12マス先です。</li>
+        <li><strong>追い賭け</strong>：先頭が6マスを越えると、1回だけ<strong>1〜3枚</strong>を追加で賭けられます（パスもできます）。倍率はそのときの順位で決まります。</li>
+        <li><strong>払い戻し</strong>：3体がゴールしたらレース終了です。</li>
+      </ol>
+      <div class="table-wrap">
+        <table>
+          <colgroup><col style="width: 9em" /><col /></colgroup>
+          <thead><tr><th>着順</th><th>受け取るコイン</th></tr></thead>
+          <tbody>
+            <tr><td>1着</td><td>賭けたコイン × 倍率</td></tr>
+            <tr><td>2着</td><td>賭けたコインがそのまま戻る</td></tr>
+            <tr><td>3着以下</td><td>没収</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        たとえば3倍のおばけに3枚賭けると、1着なら9枚、2着なら3枚が戻ります。
+        レースの始めにコインが3枚より少ない人は、3枚まで補充されます。手札は毎レース1枚引いて3枚に戻します。
+      </p>
+
+      <h2>勝敗</h2>
+      <p>3レースのあと、<strong>コインがいちばん多い人</strong>の勝ち。同じなら、<strong>1着を当てた回数</strong>が多い人が上です。それも同じなら引き分けです。</p>
+
+      <h2>走る札</h2>
+      <p>おばけは倍率ごとに5枚の走る札を持っています。数字は進むマス数で、「休」の札では進みません。ゲーム中も「カード一覧」でいつでも確認できます。</p>
+      <div class="table-wrap">
+        <table>
+          <colgroup><col style="width: 5em" /><col style="width: 4em" /><col style="width: 11em" /><col /></colgroup>
+          <thead><tr><th>倍率</th><th>体数</th><th>走る札</th><th>特徴</th></tr></thead>
+          <tbody>
+            <tr><td>2倍</td><td>2体</td><td>2・2・2・2・3</td><td>毎回2マス以上。安定して速い</td></tr>
+            <tr><td>3倍</td><td>2体</td><td>1・1・2・2・3</td><td>1〜3マス</td></tr>
+            <tr><td>5倍</td><td>1体</td><td>休・1・1・2・4</td><td>休みと4マスがあり、波が大きい</td></tr>
+            <tr><td>8倍</td><td>1体</td><td>休・休・1・1・5</td><td>休みが2枚。5マスで一発逆転</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>いたずら札</h2>
+      <div class="table-wrap">
+        <table>
+          <colgroup><col style="width: 7em" /><col style="width: 4em" /><col /></colgroup>
+          <thead><tr><th>名前</th><th>枚数</th><th>効果（山札からめくられたときに起きる）</th></tr></thead>
+          <tbody>
+            <tr><td>ダッシュ</td><td>6枚</td><td>選んだおばけが3マス進む</td></tr>
+            <tr><td>つまずき</td><td>6枚</td><td>選んだおばけが2マス戻る</td></tr>
+            <tr><td>入れ替え</td><td>6枚</td><td>選んだおばけが、すぐ前のおばけと場所を交代する</td></tr>
+            <tr><td>金縛り</td><td>6枚</td><td>選んだおばけの、次の1回の移動を休みにする</td></tr>
+            <tr><td>追い風</td><td>6枚</td><td>いちばん後ろのおばけが2マス進む（相手は選ばない）</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2>追い賭けの倍率</h2>
+      <p>追い賭けは、そのときの順位で倍率が変わります。先頭はほぼ勝てそうな代わりに増えず、後ろのおばけほど倍率が上がります。すでにゴールしたおばけには賭けられません。</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>先頭</th><th>2位</th><th>3位</th><th>4位以下</th></tr></thead>
+          <tbody><tr><td>1倍</td><td>2倍</td><td>3倍</td><td>5倍</td></tr></tbody>
+        </table>
+      </div>
+
+      <h2>勝つためのコツ</h2>
+      <ul>
+        <li><strong>倍率だけで選ばない</strong>：8倍は当たると大きいですが、休みの札が2枚あります。2倍や3倍でこつこつ増やすのも立派な作戦です。</li>
+        <li><strong>ほかの人の賭けを見る</strong>：先賭けは公開されます。みんなが賭けたおばけは、いたずら札で狙われやすくなります。</li>
+        <li><strong>いたずら札は賭けとセットで</strong>：ダッシュは自分のおばけに、つまずきや金縛りはいちばん怖いライバルに使いましょう。</li>
+        <li><strong>追い賭けは2位・3位が狙い目</strong>：先頭に賭けても1倍なので、1着でも増えません。逆転できそうなおばけを探しましょう。</li>
+        <li><strong>最後のレースは点差を見る</strong>：負けているなら大きく賭けて逆転を、勝っているなら少なく賭けて逃げ切りを。</li>
+      </ul>
+
+      <h2>よくある質問</h2>
+      <h3>ひとりでも遊べますか？</h3>
+      <p>はい。タイトル画面で人数を選んで「CPUと対戦」を押すと、CPU を相手に遊べます。CPU は見えている情報だけで考えます。</p>
+      <h3>オンラインで友だちと遊べますか？</h3>
+      <p>オンラインは<strong>人間だけの2〜5人戦</strong>です。「ランダムマッチ」を押すと、ほかのプレイヤーを待っている部屋に入ります（なければ自分の部屋ができます）。最初に部屋に入った人がホストで、2人そろうと「開始する」を押せます。5人そろうと自動で始まります。友だちと遊ぶときは、ホストが「ルームを作る」で表示された4桁のコードを伝え、ほかの人が「ルームに入る」で入力します。</p>
+      <h3>ほかの人の賭けや手札は先に見えますか？</h3>
+      <p>見えません。賭けは全員が決めるまでサーバーから届かず、ほかの人の手札と山札の順番も届きません。見えるのは「決めた」かどうかだけです。</p>
+      <h3>途中で抜けた人がいたらどうなりますか？</h3>
+      <p>対局の途中で抜けた人や、通信が切れて90秒戻らない人の席は、CPUが代わって最後まで続けます。1手の制限時間（90秒）を過ぎた人の手は、ほかの人が「手を進める」を押すと自動で進み、3回続くとCPUが代わります。抜けた人は最下位として記録されます。</p>
+      <h3>オンラインの勝敗はどう決まりますか？</h3>
+      <p>最後のコインの<strong>順位</strong>で決まります。1位がひとりなら勝ち、1位が並んだら引き分け、2位以下は負けとして戦績に記録されます。ログインした人どうしのランダムマッチでは、順位に応じてレートが動きます。</p>
+    </article>
+
+    <!-- ページの最後の遊ぶボタン（ルールを読み終えた人向け） -->
+    <a class="play-big" href="../play/ghost-derby/">▶ PLAY</a>
+
+    <!-- ページ下部の戻るリンク -->
+    <div class="pager">
+      <a href="../">← ゲーム一覧に戻る</a>
+    </div>
+  </main>
+
+  <!-- フッター：運営者情報・利用規約・プライバシーポリシー・お問い合わせへのリンクと、コピーライト -->
+  <footer>
+    <nav class="footer-links"><a href="../about.html">運営者情報</a><a href="../terms.html">利用規約</a><a href="../privacy.html">プライバシーポリシー</a><a href="../contact.html">お問い合わせ</a></nav>
+    &copy; 2026 ゆるめの社会人
+  </footer>
+</body>
+</html>

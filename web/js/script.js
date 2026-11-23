@@ -232,6 +232,24 @@ const goldIcon = `
     <circle cx="166" cy="86" r="2.8" fill="#22f3ff"/>
   </svg>`;
 
+// ネオン風の「走るおばけ・魂コイン・ゴールの旗」アイコン（ゴースト・ダービー用）
+//   左：走るおばけ 2 体（シアン・ピンク）、右：魂コイン（金）とゴールの旗
+const derbyIcon = `
+  <svg viewBox="0 0 200 120" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M18 102 H182" stroke="#9b5cff" stroke-width="3" />
+    <path d="M30 96 V62 a18 18 0 0 1 36 0 V96 l-6 -5 -6 5 -6 -5 -6 5 -6 -5 z" stroke="#22f3ff" stroke-width="3.5" />
+    <circle cx="42" cy="63" r="2.8" fill="#ffffff" />
+    <circle cx="54" cy="63" r="2.8" fill="#ffffff" />
+    <path d="M84 96 V52 a18 18 0 0 1 36 0 V96 l-6 -5 -6 5 -6 -5 -6 5 -6 -5 z" stroke="#ff2fd6" stroke-width="3.5" />
+    <circle cx="96" cy="53" r="2.8" fill="#ffffff" />
+    <circle cx="108" cy="53" r="2.8" fill="#ffffff" />
+    <path d="M8 58 H22 M4 72 H20" stroke="#b6ff3b" stroke-width="3" />
+    <path d="M150 102 V22" stroke="#ffffff" stroke-width="3" />
+    <path d="M150 24 H184 V48 H150 z" stroke="#ffd23f" stroke-width="3" />
+    <path d="M150 36 H184 M162 24 V48 M173 24 V48" stroke="#ffd23f" stroke-width="2" />
+    <circle cx="134" cy="84" r="10" stroke="#ffd23f" stroke-width="3" fill="rgba(255, 210, 63, 0.25)" />
+  </svg>`;
+
 // ---------------------------------------------------------------------------
 // ゲームの一覧（この順番でトップページに並ぶ）
 //   ▼ ゲームを追加するときは、ここに { ... } を1つ増やすだけ
@@ -350,6 +368,15 @@ const games = [
     players: [2, 5],
     image: "",
     icon: goldIcon
+  },
+  {
+    title: "ゴースト・ダービー",
+    description: "6体のおばけのレースにコインを賭ける2〜5人のゲーム。いたずら札と途中の追い賭けで、最後まで順位が動く。",
+    url: "play/ghost-derby/",
+    detail: "games/ghost-derby.html",
+    players: [2, 5],
+    image: "",
+    icon: derbyIcon
   }
 ];
 
